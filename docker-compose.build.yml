@@ -1,0 +1,4 @@
+services:
+  mqtt-ir-service:
+    build: .
+    image: ${IMAGE_PREFIX}:${BRANCH}-${SUFFIX}

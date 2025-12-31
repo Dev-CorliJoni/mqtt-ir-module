@@ -1,0 +1,19 @@
+services:
+  mqtt-ir-module:
+    image: mqtt-ir-module:main
+    container_name: mqtt-ir-module
+    restart: unless-stopped
+
+    devices:
+      - "/dev/lirc0:/dev/lirc0"
+
+    privileged: false
+    cap_add: []
+
+    # Get values with "getent group video@ and "getent group gpio"
+    group_add:
+      - "<VIDEO_GID>"
+      - "<GPIO_GID>"
+
+    volumes:
+      - "./lirc/lircd.conf.d:/etc/lirc/lircd.conf.d:ro"

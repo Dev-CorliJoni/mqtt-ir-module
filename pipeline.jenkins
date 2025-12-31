@@ -1,0 +1,137 @@
+pipeline {
+    agent none
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '5'))
+        skipDefaultCheckout()
+        parallelsAlwaysFailFast()
+    }
+
+    environment {
+        PROJECT = "mqtt-ir-module"
+        IMAGE_PREFIX = "${REGISTRY}/${PROJECT}"
+    }
+
+    parameters {
+        gitParameter(
+            name: 'GIT_REF', type: 'PT_BRANCH_TAG', defaultValue: 'main',
+            description: 'Branch or Tag to build',
+            useRepository: "${GITHUB_PREFIX}/mqtt-ir-module.git"
+        )
+    }
+
+    stages {
+        stage('Checkout Code') {
+            agent { label 'agent-01' }
+            steps {
+                script {
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: params.GIT_REF]],
+                        userRemoteConfigs: [[url: "${GITHUB_PREFIX}/${PROJECT}.git"]],
+                        extensions: [[$class: 'CleanBeforeCheckout']]
+                    ])
+                    stash name: 'ws', includes: '**/*'
+                }
+            }
+        }
+
+        stage('Determine Build Tag') {
+            agent { label 'agent-01' }
+            steps {
+                script {
+                    env.BRANCH = params.GIT_REF
+                        .replace('refs/heads/', '')
+                        .replace('refs/tags/', '')
+                        .replaceFirst('^origin/', '')
+
+                    // Prefer annotated tags; fallback to any tag if present
+                    def annotatedTags = sh(
+                        script: "git for-each-ref refs/tags --points-at HEAD --format='%(refname:short) %(objecttype)' | awk '\$2==\"tag\"{print \$1}'",
+                        returnStdout: true
+                    ).trim()
+
+                    def anyTags = sh(script: "git tag --points-at HEAD", returnStdout: true).trim()
+
+                    def chosenTag = ""
+                    if (annotatedTags) {
+                        chosenTag = annotatedTags.tokenize('\n')[0]
+                    } else if (anyTags) {
+                        chosenTag = anyTags.tokenize('\n')[0]
+                    }
+
+                    def isTagged = chosenTag ? true : false
+                    def desc = ""
+
+                    if (isTagged) {
+                        desc = sh(script: "git show ${chosenTag} --no-patch --format=%B", returnStdout: true).trim()
+                        echo "Commit is tagged with ${chosenTag}, description: ${desc}"
+                        env.BUILD_TAG = chosenTag
+                    } else {
+                        echo "No tag on HEAD, using branch ${env.BRANCH}"
+                        env.BUILD_TAG = env.BRANCH
+                    }
+
+                    env.IS_TAG = isTagged.toString()
+                    env.TAG_DESC = desc
+                    echo "Using BUILD_TAG=${env.BUILD_TAG}, IS_TAG=${env.IS_TAG}, BRANCH=${env.BRANCH}"
+                }
+            }
+        }
+
+        stage('Build & Push') {
+            matrix {
+                axes {
+                    axis { name 'ARCH_SUFFIX'; values 'amd64', 'arm64' }
+                }
+                agent none
+                stages {
+                    stage('Build+Push') {
+                        agent { label "${ARCH_SUFFIX == 'amd64' ? 'agent-01' : 'agent-02-arm'}" }
+                        environment { SUFFIX = "${ARCH_SUFFIX}" }
+                        steps {
+                            unstash 'ws'
+                            sh "docker-compose -f docker-compose.build.yml build"
+                            sh "docker-compose -f docker-compose.build.yml push"
+                            echo "Published ${IMAGE_PREFIX}:${env.BRANCH}-${ARCH_SUFFIX}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Create & Push Manifests') {
+            agent { label 'agent-01' }
+            steps {
+                script {
+                    def image = "${IMAGE_PREFIX}"
+                    def branch = env.BRANCH
+                    def tag = env.BUILD_TAG
+
+                    // Branch manifest: points to the two per-arch tags
+                    sh "docker manifest rm ${image}:${branch} || true"
+                    sh "docker manifest create ${image}:${branch} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                    sh "docker manifest push --purge ${image}:${branch}"
+
+                    if (env.IS_TAG.toBoolean()) {
+                        // Tag manifest
+                        sh "docker manifest rm ${image}:${tag} || true"
+                        sh "docker manifest create ${image}:${tag} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                        sh "docker manifest push --purge ${image}:${tag}"
+                        echo "Published ${image}:${tag}"
+
+                        // Latest manifest
+                        sh "docker manifest rm ${image}:latest || true"
+                        sh "docker manifest create ${image}:latest ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                        sh "docker manifest push --purge ${image}:latest"
+                        echo "Published ${image}:latest"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "✅ Build+Push complete (tag=${env.BUILD_TAG})" }
+        failure { echo "❌ Pipeline failed" }
+    }
+}

@@ -1,0 +1,15 @@
+# Ignore custom files/directories
+.jh*
+.DS_Store
+.git/
+
+dist
+
+venv
+.idea
+.venv
+.direnv
+.envrc
+.env
+
+*/__pycache__
