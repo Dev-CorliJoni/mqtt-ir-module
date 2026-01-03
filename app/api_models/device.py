@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
 
-class DeviceCreate(BaseModel):
+class Device(BaseModel):
     name: str
+    

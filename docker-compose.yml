@@ -1,6 +1,6 @@
 services:
   mqtt-ir-module:
-    build: .
+    image: docker.home/mqtt-ir-module:create-architecture-and-receiver
     container_name: mqtt-ir-module
     restart: unless-stopped
 
@@ -11,6 +11,7 @@ services:
       - "./data:/data"
 
     environment:
+      - IR_DEVICE=/dev/lirc0
       - LEARN_TIMEOUT_S_DEFAULT=600
       # Optional:
       # - API_KEY=change-me

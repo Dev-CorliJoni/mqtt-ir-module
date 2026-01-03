@@ -1,3 +1,3 @@
-from .device import DeviceCreate
-from .learning_mode import LearnStart
-from .mapping import MappingCreate
+from .device import Device
+from .learning_start import LearnStart
+from .code import Code
