@@ -1,5 +1,6 @@
 # Ignore custom files/directories
 .jh*
+rpi5_ir_setup.md
 .DS_Store
 .git/
 
