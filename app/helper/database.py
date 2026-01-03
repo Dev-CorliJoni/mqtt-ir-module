@@ -27,6 +27,7 @@ class Database:
     def init(self) -> None:
         conn = self._connect()
         try:
+            # Create base schema (does not modify existing tables)
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS devices (
@@ -52,12 +53,21 @@ class Database:
                 """
             )
 
+            # --- Migrations for existing databases ---
+            device_cols = {r["name"] for r in conn.execute("PRAGMA table_info(devices)").fetchall()}
+            if "lirc_name" not in device_cols:
+                conn.execute("ALTER TABLE devices ADD COLUMN lirc_name TEXT NULL;")
+
             # Backfill lirc_name for existing devices if missing
             rows = conn.execute("SELECT id, name, lirc_name FROM devices").fetchall()
             for r in rows:
-                if not (r["lirc_name"] and str(r["lirc_name"]).strip()):
+                current = str(r["lirc_name"] or "").strip()
+                if not current:
                     lirc_name = self._make_lirc_name(str(r["name"]))
-                    conn.execute("UPDATE devices SET lirc_name = ? WHERE id = ?", (lirc_name, int(r["id"])))
+                    conn.execute(
+                        "UPDATE devices SET lirc_name = ? WHERE id = ?",
+                        (lirc_name, int(r["id"])),
+                    )
 
             conn.commit()
         finally:
@@ -79,7 +89,6 @@ class Database:
                 raise ValueError("Unknown device_id")
             lirc_name = str(row["lirc_name"] or "").strip()
             if not lirc_name:
-                # Should not happen due to init/backfill, but keep safe.
                 name_row = c.execute("SELECT name FROM devices WHERE id = ?", (device_id,)).fetchone()
                 assert name_row is not None
                 lirc_name = self._make_lirc_name(str(name_row["name"]))
@@ -104,7 +113,6 @@ class Database:
                 "INSERT OR IGNORE INTO devices(name, lirc_name, created_at) VALUES(?, ?, ?)",
                 (name, lirc_name, now),
             )
-            # Ensure lirc_name exists (older rows)
             c.execute(
                 """
                 UPDATE devices
@@ -160,7 +168,10 @@ class Database:
     def get_device_by_name(self, name: str, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
         c, close = self._use_conn(conn)
         try:
-            row = c.execute("SELECT id, name, lirc_name, created_at FROM devices WHERE name = ?", (name.strip(),)).fetchone()
+            row = c.execute(
+                "SELECT id, name, lirc_name, created_at FROM devices WHERE name = ?",
+                (name.strip(),),
+            ).fetchone()
             if not row:
                 raise ValueError("Unknown device")
             return dict(row)
@@ -171,7 +182,10 @@ class Database:
     def get_device(self, device_id: int, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
         c, close = self._use_conn(conn)
         try:
-            row = c.execute("SELECT id, name, lirc_name, created_at FROM devices WHERE id = ?", (device_id,)).fetchone()
+            row = c.execute(
+                "SELECT id, name, lirc_name, created_at FROM devices WHERE id = ?",
+                (device_id,),
+            ).fetchone()
             if not row:
                 raise ValueError("Unknown device_id")
             return dict(row)
@@ -205,7 +219,6 @@ class Database:
         c, close = self._use_conn(conn)
         try:
             now = time.time()
-            # Ensure device exists
             row = c.execute("SELECT id FROM devices WHERE id = ?", (device_id,)).fetchone()
             if not row:
                 raise ValueError("Unknown device_id")
@@ -241,7 +254,6 @@ class Database:
             if not row:
                 raise ValueError("Unknown code_id")
 
-            # Can raise sqlite3.IntegrityError due to unique index per device on action_name
             c.execute("UPDATE ir_codes SET action_name = ? WHERE id = ?", (action_name, code_id))
             c.commit()
 
@@ -306,5 +318,4 @@ class Database:
         finally:
             if close:
                 c.close()
-                
                 
