@@ -11,10 +11,10 @@ WORKDIR /opt/app
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
-COPY app/requirements.txt /opt/app/requirements.txt
+COPY backend/requirements.txt /opt/app/requirements.txt
 RUN pip install --no-cache-dir -r /opt/app/requirements.txt
 
-COPY app /opt/app
+COPY backend /opt/app
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
