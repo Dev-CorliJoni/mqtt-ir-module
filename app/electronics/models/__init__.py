@@ -1,1 +1,2 @@
-from .learn_session import LearnSession
+from .learning_session import LearningSession
+from .log_entry import LogEntry

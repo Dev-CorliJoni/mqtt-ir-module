@@ -12,9 +12,23 @@ services:
 
     environment:
       - IR_DEVICE=/dev/lirc0
-      - LEARN_TIMEOUT_S_DEFAULT=600
+      - DATA_DIR=/data
+      - DEBUG=false
+      - IR_WIDEBAND=false
+
+      # Learning defaults (used as API defaults if you wire them through)
+      - PRESS_TAKES_DEFAULT=5
+      - CAPTURE_TIMEOUT_MS_DEFAULT=3000
+      - HOLD_IDLE_TIMEOUT_MS=300
+
+      # Aggregation defaults
+      - AGGREGATE_ROUND_TO_US=10
+      - AGGREGATE_MIN_MATCH_RATIO=0.6
+
       # Optional:
       # - API_KEY=change-me
 
     ports:
       - "8000:8000"
+      
+      gib mir befehl zum generieren von x-api-key
