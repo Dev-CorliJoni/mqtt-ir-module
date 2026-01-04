@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, APIRouter
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from api_models import (
     RemoteCreate,
@@ -64,10 +67,19 @@ async def lifespan(app: FastAPI):
         learning.stop()
 
 
-app = FastAPI(title="mqtt-ir-module", version="0.3.0", lifespan=lifespan)
+app = FastAPI(
+    title="mqtt-ir-module",
+    version="0.3.0",
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
+
+api = APIRouter(prefix="/api")
 
 
-@app.get("/health")
+@api.get("/health")
 def health() -> Dict[str, Any]:
     return {
         "ok": True,
@@ -84,7 +96,7 @@ def health() -> Dict[str, Any]:
 # -----------------
 
 
-@app.post("/remotes")
+@api.post("/remotes")
 def create_remote(body: RemoteCreate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
@@ -93,12 +105,12 @@ def create_remote(body: RemoteCreate, x_api_key: Optional[str] = Header(default=
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/remotes")
+@api.get("/remotes")
 def list_remotes() -> List[Dict[str, Any]]:
     return database.remotes.list()
 
 
-@app.put("/remotes/{remote_id}")
+@api.put("/remotes/{remote_id}")
 def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
@@ -115,7 +127,7 @@ def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] =
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.delete("/remotes/{remote_id}")
+@api.delete("/remotes/{remote_id}")
 def delete_remote(remote_id: int, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
@@ -131,7 +143,7 @@ def delete_remote(remote_id: int, x_api_key: Optional[str] = Header(default=None
 # -----------------
 
 
-@app.get("/remotes/{remote_id}/buttons")
+@api.get("/remotes/{remote_id}/buttons")
 def list_buttons(remote_id: int) -> List[Dict[str, Any]]:
     try:
         database.remotes.get(remote_id)
@@ -140,7 +152,7 @@ def list_buttons(remote_id: int) -> List[Dict[str, Any]]:
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.put("/buttons/{button_id}")
+@api.put("/buttons/{button_id}")
 def rename_button(button_id: int, body: ButtonUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
@@ -151,7 +163,7 @@ def rename_button(button_id: int, body: ButtonUpdate, x_api_key: Optional[str] =
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.delete("/buttons/{button_id}")
+@api.delete("/buttons/{button_id}")
 def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
@@ -167,7 +179,7 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 # -----------------
 
 
-@app.post("/learn/start")
+@api.post("/learn/start")
 def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
@@ -180,7 +192,7 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/learn/capture")
+@api.post("/learn/capture")
 def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
 
@@ -203,13 +215,13 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/learn/stop")
+@api.post("/learn/stop")
 def learn_stop(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     return learning.stop()
 
 
-@app.get("/learn/status")
+@api.get("/learn/status")
 def learn_status() -> Dict[str, Any]:
     return learning.status()
 
@@ -219,7 +231,7 @@ def learn_status() -> Dict[str, Any]:
 # -----------------
 
 
-@app.post("/send")
+@api.post("/send")
 def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
 
@@ -232,3 +244,33 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+app.include_router(api)
+
+# -----------------
+# Frontend (Vite build) at /
+# -----------------
+
+static_dir = Path(__file__).parent / "static"
+assets_dir = static_dir / "assets"
+index_html = static_dir / "index.html"
+
+if assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+
+@app.get("/")
+def frontend_index():
+    if index_html.exists():
+        return FileResponse(index_html)
+    raise HTTPException(status_code=404, detail="Frontend not built (missing static/index.html)")
+
+
+@app.get("/{path:path}")
+def frontend_fallback(path: str):
+    file_path = static_dir / path
+    if file_path.is_file():
+        return FileResponse(file_path)
+    if index_html.exists():
+        return FileResponse(index_html)
+    raise HTTPException(status_code=404, detail="Frontend not built (missing static/index.html)")
