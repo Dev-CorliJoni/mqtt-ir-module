@@ -1,4 +1,4 @@
-# app/electronics/ir_ctl_engine.py
+
 import os
 import subprocess
 import tempfile
@@ -105,3 +105,4 @@ class IrCtlEngine:
                 os.remove(path)
         except Exception:
             pass
+        
