@@ -1,3 +1,4 @@
+# app/electronics/ir_ctl_engine.py
 import os
 import subprocess
 import tempfile
@@ -23,7 +24,7 @@ class IrCtlEngine:
             "-d",
             self._ir_device,
             f"--receive={path}",
-            "--oneshot",
+            "--one-shot",
         ]
         if use_wideband:
             cmd.append("--wideband")
@@ -35,9 +36,7 @@ class IrCtlEngine:
                 text=True,
                 timeout=max(timeout_ms / 1000.0, 0.1),
             )
-        except subprocess.TimeoutExpired as e:
-            stdout = (e.stdout or "").strip()
-            stderr = (e.stderr or "").strip()
+        except subprocess.TimeoutExpired:
             self._safe_remove(path)
             raise TimeoutError("No IR message received within timeout") from None
 
@@ -46,9 +45,12 @@ class IrCtlEngine:
 
         raw = ""
         try:
-            raw = self._read_first_non_empty_line(path)
+            raw = self._read_all_text(path)
         finally:
             self._safe_remove(path)
+
+        if proc.returncode != 0:
+            raise ValueError(f"ir-ctl receive failed (code={proc.returncode}): {stderr or stdout}")
 
         if not raw:
             raise TimeoutError("No IR message received")
@@ -89,16 +91,13 @@ class IrCtlEngine:
 
         return stdout, stderr
 
-    def _read_first_non_empty_line(self, path: str) -> str:
+    def _read_all_text(self, path: str) -> str:
         try:
             with open(path, "r", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    stripped = line.strip()
-                    if stripped:
-                        return stripped
+                content = f.read()
         except FileNotFoundError:
             return ""
-        return ""
+        return (content or "").strip()
 
     def _safe_remove(self, path: str) -> None:
         try:

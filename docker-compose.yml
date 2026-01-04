@@ -30,5 +30,3 @@ services:
 
     ports:
       - "8000:8000"
-      
-      gib mir befehl zum generieren von x-api-key
