@@ -4,6 +4,7 @@ rpi5_ir_setup.md
 .DS_Store
 .git/
 frontend/node_modules
+frontend/dist
 frontend/pnpm-lock.yaml
 
 dist

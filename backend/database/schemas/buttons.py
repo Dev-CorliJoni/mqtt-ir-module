@@ -1,7 +1,6 @@
-import os
 import sqlite3
 import time
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 
 from database.database_base import DatabaseBase
 
@@ -14,21 +13,22 @@ class Buttons(DatabaseBase):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 remote_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
+                icon TEXT NULL,
                 created_at REAL NOT NULL,
                 updated_at REAL NOT NULL,
                 FOREIGN KEY(remote_id) REFERENCES remotes(id) ON DELETE CASCADE,
                 UNIQUE(remote_id, name)
             );
-            
+
             CREATE INDEX IF NOT EXISTS ix_buttons_remote_id ON buttons(remote_id);
             """
         )
-        
+
     # -----------------------------
     # Buttons
     # -----------------------------
 
-    def create(self, remote_id: int, name: str, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
+    def create(self, remote_id: int, name: str, icon: Optional[str] = None, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
         name = name.strip()
         if not name:
             raise ValueError("Button name must not be empty")
@@ -41,13 +41,13 @@ class Buttons(DatabaseBase):
 
             now = time.time()
             c.execute(
-                "INSERT OR IGNORE INTO buttons(remote_id, name, created_at, updated_at) VALUES(?, ?, ?, ?)",
-                (remote_id, name, now, now),
+                "INSERT OR IGNORE INTO buttons(remote_id, name, icon, created_at, updated_at) VALUES(?, ?, ?, ?, ?)",
+                (remote_id, name, icon, now, now),
             )
             c.commit()
 
             row = c.execute(
-                "SELECT id, remote_id, name, created_at, updated_at FROM buttons WHERE remote_id = ? AND name = ?",
+                "SELECT id, remote_id, name, icon, created_at, updated_at FROM buttons WHERE remote_id = ? AND name = ?",
                 (remote_id, name),
             ).fetchone()
             if not row:
@@ -61,7 +61,7 @@ class Buttons(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, remote_id, name, created_at, updated_at FROM buttons WHERE id = ?",
+                "SELECT id, remote_id, name, icon, created_at, updated_at FROM buttons WHERE id = ?",
                 (button_id,),
             ).fetchone()
             if not row:
@@ -75,7 +75,7 @@ class Buttons(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, remote_id, name, created_at, updated_at FROM buttons WHERE remote_id = ? AND name = ?",
+                "SELECT id, remote_id, name, icon, created_at, updated_at FROM buttons WHERE remote_id = ? AND name = ?",
                 (remote_id, name.strip()),
             ).fetchone()
             return dict(row) if row else None
@@ -88,7 +88,7 @@ class Buttons(DatabaseBase):
         try:
             rows = c.execute(
                 """
-                SELECT b.id, b.remote_id, b.name, b.created_at, b.updated_at,
+                SELECT b.id, b.remote_id, b.name, b.icon, b.created_at, b.updated_at,
                        CASE WHEN s.button_id IS NULL THEN 0 ELSE 1 END AS has_press,
                        CASE WHEN s.hold_initial IS NULL OR s.hold_initial = '' THEN 0 ELSE 1 END AS has_hold
                 FROM buttons b
@@ -103,7 +103,7 @@ class Buttons(DatabaseBase):
             if close:
                 c.close()
 
-    def rename(self, button_id: int, name: str, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
+    def rename(self, button_id: int, name: str, icon: Optional[str] = None, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
         name = name.strip()
         if not name:
             raise ValueError("Button name must not be empty")
@@ -114,16 +114,15 @@ class Buttons(DatabaseBase):
             if not current:
                 raise ValueError("Unknown button_id")
 
-            remote_id = int(current["remote_id"])
             now = time.time()
             c.execute(
-                "UPDATE buttons SET name = ?, updated_at = ? WHERE id = ?",
-                (name, now, button_id),
+                "UPDATE buttons SET name = ?, icon = ?, updated_at = ? WHERE id = ?",
+                (name, icon, now, button_id),
             )
             c.commit()
 
             out = c.execute(
-                "SELECT id, remote_id, name, created_at, updated_at FROM buttons WHERE id = ?",
+                "SELECT id, remote_id, name, icon, created_at, updated_at FROM buttons WHERE id = ?",
                 (button_id,),
             ).fetchone()
             if not out:
@@ -137,7 +136,7 @@ class Buttons(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, remote_id, name, created_at, updated_at FROM buttons WHERE id = ?",
+                "SELECT id, remote_id, name, icon, created_at, updated_at FROM buttons WHERE id = ?",
                 (button_id,),
             ).fetchone()
             if not row:
@@ -149,3 +148,4 @@ class Buttons(DatabaseBase):
         finally:
             if close:
                 c.close()
+                

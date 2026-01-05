@@ -1,32 +1,4 @@
 services:
-  mqtt-ir-module:
-    image: docker.home/mqtt-ir-module:create-architecture-and-receiver
-    container_name: mqtt-ir-module
-    restart: unless-stopped
-
-    devices:
-      - "/dev/lirc0:/dev/lirc0"
-
-    volumes:
-      - "./data:/data"
-
-    environment:
-      - IR_DEVICE=/dev/lirc0
-      - DATA_DIR=/data
-      - DEBUG=false
-      - IR_WIDEBAND=false
-
-      # Learning defaults (used as API defaults if you wire them through)
-      - PRESS_TAKES_DEFAULT=5
-      - CAPTURE_TIMEOUT_MS_DEFAULT=3000
-      - HOLD_IDLE_TIMEOUT_MS=300
-
-      # Aggregation defaults
-      - AGGREGATE_ROUND_TO_US=10
-      - AGGREGATE_MIN_MATCH_RATIO=0.6
-
-      # Optional:
-      # - API_KEY=change-me
-
-    ports:
-      - "8000:8000"
+  mqtt-ir-service:
+    build: .
+    image: ${IMAGE_PREFIX}:${BRANCH}-${SUFFIX}

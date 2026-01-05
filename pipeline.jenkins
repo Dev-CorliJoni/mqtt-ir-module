@@ -90,8 +90,8 @@ pipeline {
                         environment { SUFFIX = "${ARCH_SUFFIX}" }
                         steps {
                             unstash 'ws'
-                            sh "docker-compose -f docker-compose.build.yml build"
-                            sh "docker-compose -f docker-compose.build.yml push"
+                            sh "docker-compose -f docker-compose.yml build"
+                            sh "docker-compose -f docker-compose.yml push"
                             echo "Published ${IMAGE_PREFIX}:${env.BRANCH}-${ARCH_SUFFIX}"
                         }
                     }

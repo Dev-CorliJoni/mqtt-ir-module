@@ -3,8 +3,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
+import json
+
 from fastapi import FastAPI, HTTPException, Header, APIRouter
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from api_models import (
@@ -14,6 +16,7 @@ from api_models import (
     LearnCapture,
     ButtonUpdate,
     SendRequest,
+    SettingsUpdate,
 )
 from electronics import IrLearningService, IrSenderService
 from electronics.ir_ctl_engine import IrCtlEngine
@@ -92,6 +95,27 @@ def health() -> Dict[str, Any]:
 
 
 # -----------------
+# Settings (UI)
+# -----------------
+
+
+@api.get("/settings")
+def get_settings() -> Dict[str, Any]:
+    return database.settings.get_ui_settings()
+
+
+@api.put("/settings")
+def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    if body.theme is None and body.language is None:
+        raise HTTPException(status_code=400, detail="theme or language must be provided")
+    try:
+        return database.settings.update_ui_settings(theme=body.theme, language=body.language)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# -----------------
 # Remotes CRUD
 # -----------------
 
@@ -100,7 +124,7 @@ def health() -> Dict[str, Any]:
 def create_remote(body: RemoteCreate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return database.remotes.create(name=body.name)
+        return database.remotes.create(name=body.name, icon=body.icon)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -117,6 +141,7 @@ def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] =
         return database.remotes.update(
             remote_id=remote_id,
             name=body.name,
+            icon=body.icon,
             carrier_hz=body.carrier_hz,
             duty_cycle=body.duty_cycle,
             gap_us_default=body.gap_us_default,
@@ -156,7 +181,7 @@ def list_buttons(remote_id: int) -> List[Dict[str, Any]]:
 def rename_button(button_id: int, body: ButtonUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return database.buttons.rename(button_id=button_id, name=body.name)
+        return database.buttons.rename(button_id=button_id, name=body.name, icon=body.icon)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -245,25 +270,55 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
+# Register API at /api
 app.include_router(api)
 
+# Optional: also register the same API under the public base url (so direct /base/api works without a proxy)
+public_base_url = env.public_base_url  # always with trailing slash
+base_prefix = public_base_url.rstrip("/")
+if base_prefix:
+    app.include_router(api, prefix=base_prefix)
+
 # -----------------
-# Frontend (Vite build) at /
+# Frontend (Vite build)
 # -----------------
 
 static_dir = Path(__file__).parent / "static"
 assets_dir = static_dir / "assets"
 index_html = static_dir / "index.html"
 
+
+def _render_index_html() -> str:
+    if not index_html.exists():
+        raise HTTPException(status_code=404, detail="Frontend not built (missing static/index.html)")
+
+    html = index_html.read_text(encoding="utf-8", errors="replace")
+
+    api_base = f"{public_base_url.rstrip('/')}/api"
+    config = {
+        "publicBaseUrl": public_base_url,
+        "apiBaseUrl": api_base,
+        "publicApiKey": env.public_api_key or "",
+        "writeRequiresApiKey": bool(env.api_key),
+    }
+
+    # Replace placeholders (frontend/index.html contains these markers before build)
+    html = html.replace("__PUBLIC_BASE_URL__", public_base_url)
+    html = html.replace("__APP_CONFIG_JSON__", json.dumps(config))
+
+    return html
+
+
 if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    if base_prefix:
+        app.mount(f"{base_prefix}/assets", StaticFiles(directory=assets_dir), name="assets_base")
 
 
 @app.get("/")
 def frontend_index():
-    if index_html.exists():
-        return FileResponse(index_html)
-    raise HTTPException(status_code=404, detail="Frontend not built (missing static/index.html)")
+    return HTMLResponse(_render_index_html())
 
 
 @app.get("/{path:path}")
@@ -271,6 +326,4 @@ def frontend_fallback(path: str):
     file_path = static_dir / path
     if file_path.is_file():
         return FileResponse(file_path)
-    if index_html.exists():
-        return FileResponse(index_html)
-    raise HTTPException(status_code=404, detail="Frontend not built (missing static/index.html)")
+    return HTMLResponse(_render_index_html())

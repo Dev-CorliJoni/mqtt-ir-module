@@ -16,6 +16,7 @@ class Remotes(DatabaseBase):
             CREATE TABLE IF NOT EXISTS remotes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
+                icon TEXT NULL,
                 carrier_hz INTEGER NULL,
                 duty_cycle INTEGER NULL,
                 gap_us_default INTEGER NULL,
@@ -24,13 +25,14 @@ class Remotes(DatabaseBase):
             );
             """
         )
-    
+
     # -----------------------------
     # Table methods
     # -----------------------------
     def create(
         self,
         name: str,
+        icon: Optional[str] = None,
         carrier_hz: Optional[int] = None,
         duty_cycle: Optional[int] = None,
         gap_us_default: Optional[int] = None,
@@ -44,14 +46,14 @@ class Remotes(DatabaseBase):
         try:
             now = time.time()
             c.execute(
-                "INSERT OR IGNORE INTO remotes(name, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at) "
-                "VALUES(?, ?, ?, ?, ?, ?)",
-                (name, carrier_hz, duty_cycle, gap_us_default, now, now),
+                "INSERT OR IGNORE INTO remotes(name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at) "
+                "VALUES(?, ?, ?, ?, ?, ?, ?)",
+                (name, icon, carrier_hz, duty_cycle, gap_us_default, now, now),
             )
             c.commit()
 
             row = c.execute(
-                "SELECT id, name, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE name = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE name = ?",
                 (name,),
             ).fetchone()
             if not row:
@@ -65,6 +67,7 @@ class Remotes(DatabaseBase):
         self,
         remote_id: int,
         name: str,
+        icon: Optional[str] = None,
         carrier_hz: Optional[int] = None,
         duty_cycle: Optional[int] = None,
         gap_us_default: Optional[int] = None,
@@ -82,13 +85,13 @@ class Remotes(DatabaseBase):
 
             now = time.time()
             c.execute(
-                "UPDATE remotes SET name = ?, carrier_hz = ?, duty_cycle = ?, gap_us_default = ?, updated_at = ? WHERE id = ?",
-                (name, carrier_hz, duty_cycle, gap_us_default, now, remote_id),
+                "UPDATE remotes SET name = ?, icon = ?, carrier_hz = ?, duty_cycle = ?, gap_us_default = ?, updated_at = ? WHERE id = ?",
+                (name, icon, carrier_hz, duty_cycle, gap_us_default, now, remote_id),
             )
             c.commit()
 
             out = c.execute(
-                "SELECT id, name, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not out:
@@ -134,7 +137,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, name, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not row:
@@ -151,7 +154,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, name, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not row:
@@ -165,7 +168,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             rows = c.execute(
-                "SELECT id, name, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes ORDER BY name"
+                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes ORDER BY name"
             ).fetchall()
             return [dict(r) for r in rows]
         finally:
@@ -184,3 +187,4 @@ class Remotes(DatabaseBase):
         finally:
             if close:
                 c.close()
+                

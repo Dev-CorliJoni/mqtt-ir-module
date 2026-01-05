@@ -7,10 +7,11 @@
     <title>mqtt-ir-module</title>
 
     <script>
-      // This object is injected by the backend at runtime.
-      // Do not remove the marker string __APP_CONFIG_JSON__.
-      window.__APP_CONFIG__ = __APP_CONFIG_JSON__;
-    </script>
+      window.__APP_CONFIG__ =
+        (typeof __APP_CONFIG_JSON__ !== 'undefined')
+          ? __APP_CONFIG_JSON__
+          : { publicBaseUrl: '/', apiBaseUrl: '/api', publicApiKey: '', writeRequiresApiKey: false };
+  </script>
   </head>
   <body>
     <div id="root"></div>
