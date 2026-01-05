@@ -1,0 +1,103 @@
+{
+  "nav": { "home": "Accueil", "remotes": "Télécommandes", "settings": "Paramètres" },
+  "common": {
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "retry": "Réessayer",
+    "confirm": "Confirmer",
+    "search": "Rechercher",
+    "advanced": "Avancé",
+    "optional": "Optionnel"
+  },
+  "health": {
+    "title": "Statut du service",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "device": "Périphérique IR",
+    "debug": "Debug",
+    "learningActive": "Apprentissage actif"
+  },
+  "home": {
+    "lastRemote": "Dernière télécommande ouverte",
+    "fallbackRemote": "Dernière télécommande modifiée",
+    "noRemotes": "Aucune télécommande créée.",
+    "goToRemotes": "Aller aux télécommandes",
+    "createRemote": "Créer une télécommande"
+  },
+  "remotes": {
+    "title": "Télécommandes",
+    "create": "Créer une télécommande",
+    "name": "Nom de la télécommande",
+    "deleteConfirmTitle": "Supprimer la télécommande ?",
+    "deleteConfirmBody": "Cela supprimera la télécommande et tous les boutons/signaux."
+  },
+  "remote": {
+    "buttonsTitle": "Boutons",
+    "learningTitle": "Apprentissage",
+    "startAdd": "Ajouter des boutons",
+    "startReset": "Réapprendre la télécommande",
+    "startResetWarningTitle": "Réapprendre ?",
+    "startResetWarningBody": "Cela supprimera TOUS les boutons et signaux existants.",
+    "stopLearning": "Arrêter l'apprentissage",
+    "resumeWizard": "Ouvrir l'assistant",
+    "sendingBlocked": "L'envoi est bloqué pendant l'apprentissage."
+  },
+  "button": {
+    "press": "PRESS",
+    "hold": "HOLD",
+    "sendPress": "Envoyer press",
+    "sendHold": "Envoyer hold",
+    "rename": "Renommer",
+    "changeIcon": "Changer l'icône",
+    "relearn": "Réapprendre",
+    "deleteConfirmTitle": "Supprimer le bouton ?",
+    "deleteConfirmBody": "Cela supprimera le bouton et ses signaux.",
+    "holdDialogTitle": "Durée du hold",
+    "holdMs": "Hold (ms)"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "theme": "Thème",
+    "themeSystem": "Système",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "language": "Langue",
+    "runtime": "Runtime",
+    "baseUrl": "Base URL",
+    "apiBaseUrl": "Base API",
+    "writeKeyRequired": "API key d'écriture requise",
+    "help": "Aide"
+  },
+  "wizard": {
+    "title": "Assistant d'apprentissage",
+    "buttonSetup": "Configurer le bouton",
+    "buttonName": "Nom du bouton",
+    "buttonNameHint": "Vide pour auto-créer",
+    "capturePress": "Capturer press",
+    "captureHold": "Capturer hold",
+    "capture": "Capturer",
+    "skip": "Ignorer",
+    "next": "Suivant",
+    "addAnother": "Ajouter un autre bouton",
+    "finish": "Terminer",
+    "summary": "Résumé",
+    "stopAndClose": "Arrêter et fermer",
+    "leaveWarningTitle": "Arrêter et quitter ?",
+    "leaveWarningBody": "L'apprentissage est encore actif. En quittant, il sera arrêté."
+  },
+  "errors": {
+    "unauthorizedTitle": "L'écriture nécessite une API key",
+    "unauthorizedBody": "Configurez l'injection d'en-tête dans le proxy ou utilisez PUBLIC_API_KEY (déconseillé).",
+    "timeoutTitle": "Aucun signal reçu",
+    "timeoutBody": "Appuyez sur le bouton dans le délai puis réessayez.",
+    "conflictTitle": "Conflit",
+    "conflictBody": "Conflit signalé par le serveur. Réessayez ou arrêtez la session actuelle.",
+    "badRequestTitle": "Requête invalide",
+    "notFoundTitle": "Introuvable",
+    "offlineTitle": "Backend injoignable",
+    "offlineBody": "Vérifiez le conteneur / réseau puis réessayez."
+  }
+}

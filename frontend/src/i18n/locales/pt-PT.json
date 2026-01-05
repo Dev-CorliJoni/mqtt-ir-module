@@ -1,0 +1,103 @@
+{
+  "nav": { "home": "Início", "remotes": "Comandos", "settings": "Definições" },
+  "common": {
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "retry": "Tentar novamente",
+    "confirm": "Confirmar",
+    "search": "Pesquisar",
+    "advanced": "Avançado",
+    "optional": "Opcional"
+  },
+  "health": {
+    "title": "Estado do serviço",
+    "online": "Online",
+    "offline": "Offline",
+    "device": "Dispositivo IR",
+    "debug": "Debug",
+    "learningActive": "Aprendizagem ativa"
+  },
+  "home": {
+    "lastRemote": "Último comando aberto",
+    "fallbackRemote": "Último comando atualizado",
+    "noRemotes": "Ainda não existem comandos.",
+    "goToRemotes": "Ir para Comandos",
+    "createRemote": "Criar comando"
+  },
+  "remotes": {
+    "title": "Comandos",
+    "create": "Criar comando",
+    "name": "Nome do comando",
+    "deleteConfirmTitle": "Eliminar comando?",
+    "deleteConfirmBody": "Isto elimina o comando e todos os botões/sinais."
+  },
+  "remote": {
+    "buttonsTitle": "Botões",
+    "learningTitle": "Aprendizagem",
+    "startAdd": "Adicionar botões",
+    "startReset": "Reaprender comando",
+    "startResetWarningTitle": "Reaprender comando?",
+    "startResetWarningBody": "Isto elimina TODOS os botões e sinais existentes.",
+    "stopLearning": "Parar aprendizagem",
+    "resumeWizard": "Abrir assistente",
+    "sendingBlocked": "O envio está bloqueado enquanto a aprendizagem estiver ativa."
+  },
+  "button": {
+    "press": "PRESS",
+    "hold": "HOLD",
+    "sendPress": "Enviar press",
+    "sendHold": "Enviar hold",
+    "rename": "Renomear",
+    "changeIcon": "Alterar ícone",
+    "relearn": "Reaprender",
+    "deleteConfirmTitle": "Eliminar botão?",
+    "deleteConfirmBody": "Isto elimina o botão e os seus sinais.",
+    "holdDialogTitle": "Duração do hold",
+    "holdMs": "Hold (ms)"
+  },
+  "settings": {
+    "title": "Definições",
+    "theme": "Tema",
+    "themeSystem": "Sistema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "language": "Idioma",
+    "runtime": "Runtime",
+    "baseUrl": "Base URL",
+    "apiBaseUrl": "Base API",
+    "writeKeyRequired": "API key de escrita necessária",
+    "help": "Ajuda"
+  },
+  "wizard": {
+    "title": "Assistente de aprendizagem",
+    "buttonSetup": "Configurar botão",
+    "buttonName": "Nome do botão",
+    "buttonNameHint": "Vazio para criar automaticamente",
+    "capturePress": "Capturar press",
+    "captureHold": "Capturar hold",
+    "capture": "Capturar",
+    "skip": "Ignorar",
+    "next": "Seguinte",
+    "addAnother": "Adicionar outro botão",
+    "finish": "Terminar",
+    "summary": "Resumo",
+    "stopAndClose": "Parar e fechar",
+    "leaveWarningTitle": "Parar aprendizagem e sair?",
+    "leaveWarningBody": "A aprendizagem ainda está ativa. Ao sair, será parada."
+  },
+  "errors": {
+    "unauthorizedTitle": "Escrita requer API key",
+    "unauthorizedBody": "Configure injeção de header no proxy ou use PUBLIC_API_KEY (não recomendado).",
+    "timeoutTitle": "Nenhum sinal recebido",
+    "timeoutBody": "Prima o botão dentro do tempo e tente novamente.",
+    "conflictTitle": "Conflito",
+    "conflictBody": "O servidor reportou um conflito. Tente novamente ou pare a sessão atual.",
+    "badRequestTitle": "Pedido inválido",
+    "notFoundTitle": "Não encontrado",
+    "offlineTitle": "Backend inacessível",
+    "offlineBody": "Verifique o container/rede e tente novamente."
+  }
+}

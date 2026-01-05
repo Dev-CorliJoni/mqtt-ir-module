@@ -1,0 +1,39 @@
+import React from 'react'
+import Icon from '@mdi/react'
+import { useNavigate } from 'react-router-dom'
+import { IconButton } from '../../components/ui/IconButton.jsx'
+import { findIconPath, DEFAULT_REMOTE_ICON } from '../../icons/iconRegistry.js'
+import { mdiPencilOutline, mdiTrashCanOutline } from '@mdi/js'
+
+export function RemoteTile({ remote, onEdit, onDelete }) {
+  const navigate = useNavigate()
+  const iconKey = remote.icon || DEFAULT_REMOTE_ICON
+
+  return (
+    <div
+      className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[var(--shadow)] p-4 flex items-center justify-between gap-3 cursor-pointer"
+      onClick={() => navigate(`/remotes/${remote.id}`)}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="h-12 w-12 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] flex items-center justify-center">
+          <Icon path={findIconPath(iconKey)} size={1.2} />
+        </div>
+        <div className="min-w-0">
+          <div className="font-semibold truncate">{remote.name}</div>
+          <div className="text-xs text-[rgb(var(--muted))] truncate">#{remote.id}</div>
+        </div>
+      </div>
+
+      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <IconButton label="Edit" onClick={() => onEdit(remote)}>
+          <Icon path={mdiPencilOutline} size={1} />
+        </IconButton>
+        <IconButton label="Delete" onClick={() => onDelete(remote)}>
+          <Icon path={mdiTrashCanOutline} size={1} />
+        </IconButton>
+      </div>
+    </div>
+  )
+}

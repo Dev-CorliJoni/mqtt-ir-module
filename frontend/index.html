@@ -2,12 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <base href="__PUBLIC_BASE_URL__" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>mqtt-ir-module</title>
+
+    <script>
+      // This object is injected by the backend at runtime.
+      // Do not remove the marker string __APP_CONFIG_JSON__.
+      window.__APP_CONFIG__ = __APP_CONFIG_JSON__;
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>

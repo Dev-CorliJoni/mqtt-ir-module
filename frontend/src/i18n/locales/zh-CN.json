@@ -1,0 +1,103 @@
+{
+  "nav": { "home": "首页", "remotes": "遥控器", "settings": "设置" },
+  "common": {
+    "cancel": "取消",
+    "close": "关闭",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "retry": "重试",
+    "confirm": "确认",
+    "search": "搜索",
+    "advanced": "高级",
+    "optional": "可选"
+  },
+  "health": {
+    "title": "服务状态",
+    "online": "在线",
+    "offline": "离线",
+    "device": "IR 设备",
+    "debug": "调试",
+    "learningActive": "学习模式已开启"
+  },
+  "home": {
+    "lastRemote": "最近打开的遥控器",
+    "fallbackRemote": "最近更新的遥控器",
+    "noRemotes": "尚未创建遥控器。",
+    "goToRemotes": "进入遥控器列表",
+    "createRemote": "创建遥控器"
+  },
+  "remotes": {
+    "title": "遥控器",
+    "create": "创建遥控器",
+    "name": "遥控器名称",
+    "deleteConfirmTitle": "删除遥控器？",
+    "deleteConfirmBody": "这将删除该遥控器以及所有按钮/信号。"
+  },
+  "remote": {
+    "buttonsTitle": "按钮",
+    "learningTitle": "学习",
+    "startAdd": "添加按钮",
+    "startReset": "重新学习遥控器",
+    "startResetWarningTitle": "重新学习？",
+    "startResetWarningBody": "这将删除此遥控器的所有按钮与信号。",
+    "stopLearning": "停止学习",
+    "resumeWizard": "打开学习向导",
+    "sendingBlocked": "学习期间禁止发送。"
+  },
+  "button": {
+    "press": "PRESS",
+    "hold": "HOLD",
+    "sendPress": "发送 press",
+    "sendHold": "发送 hold",
+    "rename": "重命名",
+    "changeIcon": "更换图标",
+    "relearn": "重新学习",
+    "deleteConfirmTitle": "删除按钮？",
+    "deleteConfirmBody": "这将删除该按钮及其信号。",
+    "holdDialogTitle": "Hold 时长",
+    "holdMs": "Hold (ms)"
+  },
+  "settings": {
+    "title": "设置",
+    "theme": "主题",
+    "themeSystem": "系统",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "language": "语言",
+    "runtime": "运行信息",
+    "baseUrl": "Base URL",
+    "apiBaseUrl": "API 基址",
+    "writeKeyRequired": "写入需要 API key",
+    "help": "帮助"
+  },
+  "wizard": {
+    "title": "学习向导",
+    "buttonSetup": "按钮设置",
+    "buttonName": "按钮名称",
+    "buttonNameHint": "留空自动创建",
+    "capturePress": "采集 press",
+    "captureHold": "采集 hold",
+    "capture": "采集",
+    "skip": "跳过",
+    "next": "下一步",
+    "addAnother": "再添加一个按钮",
+    "finish": "完成",
+    "summary": "总结",
+    "stopAndClose": "停止并关闭",
+    "leaveWarningTitle": "停止学习并离开？",
+    "leaveWarningBody": "学习仍在进行。离开将停止学习。"
+  },
+  "errors": {
+    "unauthorizedTitle": "写入需要 API key",
+    "unauthorizedBody": "请在反向代理中注入 Header，或设置 PUBLIC_API_KEY（不推荐）。",
+    "timeoutTitle": "未收到信号",
+    "timeoutBody": "请在超时时间内按下按键后重试。",
+    "conflictTitle": "冲突",
+    "conflictBody": "服务器报告冲突。请重试或停止当前学习会话。",
+    "badRequestTitle": "请求无效",
+    "notFoundTitle": "未找到",
+    "offlineTitle": "无法连接后端",
+    "offlineBody": "检查容器/网络后重试。"
+  }
+}

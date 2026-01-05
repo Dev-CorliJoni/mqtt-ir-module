@@ -1,0 +1,107 @@
+{
+  "nav": {
+    "home": "Home",
+    "remotes": "Remotes",
+    "settings": "Settings"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "retry": "Retry",
+    "confirm": "Confirm",
+    "search": "Search",
+    "advanced": "Advanced",
+    "optional": "Optional"
+  },
+  "health": {
+    "title": "Service status",
+    "online": "Online",
+    "offline": "Offline",
+    "device": "IR device",
+    "debug": "Debug",
+    "learningActive": "Learning active"
+  },
+  "home": {
+    "lastRemote": "Last opened remote",
+    "fallbackRemote": "Last updated remote",
+    "noRemotes": "No remotes created yet.",
+    "goToRemotes": "Go to Remotes",
+    "createRemote": "Create remote"
+  },
+  "remotes": {
+    "title": "Remotes",
+    "create": "Create remote",
+    "name": "Remote name",
+    "deleteConfirmTitle": "Delete remote?",
+    "deleteConfirmBody": "This will delete the remote and all buttons/signals."
+  },
+  "remote": {
+    "buttonsTitle": "Buttons",
+    "learningTitle": "Learning",
+    "startAdd": "Add buttons",
+    "startReset": "Re-learn remote",
+    "startResetWarningTitle": "Re-learn remote?",
+    "startResetWarningBody": "This will delete ALL existing buttons and signals for this remote.",
+    "stopLearning": "Stop learning",
+    "resumeWizard": "Open learning wizard",
+    "sendingBlocked": "Sending is blocked while learning is active."
+  },
+  "button": {
+    "press": "PRESS",
+    "hold": "HOLD",
+    "sendPress": "Send press",
+    "sendHold": "Send hold",
+    "rename": "Rename",
+    "changeIcon": "Change icon",
+    "relearn": "Re-learn",
+    "deleteConfirmTitle": "Delete button?",
+    "deleteConfirmBody": "This will delete the button and its signals.",
+    "holdDialogTitle": "Hold duration",
+    "holdMs": "Hold (ms)"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "language": "Language",
+    "runtime": "Runtime",
+    "baseUrl": "Base URL",
+    "apiBaseUrl": "API base",
+    "writeKeyRequired": "Write API key required",
+    "help": "Help"
+  },
+  "wizard": {
+    "title": "Learning wizard",
+    "buttonSetup": "Button setup",
+    "buttonName": "Button name",
+    "buttonNameHint": "Leave empty to auto-create",
+    "capturePress": "Capture press",
+    "captureHold": "Capture hold",
+    "capture": "Capture",
+    "skip": "Skip",
+    "next": "Next",
+    "addAnother": "Add another button",
+    "finish": "Finish",
+    "summary": "Summary",
+    "stopAndClose": "Stop & close",
+    "leaveWarningTitle": "Stop learning and leave?",
+    "leaveWarningBody": "Learning is still active. If you leave now, learning will be stopped."
+  },
+  "errors": {
+    "unauthorizedTitle": "Write access requires an API key",
+    "unauthorizedBody": "Configure reverse proxy header injection or set PUBLIC_API_KEY (not recommended).",
+    "timeoutTitle": "No signal received",
+    "timeoutBody": "Press the button within the timeout and try again.",
+    "conflictTitle": "Conflict",
+    "conflictBody": "The server reported a conflict. Try again or stop the current learning session.",
+    "badRequestTitle": "Invalid request",
+    "notFoundTitle": "Not found",
+    "offlineTitle": "Backend not reachable",
+    "offlineBody": "Check container / network and try again."
+  }
+}

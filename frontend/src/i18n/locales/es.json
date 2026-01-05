@@ -1,0 +1,103 @@
+{
+  "nav": { "home": "Inicio", "remotes": "Mandos", "settings": "Ajustes" },
+  "common": {
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "retry": "Reintentar",
+    "confirm": "Confirmar",
+    "search": "Buscar",
+    "advanced": "Avanzado",
+    "optional": "Opcional"
+  },
+  "health": {
+    "title": "Estado del servicio",
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "device": "Dispositivo IR",
+    "debug": "Debug",
+    "learningActive": "Aprendizaje activo"
+  },
+  "home": {
+    "lastRemote": "Último mando abierto",
+    "fallbackRemote": "Último mando actualizado",
+    "noRemotes": "Aún no hay mandos.",
+    "goToRemotes": "Ir a Mandos",
+    "createRemote": "Crear mando"
+  },
+  "remotes": {
+    "title": "Mandos",
+    "create": "Crear mando",
+    "name": "Nombre del mando",
+    "deleteConfirmTitle": "¿Eliminar mando?",
+    "deleteConfirmBody": "Esto eliminará el mando y todos los botones/señales."
+  },
+  "remote": {
+    "buttonsTitle": "Botones",
+    "learningTitle": "Aprendizaje",
+    "startAdd": "Añadir botones",
+    "startReset": "Reaprender mando",
+    "startResetWarningTitle": "¿Reaprender mando?",
+    "startResetWarningBody": "Esto eliminará TODOS los botones y señales existentes.",
+    "stopLearning": "Detener aprendizaje",
+    "resumeWizard": "Abrir asistente",
+    "sendingBlocked": "Enviar está bloqueado mientras el aprendizaje está activo."
+  },
+  "button": {
+    "press": "PRESS",
+    "hold": "HOLD",
+    "sendPress": "Enviar press",
+    "sendHold": "Enviar hold",
+    "rename": "Renombrar",
+    "changeIcon": "Cambiar icono",
+    "relearn": "Reaprender",
+    "deleteConfirmTitle": "¿Eliminar botón?",
+    "deleteConfirmBody": "Esto eliminará el botón y sus señales.",
+    "holdDialogTitle": "Duración de hold",
+    "holdMs": "Hold (ms)"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "theme": "Tema",
+    "themeSystem": "Sistema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "language": "Idioma",
+    "runtime": "Runtime",
+    "baseUrl": "Base URL",
+    "apiBaseUrl": "Base API",
+    "writeKeyRequired": "Se requiere API key de escritura",
+    "help": "Ayuda"
+  },
+  "wizard": {
+    "title": "Asistente de aprendizaje",
+    "buttonSetup": "Configurar botón",
+    "buttonName": "Nombre del botón",
+    "buttonNameHint": "Vacío para autogenerar",
+    "capturePress": "Capturar press",
+    "captureHold": "Capturar hold",
+    "capture": "Capturar",
+    "skip": "Omitir",
+    "next": "Siguiente",
+    "addAnother": "Añadir otro botón",
+    "finish": "Finalizar",
+    "summary": "Resumen",
+    "stopAndClose": "Detener y cerrar",
+    "leaveWarningTitle": "¿Detener aprendizaje y salir?",
+    "leaveWarningBody": "El aprendizaje sigue activo. Si sales, se detendrá."
+  },
+  "errors": {
+    "unauthorizedTitle": "El acceso de escritura requiere API key",
+    "unauthorizedBody": "Configura inyección de cabecera en el proxy o usa PUBLIC_API_KEY (no recomendado).",
+    "timeoutTitle": "No se recibió señal",
+    "timeoutBody": "Pulsa el botón dentro del tiempo y reintenta.",
+    "conflictTitle": "Conflicto",
+    "conflictBody": "El servidor reportó conflicto. Reintenta o detén la sesión actual.",
+    "badRequestTitle": "Solicitud inválida",
+    "notFoundTitle": "No encontrado",
+    "offlineTitle": "Backend no accesible",
+    "offlineBody": "Revisa el contenedor/red y reintenta."
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "nav": { "home": "होम", "remotes": "रिमोट", "settings": "सेटिंग्स" },
+  "common": {
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "save": "सेव करें",
+    "delete": "हटाएँ",
+    "edit": "एडिट",
+    "retry": "फिर से प्रयास",
+    "confirm": "पुष्टि",
+    "search": "खोजें",
+    "advanced": "एडवांस्ड",
+    "optional": "वैकल्पिक"
+  },
+  "health": {
+    "title": "सेवा स्थिति",
+    "online": "ऑनलाइन",
+    "offline": "ऑफलाइन",
+    "device": "IR डिवाइस",
+    "debug": "डिबग",
+    "learningActive": "लर्निंग सक्रिय"
+  },
+  "home": {
+    "lastRemote": "अंतिम खोला गया रिमोट",
+    "fallbackRemote": "अंतिम अपडेटेड रिमोट",
+    "noRemotes": "अभी कोई रिमोट नहीं है।",
+    "goToRemotes": "रिमोट्स पर जाएँ",
+    "createRemote": "रिमोट बनाएँ"
+  },
+  "remotes": {
+    "title": "रिमोट्स",
+    "create": "रिमोट बनाएँ",
+    "name": "रिमोट नाम",
+    "deleteConfirmTitle": "रिमोट हटाएँ?",
+    "deleteConfirmBody": "यह रिमोट और सभी बटन/सिग्नल हटाएगा।"
+  },
+  "remote": {
+    "buttonsTitle": "बटन",
+    "learningTitle": "लर्निंग",
+    "startAdd": "बटन जोड़ें",
+    "startReset": "रिमोट फिर से सीखें",
+    "startResetWarningTitle": "फिर से सीखें?",
+    "startResetWarningBody": "यह इस रिमोट के सभी बटन और सिग्नल हटाएगा।",
+    "stopLearning": "लर्निंग रोकें",
+    "resumeWizard": "विज़ार्ड खोलें",
+    "sendingBlocked": "लर्निंग के दौरान भेजना ब्लॉक है।"
+  },
+  "button": {
+    "press": "PRESS",
+    "hold": "HOLD",
+    "sendPress": "प्रेस भेजें",
+    "sendHold": "होल्ड भेजें",
+    "rename": "नाम बदलें",
+    "changeIcon": "आइकन बदलें",
+    "relearn": "फिर से सीखें",
+    "deleteConfirmTitle": "बटन हटाएँ?",
+    "deleteConfirmBody": "यह बटन और उसके सिग्नल हटाएगा।",
+    "holdDialogTitle": "होल्ड अवधि",
+    "holdMs": "Hold (ms)"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "theme": "थीम",
+    "themeSystem": "सिस्टम",
+    "themeLight": "लाइट",
+    "themeDark": "डार्क",
+    "language": "भाषा",
+    "runtime": "Runtime",
+    "baseUrl": "Base URL",
+    "apiBaseUrl": "API बेस",
+    "writeKeyRequired": "Write API key आवश्यक",
+    "help": "मदद"
+  },
+  "wizard": {
+    "title": "लर्निंग विज़ार्ड",
+    "buttonSetup": "बटन सेटअप",
+    "buttonName": "बटन नाम",
+    "buttonNameHint": "ऑटो बनाने के लिए खाली छोड़ें",
+    "capturePress": "प्रेस कैप्चर",
+    "captureHold": "होल्ड कैप्चर",
+    "capture": "कैप्चर",
+    "skip": "स्किप",
+    "next": "अगला",
+    "addAnother": "एक और बटन जोड़ें",
+    "finish": "समाप्त",
+    "summary": "सारांश",
+    "stopAndClose": "रोकें और बंद करें",
+    "leaveWarningTitle": "लर्निंग रोकें और बाहर जाएँ?",
+    "leaveWarningBody": "लर्निंग अभी भी सक्रिय है। बाहर जाने पर यह रुक जाएगी।"
+  },
+  "errors": {
+    "unauthorizedTitle": "Write के लिए API key आवश्यक",
+    "unauthorizedBody": "Proxy header injection सेट करें या PUBLIC_API_KEY (अनुशंसित नहीं)।",
+    "timeoutTitle": "कोई सिग्नल नहीं मिला",
+    "timeoutBody": "टाइमआउट के भीतर बटन दबाएँ और फिर कोशिश करें।",
+    "conflictTitle": "कॉनफ्लिक्ट",
+    "conflictBody": "सर्वर ने कॉनफ्लिक्ट बताया। फिर से कोशिश करें या मौजूदा सेशन रोकें।",
+    "badRequestTitle": "अमान्य अनुरोध",
+    "notFoundTitle": "नहीं मिला",
+    "offlineTitle": "Backend उपलब्ध नहीं",
+    "offlineBody": "कंटेनर/नेटवर्क जांचें और फिर कोशिश करें।"
+  }
+}
