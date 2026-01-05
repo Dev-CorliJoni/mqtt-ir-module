@@ -131,6 +131,12 @@ pipeline {
     }
 
     post {
+        always {
+            script {
+                node('agent-01') { cleanWs() }
+                node('agent-02-arm') { cleanWs() }
+            }
+        }
         success { echo "✅ Build+Push complete (tag=${env.BUILD_TAG})" }
         failure { echo "❌ Pipeline failed" }
     }
