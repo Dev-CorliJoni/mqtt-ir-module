@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* Theme tokens are driven by data-theme on <html> */
+:root {
+  --bg: 255 255 255;
+  --fg: 15 23 42;
+  --muted: 71 85 105;
+  --card: 248 250 252;
+  --border: 226 232 240;
+
+  --primary: 37 99 235;
+  --primary-contrast: 255 255 255;
+
+  --danger: 220 38 38;
+  --warning: 245 158 11;
+  --success: 22 163 74;
+
+  --shadow: 0 10px 25px rgba(2, 6, 23, 0.08);
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: 2 6 23;
+  --fg: 226 232 240;
+  --muted: 148 163 184;
+  --card: 15 23 42;
+  --border: 30 41 59;
+
+  --primary: 96 165 250;
+  --primary-contrast: 2 6 23;
+
+  --danger: 248 113 113;
+  --warning: 251 191 36;
+  --success: 74 222 128;
+
+  --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --bg: 2 6 23;
+    --fg: 226 232 240;
+    --muted: 148 163 184;
+    --card: 15 23 42;
+    --border: 30 41 59;
+
+    --primary: 96 165 250;
+    --primary-contrast: 2 6 23;
+
+    --danger: 248 113 113;
+    --warning: 251 191 36;
+    --success: 74 222 128;
+
+    --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+
+    color-scheme: dark;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+}

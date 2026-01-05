@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <base href="__PUBLIC_BASE_URL__" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mqtt-ir-module</title>
+
+    <script>
+      window.__APP_CONFIG__ =
+        (typeof __APP_CONFIG_JSON__ !== 'undefined')
+          ? __APP_CONFIG_JSON__
+          : { publicBaseUrl: '/', apiBaseUrl: '/api', publicApiKey: '', writeRequiresApiKey: false };
+  </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.jsx"></script>
+  </body>
+</html>

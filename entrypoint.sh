@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
+# entrypoint.sh
 set -euo pipefail
 
-mkdir -p /var/run/lirc
-
-# start lircd in the background
-lircd --nodaemon=false
-
-exec python3 /opt/app/main.py
+exec uvicorn main:app --host 0.0.0.0 --port 80

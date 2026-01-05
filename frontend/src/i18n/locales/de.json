@@ -1,0 +1,107 @@
+{
+  "nav": {
+    "home": "Home",
+    "remotes": "Remotes",
+    "settings": "Einstellungen"
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "retry": "Erneut versuchen",
+    "confirm": "Bestätigen",
+    "search": "Suchen",
+    "advanced": "Erweitert",
+    "optional": "Optional"
+  },
+  "health": {
+    "title": "Service-Status",
+    "online": "Online",
+    "offline": "Offline",
+    "device": "IR-Gerät",
+    "debug": "Debug",
+    "learningActive": "Lernmodus aktiv"
+  },
+  "home": {
+    "lastRemote": "Zuletzt geöffnetes Remote",
+    "fallbackRemote": "Zuletzt aktualisiertes Remote",
+    "noRemotes": "Noch keine Remotes erstellt.",
+    "goToRemotes": "Zu den Remotes",
+    "createRemote": "Remote erstellen"
+  },
+  "remotes": {
+    "title": "Remotes",
+    "create": "Remote erstellen",
+    "name": "Remote-Name",
+    "deleteConfirmTitle": "Remote löschen?",
+    "deleteConfirmBody": "Das löscht das Remote und alle Buttons/Signale."
+  },
+  "remote": {
+    "buttonsTitle": "Buttons",
+    "learningTitle": "Lernen",
+    "startAdd": "Buttons erweitern",
+    "startReset": "Remote neu anlernen",
+    "startResetWarningTitle": "Remote neu anlernen?",
+    "startResetWarningBody": "Das löscht ALLE bestehenden Buttons und Signale dieses Remotes.",
+    "stopLearning": "Lernen stoppen",
+    "resumeWizard": "Lern-Assistent öffnen",
+    "sendingBlocked": "Senden ist während des Lernens blockiert."
+  },
+  "button": {
+    "press": "PRESS",
+    "hold": "HOLD",
+    "sendPress": "Press senden",
+    "sendHold": "Hold senden",
+    "rename": "Umbenennen",
+    "changeIcon": "Icon ändern",
+    "relearn": "Neu anlernen",
+    "deleteConfirmTitle": "Button löschen?",
+    "deleteConfirmBody": "Das löscht den Button und seine Signale.",
+    "holdDialogTitle": "Hold-Dauer",
+    "holdMs": "Hold (ms)"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "theme": "Theme",
+    "themeSystem": "System",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "language": "Sprache",
+    "runtime": "Runtime",
+    "baseUrl": "Base URL",
+    "apiBaseUrl": "API-Basis",
+    "writeKeyRequired": "Write-API-Key erforderlich",
+    "help": "Hilfe"
+  },
+  "wizard": {
+    "title": "Lern-Assistent",
+    "buttonSetup": "Button einrichten",
+    "buttonName": "Button-Name",
+    "buttonNameHint": "Leer lassen für Auto-Name",
+    "capturePress": "Press aufnehmen",
+    "captureHold": "Hold aufnehmen",
+    "capture": "Aufnehmen",
+    "skip": "Überspringen",
+    "next": "Weiter",
+    "addAnother": "Weiteren Button",
+    "finish": "Beenden",
+    "summary": "Übersicht",
+    "stopAndClose": "Stoppen & schließen",
+    "leaveWarningTitle": "Lernen stoppen und verlassen?",
+    "leaveWarningBody": "Der Lernmodus ist noch aktiv. Beim Verlassen wird er gestoppt."
+  },
+  "errors": {
+    "unauthorizedTitle": "Schreibzugriff erfordert einen API-Key",
+    "unauthorizedBody": "Reverse-Proxy Header-Injection konfigurieren oder PUBLIC_API_KEY setzen (nicht empfohlen).",
+    "timeoutTitle": "Kein Signal empfangen",
+    "timeoutBody": "Drücke den Button innerhalb des Timeouts und versuche es erneut.",
+    "conflictTitle": "Konflikt",
+    "conflictBody": "Der Server meldet einen Konflikt. Erneut versuchen oder die aktuelle Session stoppen.",
+    "badRequestTitle": "Ungültige Anfrage",
+    "notFoundTitle": "Nicht gefunden",
+    "offlineTitle": "Backend nicht erreichbar",
+    "offlineBody": "Container/Netzwerk prüfen und erneut versuchen."
+  }
+}
