@@ -13,7 +13,15 @@ export function getAppConfig() {
   const publicBaseUrl = normalizeBaseUrl(runtime?.publicBaseUrl || '/')
   const routerBasePath =
       publicBaseUrl === '/' ? '/' : publicBaseUrl.replace(/\/$/, '')
-  const apiBaseUrl = `${publicBaseUrl.replace(/\/$/, '')}/api`
+  const runtimeApiBaseUrl = (runtime?.apiBaseUrl || '').trim()
+  const defaultApiBaseUrl = `${publicBaseUrl.replace(/\/$/, '')}/api`
+
+  const env = import.meta.env || {}
+  const devApiBaseUrl =
+      `${(env.VITE_DEV_API_CLIENT || '').trim().replace(/\/$/, '')}/api`
+  const apiBaseUrl = env.DEV && devApiBaseUrl ?
+      devApiBaseUrl :
+      (runtimeApiBaseUrl || defaultApiBaseUrl)
 
   return {
     publicBaseUrl, routerBasePath, apiBaseUrl,
