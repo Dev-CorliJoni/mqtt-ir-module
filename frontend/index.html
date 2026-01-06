@@ -4,14 +4,18 @@
     <meta charset="UTF-8" />
     <base href="__PUBLIC_BASE_URL__" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mqtt-ir-module</title>
+    <title>IR Hub</title>
+
+    <!-- Branding favicon (served from Vite public/ -> dist root) -->
+    <!-- <link rel="icon" type="image/png" href="/app-icon-1024.png" sizes="1024x1024"> -->
+    <link rel="icon" href="/favicon.ico" />
 
     <script>
       window.__APP_CONFIG__ =
         (typeof __APP_CONFIG_JSON__ !== 'undefined')
           ? __APP_CONFIG_JSON__
           : { publicBaseUrl: '/', apiBaseUrl: '/api', publicApiKey: '', writeRequiresApiKey: false };
-  </script>
+    </script>
   </head>
   <body>
     <div id="root"></div>
