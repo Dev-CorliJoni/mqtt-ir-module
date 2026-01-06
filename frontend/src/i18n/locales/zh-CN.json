@@ -17,8 +17,7 @@
     "online": "在线",
     "offline": "离线",
     "device": "IR 设备",
-    "debug": "调试",
-    "learningActive": "学习模式已开启"
+    "debug": "调试"
   },
   "home": {
     "lastRemote": "最近打开的遥控器",
@@ -42,8 +41,7 @@
     "startResetWarningTitle": "重新学习？",
     "startResetWarningBody": "这将删除此遥控器的所有按钮与信号。",
     "stopLearning": "停止学习",
-    "resumeWizard": "打开学习向导",
-    "sendingBlocked": "学习期间禁止发送。"
+    "resumeWizard": "打开学习向导"
   },
   "button": {
     "press": "PRESS",
@@ -84,9 +82,7 @@
     "addAnother": "再添加一个按钮",
     "finish": "完成",
     "summary": "总结",
-    "stopAndClose": "停止并关闭",
-    "leaveWarningTitle": "停止学习并离开？",
-    "leaveWarningBody": "学习仍在进行。离开将停止学习。"
+    "stopAndClose": "停止并关闭"
   },
   "errors": {
     "unauthorizedTitle": "写入需要 API key",

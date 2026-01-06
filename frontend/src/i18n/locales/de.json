@@ -21,8 +21,7 @@
     "online": "Online",
     "offline": "Offline",
     "device": "IR-Gerät",
-    "debug": "Debug",
-    "learningActive": "Lernmodus aktiv"
+    "debug": "Debug"
   },
   "home": {
     "lastRemote": "Zuletzt geöffnetes Remote",
@@ -46,8 +45,7 @@
     "startResetWarningTitle": "Remote neu anlernen?",
     "startResetWarningBody": "Das löscht ALLE bestehenden Buttons und Signale dieses Remotes.",
     "stopLearning": "Lernen stoppen",
-    "resumeWizard": "Lern-Assistent öffnen",
-    "sendingBlocked": "Senden ist während des Lernens blockiert."
+    "resumeWizard": "Lern-Assistent öffnen"
   },
   "button": {
     "press": "PRESS",
@@ -88,9 +86,7 @@
     "addAnother": "Weiteren Button",
     "finish": "Beenden",
     "summary": "Übersicht",
-    "stopAndClose": "Stoppen & schließen",
-    "leaveWarningTitle": "Lernen stoppen und verlassen?",
-    "leaveWarningBody": "Der Lernmodus ist noch aktiv. Beim Verlassen wird er gestoppt."
+    "stopAndClose": "Stoppen & schließen"
   },
   "errors": {
     "unauthorizedTitle": "Schreibzugriff erfordert einen API-Key",

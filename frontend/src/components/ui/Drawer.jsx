@@ -2,15 +2,15 @@ import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from './cn.js'
 
-export function Drawer({ open, title, children, footer, onClose }) {
+export function Drawer({ open, title, children, footer, onClose, closeOnEscape = true }) {
   useEffect(() => {
-    if (!open) return
+    if (!open || !closeOnEscape) return
     const handler = (e) => {
       if (e.key === 'Escape') onClose?.()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [open, onClose])
+  }, [open, onClose, closeOnEscape])
 
   if (!open) return null
 

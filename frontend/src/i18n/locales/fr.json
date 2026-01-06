@@ -17,8 +17,7 @@
     "online": "En ligne",
     "offline": "Hors ligne",
     "device": "Périphérique IR",
-    "debug": "Debug",
-    "learningActive": "Apprentissage actif"
+    "debug": "Debug"
   },
   "home": {
     "lastRemote": "Dernière télécommande ouverte",
@@ -42,8 +41,7 @@
     "startResetWarningTitle": "Réapprendre ?",
     "startResetWarningBody": "Cela supprimera TOUS les boutons et signaux existants.",
     "stopLearning": "Arrêter l'apprentissage",
-    "resumeWizard": "Ouvrir l'assistant",
-    "sendingBlocked": "L'envoi est bloqué pendant l'apprentissage."
+    "resumeWizard": "Ouvrir l'assistant"
   },
   "button": {
     "press": "PRESS",
@@ -84,9 +82,7 @@
     "addAnother": "Ajouter un autre bouton",
     "finish": "Terminer",
     "summary": "Résumé",
-    "stopAndClose": "Arrêter et fermer",
-    "leaveWarningTitle": "Arrêter et quitter ?",
-    "leaveWarningBody": "L'apprentissage est encore actif. En quittant, il sera arrêté."
+    "stopAndClose": "Arrêter et fermer"
   },
   "errors": {
     "unauthorizedTitle": "L'écriture nécessite une API key",

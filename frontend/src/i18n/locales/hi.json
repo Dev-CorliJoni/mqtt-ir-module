@@ -17,8 +17,7 @@
     "online": "ऑनलाइन",
     "offline": "ऑफलाइन",
     "device": "IR डिवाइस",
-    "debug": "डिबग",
-    "learningActive": "लर्निंग सक्रिय"
+    "debug": "डिबग"
   },
   "home": {
     "lastRemote": "अंतिम खोला गया रिमोट",
@@ -42,8 +41,7 @@
     "startResetWarningTitle": "फिर से सीखें?",
     "startResetWarningBody": "यह इस रिमोट के सभी बटन और सिग्नल हटाएगा।",
     "stopLearning": "लर्निंग रोकें",
-    "resumeWizard": "विज़ार्ड खोलें",
-    "sendingBlocked": "लर्निंग के दौरान भेजना ब्लॉक है।"
+    "resumeWizard": "विज़ार्ड खोलें"
   },
   "button": {
     "press": "PRESS",
@@ -84,9 +82,7 @@
     "addAnother": "एक और बटन जोड़ें",
     "finish": "समाप्त",
     "summary": "सारांश",
-    "stopAndClose": "रोकें और बंद करें",
-    "leaveWarningTitle": "लर्निंग रोकें और बाहर जाएँ?",
-    "leaveWarningBody": "लर्निंग अभी भी सक्रिय है। बाहर जाने पर यह रुक जाएगी।"
+    "stopAndClose": "रोकें और बंद करें"
   },
   "errors": {
     "unauthorizedTitle": "Write के लिए API key आवश्यक",

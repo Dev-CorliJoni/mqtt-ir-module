@@ -23,7 +23,7 @@ export function LearningWizard({
   const toast = useToast()
   const queryClient = useQueryClient()
 
-  const [step, setStep] = useState('press') // press -> hold -> next -> summary | confirmClose
+  const [step, setStep] = useState('press') // press -> hold -> next -> summary
   const [buttonName, setButtonName] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
@@ -57,7 +57,6 @@ export function LearningWizard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
-      toast.show({ title: t('wizard.title'), message: 'Learning started.' })
     },
     onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || 'Failed to start learning.' }),
   })
@@ -67,7 +66,6 @@ export function LearningWizard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
       queryClient.invalidateQueries({ queryKey: ['learnStatus'] })
-      toast.show({ title: t('wizard.title'), message: 'Learning stopped.' })
     },
     onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || 'Failed to stop learning.' }),
   })
@@ -145,177 +143,147 @@ export function LearningWizard({
 
   const canClose = !learningActive || Number(learningRemoteId) !== Number(remoteId)
 
+  // Use a single exit handler so only the stop button is explicit, while outside clicks still exit.
+  const handleStopAndClose = async () => {
+    if (!canClose) {
+      await stopMutation.mutateAsync()
+    }
+    onClose()
+  }
+
   return (
     <Drawer
       open={open}
       title={`${t('wizard.title')}: ${remoteName || `#${remoteId}`}`}
-      onClose={() => {
-        if (canClose) onClose()
-        else setStep('confirmClose')
-      }}
-      footer={
-        <div className="flex gap-2 justify-end">
-          <Button variant="secondary" onClick={() => setStep('confirmClose')}>
-            {t('common.close')}
+      onClose={handleStopAndClose}
+      closeOnEscape={false}
+    >
+      <div className="space-y-4">
+        {startMutation.isError ? <ErrorCallout error={startMutation.error} /> : null}
+
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <div className="text-sm font-semibold">{t('wizard.buttonSetup')}</div>
+          <div className="mt-3">
+            <TextField
+              label={t('wizard.buttonName')}
+              value={buttonName}
+              onChange={(e) => setButtonName(e.target.value)}
+              placeholder={defaultHint}
+              hint={t('wizard.buttonNameHint')}
+              disabled={Boolean(targetButton)}
+            />
+          </div>
+
+          <div className="mt-3">
+            <Collapse open={advancedOpen} onToggle={() => setAdvancedOpen((v) => !v)} title={t('common.advanced')}>
+              <div className="grid grid-cols-1 gap-3">
+                <NumberField label="takes" value={takes} min={1} max={50} onChange={(e) => setTakes(e.target.value)} />
+                <NumberField label="timeout_ms" value={timeoutMs} min={100} max={60000} onChange={(e) => setTimeoutMs(e.target.value)} />
+                <NumberField
+                  label="hold_timeout_ms"
+                  value={holdTimeoutMs}
+                  min={100}
+                  max={60000}
+                  onChange={(e) => setHoldTimeoutMs(e.target.value)}
+                />
+              </div>
+            </Collapse>
+          </div>
+        </div>
+
+        {step === 'press' ? (
+          <div className="space-y-2">
+            <Button className="w-full" onClick={() => pressMutation.mutate()} disabled={pressMutation.isPending || startMutation.isPending}>
+              {t('wizard.capturePress')}
+            </Button>
+            {pressMutation.isError ? <ErrorCallout error={pressMutation.error} /> : null}
+          </div>
+        ) : null}
+
+        {step === 'hold' ? (
+          <div className="space-y-2">
+            <Button className="w-full" onClick={() => holdMutation.mutate()} disabled={holdMutation.isPending || startMutation.isPending}>
+              {t('wizard.captureHold')} ({t('common.optional')})
+            </Button>
+            <Button className="w-full" variant="secondary" onClick={() => setStep('next')}>
+              {t('wizard.skip')}
+            </Button>
+            {holdMutation.isError ? <ErrorCallout error={holdMutation.error} /> : null}
+          </div>
+        ) : null}
+
+        {step === 'next' ? (
+          <div className="space-y-2">
+            <Button className="w-full" onClick={() => resetForNextButton()}>
+              {t('wizard.addAnother')}
+            </Button>
+            <Button
+              className="w-full"
+              variant="secondary"
+              onClick={async () => {
+                await stopMutation.mutateAsync()
+                setStep('summary')
+              }}
+            >
+              {t('wizard.finish')}
+            </Button>
+          </div>
+        ) : null}
+
+        {step === 'summary' ? (
+          <div className="space-y-3">
+            <div className="font-semibold">{t('wizard.summary')}</div>
+            <div className="space-y-2">
+              {captured.map((x) => (
+                <div key={x.name} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+                  <div className="font-semibold text-sm">{x.name}</div>
+                  <div className="text-xs text-[rgb(var(--muted))]">
+                    press: {x.press ? 'ok' : '—'} • hold: {x.hold ? 'ok' : '—'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold text-sm">Status</div>
+            <Button variant="secondary" size="sm" onClick={() => statusQuery.refetch()}>
+              {t('common.retry')}
+            </Button>
+          </div>
+
+          {statusQuery.data?.learn_enabled ? (
+            <div className="mt-2 text-xs text-[rgb(var(--muted))]">
+              remote: {statusQuery.data.remote_name} • extend: {String(statusQuery.data.extend)} • next: {statusQuery.data.next_button_index}
+            </div>
+          ) : (
+            <div className="mt-2 text-xs text-[rgb(var(--muted))]">learn_enabled=false</div>
+          )}
+
+          {statusQuery.data?.logs?.length ? (
+            <div className="mt-3 max-h-40 overflow-auto space-y-2">
+              {statusQuery.data.logs.slice(-30).map((l, idx) => (
+                <div key={`${l.timestamp}_${idx}`} className="text-[11px] text-[rgb(var(--muted))]">
+                  [{l.level}] {l.message}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant="danger"
+            className="w-full"
+            onClick={handleStopAndClose}
+            disabled={stopMutation.isPending}
+          >
+            {t('remote.stopLearning')}
           </Button>
         </div>
-      }
-    >
-      {step === 'confirmClose' ? (
-        <div className="space-y-3">
-          <div className="font-semibold">{t('wizard.leaveWarningTitle')}</div>
-          <p className="text-sm text-[rgb(var(--muted))]">{t('wizard.leaveWarningBody')}</p>
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setStep('press')}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              variant="danger"
-              onClick={async () => {
-                await stopMutation.mutateAsync()
-                onClose()
-              }}
-            >
-              {t('wizard.stopAndClose')}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {step !== 'confirmClose' ? (
-        <div className="space-y-4">
-          {startMutation.isError ? <ErrorCallout error={startMutation.error} /> : null}
-
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <div className="text-sm font-semibold">{t('wizard.buttonSetup')}</div>
-            <div className="mt-3">
-              <TextField
-                label={t('wizard.buttonName')}
-                value={buttonName}
-                onChange={(e) => setButtonName(e.target.value)}
-                placeholder={defaultHint}
-                hint={t('wizard.buttonNameHint')}
-                disabled={Boolean(targetButton)}
-              />
-            </div>
-
-            <div className="mt-3">
-              <Collapse open={advancedOpen} onToggle={() => setAdvancedOpen((v) => !v)} title={t('common.advanced')}>
-                <div className="grid grid-cols-1 gap-3">
-                  <NumberField label="takes" value={takes} min={1} max={50} onChange={(e) => setTakes(e.target.value)} />
-                  <NumberField label="timeout_ms" value={timeoutMs} min={100} max={60000} onChange={(e) => setTimeoutMs(e.target.value)} />
-                  <NumberField
-                    label="hold_timeout_ms"
-                    value={holdTimeoutMs}
-                    min={100}
-                    max={60000}
-                    onChange={(e) => setHoldTimeoutMs(e.target.value)}
-                  />
-                </div>
-              </Collapse>
-            </div>
-          </div>
-
-          {step === 'press' ? (
-            <div className="space-y-2">
-              <Button className="w-full" onClick={() => pressMutation.mutate()} disabled={pressMutation.isPending || startMutation.isPending}>
-                {t('wizard.capturePress')}
-              </Button>
-              {pressMutation.isError ? <ErrorCallout error={pressMutation.error} /> : null}
-            </div>
-          ) : null}
-
-          {step === 'hold' ? (
-            <div className="space-y-2">
-              <Button className="w-full" onClick={() => holdMutation.mutate()} disabled={holdMutation.isPending || startMutation.isPending}>
-                {t('wizard.captureHold')} ({t('common.optional')})
-              </Button>
-              <Button className="w-full" variant="secondary" onClick={() => setStep('next')}>
-                {t('wizard.skip')}
-              </Button>
-              {holdMutation.isError ? <ErrorCallout error={holdMutation.error} /> : null}
-            </div>
-          ) : null}
-
-          {step === 'next' ? (
-            <div className="space-y-2">
-              <Button className="w-full" onClick={() => resetForNextButton()}>
-                {t('wizard.addAnother')}
-              </Button>
-              <Button
-                className="w-full"
-                variant="secondary"
-                onClick={async () => {
-                  await stopMutation.mutateAsync()
-                  setStep('summary')
-                }}
-              >
-                {t('wizard.finish')}
-              </Button>
-            </div>
-          ) : null}
-
-          {step === 'summary' ? (
-            <div className="space-y-3">
-              <div className="font-semibold">{t('wizard.summary')}</div>
-              <div className="space-y-2">
-                {captured.map((x) => (
-                  <div key={x.name} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-                    <div className="font-semibold text-sm">{x.name}</div>
-                    <div className="text-xs text-[rgb(var(--muted))]">
-                      press: {x.press ? 'ok' : '—'} • hold: {x.hold ? 'ok' : '—'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button className="w-full" onClick={onClose}>
-                {t('common.close')}
-              </Button>
-            </div>
-          ) : null}
-
-          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold text-sm">Status</div>
-              <Button variant="secondary" size="sm" onClick={() => statusQuery.refetch()}>
-                {t('common.retry')}
-              </Button>
-            </div>
-
-            {statusQuery.data?.learn_enabled ? (
-              <div className="mt-2 text-xs text-[rgb(var(--muted))]">
-                remote: {statusQuery.data.remote_name} • extend: {String(statusQuery.data.extend)} • next: {statusQuery.data.next_button_index}
-              </div>
-            ) : (
-              <div className="mt-2 text-xs text-[rgb(var(--muted))]">learn_enabled=false</div>
-            )}
-
-            {statusQuery.data?.logs?.length ? (
-              <div className="mt-3 max-h-40 overflow-auto space-y-2">
-                {statusQuery.data.logs.slice(-30).map((l, idx) => (
-                  <div key={`${l.timestamp}_${idx}`} className="text-[11px] text-[rgb(var(--muted))]">
-                    [{l.level}] {l.message}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="danger"
-              className="w-full"
-              onClick={async () => {
-                await stopMutation.mutateAsync()
-                onClose()
-              }}
-              disabled={stopMutation.isPending}
-            >
-              {t('remote.stopLearning')}
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      </div>
     </Drawer>
   )
 

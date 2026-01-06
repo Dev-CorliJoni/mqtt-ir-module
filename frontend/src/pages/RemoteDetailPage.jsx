@@ -191,10 +191,6 @@ export function RemoteDetailPage() {
               </Button>
             </div>
           )}
-
-          {sendingDisabled ? (
-            <div className="mt-3 text-xs text-[rgb(var(--muted))]">{t('remote.sendingBlocked')}</div>
-          ) : null}
         </CardBody>
       </Card>
 

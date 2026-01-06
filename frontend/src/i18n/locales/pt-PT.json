@@ -17,8 +17,7 @@
     "online": "Online",
     "offline": "Offline",
     "device": "Dispositivo IR",
-    "debug": "Debug",
-    "learningActive": "Aprendizagem ativa"
+    "debug": "Debug"
   },
   "home": {
     "lastRemote": "Último comando aberto",
@@ -42,8 +41,7 @@
     "startResetWarningTitle": "Reaprender comando?",
     "startResetWarningBody": "Isto elimina TODOS os botões e sinais existentes.",
     "stopLearning": "Parar aprendizagem",
-    "resumeWizard": "Abrir assistente",
-    "sendingBlocked": "O envio está bloqueado enquanto a aprendizagem estiver ativa."
+    "resumeWizard": "Abrir assistente"
   },
   "button": {
     "press": "PRESS",
@@ -84,9 +82,7 @@
     "addAnother": "Adicionar outro botão",
     "finish": "Terminar",
     "summary": "Resumo",
-    "stopAndClose": "Parar e fechar",
-    "leaveWarningTitle": "Parar aprendizagem e sair?",
-    "leaveWarningBody": "A aprendizagem ainda está ativa. Ao sair, será parada."
+    "stopAndClose": "Parar e fechar"
   },
   "errors": {
     "unauthorizedTitle": "Escrita requer API key",
