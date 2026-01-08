@@ -35,13 +35,14 @@
   },
   "remote": {
     "buttonsTitle": "Botones",
-    "learningTitle": "Aprendizaje",
-    "startAdd": "Añadir botones",
-    "startReset": "Reaprender mando",
-    "startResetWarningTitle": "¿Reaprender mando?",
-    "startResetWarningBody": "Esto eliminará TODOS los botones y señales existentes.",
-    "stopLearning": "Detener aprendizaje",
-    "resumeWizard": "Abrir asistente"
+    "learnWizard": "Aprender",
+    "learningChoiceTitle": "Iniciar aprendizaje",
+    "learningChoiceBody": "Este control ya tiene botones. ¿Cómo quieres continuar?",
+    "learningChoiceAddTitle": "Agregar botones",
+    "learningChoiceAddHint": "Mantén los botones existentes y aprende nuevos.",
+    "learningChoiceResetTitle": "Reaprender control",
+    "learningChoiceResetHint": "Elimina los botones existentes y empieza de cero.",
+    "stopLearning": "Detener aprendizaje"
   },
   "button": {
     "press": "PRESS",

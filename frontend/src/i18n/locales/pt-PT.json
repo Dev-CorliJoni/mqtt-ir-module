@@ -31,17 +31,18 @@
     "create": "Criar comando",
     "name": "Nome do comando",
     "deleteConfirmTitle": "Eliminar comando?",
-    "deleteConfirmBody": "Isto elimina o comando e todos os botões/sinais."
+    "deleteConfirmBody": "Isto irá eliminar o comando e todos os botões/sinais."
   },
   "remote": {
     "buttonsTitle": "Botões",
-    "learningTitle": "Aprendizagem",
-    "startAdd": "Adicionar botões",
-    "startReset": "Reaprender comando",
-    "startResetWarningTitle": "Reaprender comando?",
-    "startResetWarningBody": "Isto elimina TODOS os botões e sinais existentes.",
-    "stopLearning": "Parar aprendizagem",
-    "resumeWizard": "Abrir assistente"
+    "learnWizard": "Aprender",
+    "learningChoiceTitle": "Iniciar aprendizagem",
+    "learningChoiceBody": "Este comando já tem botões. Como pretende continuar?",
+    "learningChoiceAddTitle": "Adicionar botões",
+    "learningChoiceAddHint": "Manter os botões existentes e aprender novos.",
+    "learningChoiceResetTitle": "Reaprender comando",
+    "learningChoiceResetHint": "Eliminar os botões existentes e começar de novo.",
+    "stopLearning": "Parar aprendizagem"
   },
   "button": {
     "press": "PRESS",

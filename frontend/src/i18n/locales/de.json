@@ -39,13 +39,14 @@
   },
   "remote": {
     "buttonsTitle": "Buttons",
-    "learningTitle": "Lernen",
-    "startAdd": "Buttons erweitern",
-    "startReset": "Remote neu anlernen",
-    "startResetWarningTitle": "Remote neu anlernen?",
-    "startResetWarningBody": "Das löscht ALLE bestehenden Buttons und Signale dieses Remotes.",
-    "stopLearning": "Lernen stoppen",
-    "resumeWizard": "Lern-Assistent öffnen"
+    "learnWizard": "Anlernen",
+    "learningChoiceTitle": "Anlernen starten?",
+    "learningChoiceBody": "Dieses Remote hat bereits gelernte Buttons. Wie möchtest du fortfahren?",
+    "learningChoiceAddTitle": "Buttons hinzufügen",
+    "learningChoiceAddHint": "Bestehende Buttons behalten und neue anlernen.",
+    "learningChoiceResetTitle": "Remote neu anlernen",
+    "learningChoiceResetHint": "Alle bestehenden Buttons löschen und neu starten.",
+    "stopLearning": "Lernen stoppen"
   },
   "button": {
     "press": "PRESS",

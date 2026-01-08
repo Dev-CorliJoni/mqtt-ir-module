@@ -35,13 +35,14 @@
   },
   "remote": {
     "buttonsTitle": "按钮",
-    "learningTitle": "学习",
-    "startAdd": "添加按钮",
-    "startReset": "重新学习遥控器",
-    "startResetWarningTitle": "重新学习？",
-    "startResetWarningBody": "这将删除此遥控器的所有按钮与信号。",
-    "stopLearning": "停止学习",
-    "resumeWizard": "打开学习向导"
+    "learnWizard": "学习",
+    "learningChoiceTitle": "开始学习",
+    "learningChoiceBody": "该遥控器已有按钮。请选择继续方式。",
+    "learningChoiceAddTitle": "添加按钮",
+    "learningChoiceAddHint": "保留现有按钮并学习新的按钮。",
+    "learningChoiceResetTitle": "重新学习遥控器",
+    "learningChoiceResetHint": "删除现有按钮并重新开始。",
+    "stopLearning": "停止学习"
   },
   "button": {
     "press": "PRESS",

@@ -35,13 +35,14 @@
   },
   "remote": {
     "buttonsTitle": "Boutons",
-    "learningTitle": "Apprentissage",
-    "startAdd": "Ajouter des boutons",
-    "startReset": "Réapprendre la télécommande",
-    "startResetWarningTitle": "Réapprendre ?",
-    "startResetWarningBody": "Cela supprimera TOUS les boutons et signaux existants.",
-    "stopLearning": "Arrêter l'apprentissage",
-    "resumeWizard": "Ouvrir l'assistant"
+    "learnWizard": "Apprendre",
+    "learningChoiceTitle": "Démarrer l'apprentissage",
+    "learningChoiceBody": "Cette télécommande a déjà des boutons. Que voulez-vous faire ?",
+    "learningChoiceAddTitle": "Ajouter des boutons",
+    "learningChoiceAddHint": "Conservez les boutons existants et apprenez-en de nouveaux.",
+    "learningChoiceResetTitle": "Réapprendre la télécommande",
+    "learningChoiceResetHint": "Supprimez les boutons existants et recommencez.",
+    "stopLearning": "Arrêter l'apprentissage"
   },
   "button": {
     "press": "PRESS",

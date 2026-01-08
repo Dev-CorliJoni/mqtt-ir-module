@@ -35,13 +35,14 @@
   },
   "remote": {
     "buttonsTitle": "बटन",
-    "learningTitle": "लर्निंग",
-    "startAdd": "बटन जोड़ें",
-    "startReset": "रिमोट फिर से सीखें",
-    "startResetWarningTitle": "फिर से सीखें?",
-    "startResetWarningBody": "यह इस रिमोट के सभी बटन और सिग्नल हटाएगा।",
-    "stopLearning": "लर्निंग रोकें",
-    "resumeWizard": "विज़ार्ड खोलें"
+    "learnWizard": "सीखें",
+    "learningChoiceTitle": "लर्निंग शुरू करें",
+    "learningChoiceBody": "इस रिमोट में पहले से बटन हैं। आप कैसे आगे बढ़ना चाहते हैं?",
+    "learningChoiceAddTitle": "बटन जोड़ें",
+    "learningChoiceAddHint": "मौजूदा बटन रखें और नए सीखें।",
+    "learningChoiceResetTitle": "रिमोट फिर से सीखें",
+    "learningChoiceResetHint": "मौजूदा बटन हटाएँ और शुरुआत से सीखें।",
+    "stopLearning": "लर्निंग रोकें"
   },
   "button": {
     "press": "PRESS",

@@ -54,8 +54,6 @@ export function RemoteDetailPage() {
   const [editRemoteOpen, setEditRemoteOpen] = useState(false)
   const [deleteRemoteOpen, setDeleteRemoteOpen] = useState(false)
 
-  const [resetWarnOpen, setResetWarnOpen] = useState(false)
-
   const [renameTarget, setRenameTarget] = useState(null)
   const [renameValue, setRenameValue] = useState('')
 
@@ -70,6 +68,7 @@ export function RemoteDetailPage() {
   const [wizardOpen, setWizardOpen] = useState(false)
   const [wizardExtend, setWizardExtend] = useState(true)
   const [wizardTargetButton, setWizardTargetButton] = useState(null)
+  const [learningChoiceOpen, setLearningChoiceOpen] = useState(false)
 
   const deleteRemoteMutation = useMutation({
     mutationFn: () => deleteRemote(numericRemoteId),
@@ -116,6 +115,33 @@ export function RemoteDetailPage() {
   })
 
   const existingButtons = buttonsQuery.data || []
+  const hasExistingButtons = existingButtons.length > 0
+  const learningBlocked = learningActive && Number(learningRemoteId) !== Number(numericRemoteId)
+  const learningRemoteLabel = healthQuery.data?.learn_remote_name || (learningRemoteId ? `#${learningRemoteId}` : '')
+  const buttonsLoading = buttonsQuery.isLoading
+  const wizardDisabled = learningBlocked || buttonsLoading
+
+  // Centralize wizard setup so every entry point uses the same state reset.
+  const startWizard = (extend) => {
+    setWizardTargetButton(null)
+    setWizardExtend(extend)
+    setWizardOpen(true)
+  }
+
+  // Decide between immediate start or the choice dialog based on existing buttons.
+  const handleWizardRequest = () => {
+    if (wizardDisabled) return
+    if (!hasExistingButtons) {
+      startWizard(true)
+      return
+    }
+    setLearningChoiceOpen(true)
+  }
+
+  const handleWizardChoice = (extend) => {
+    setLearningChoiceOpen(false)
+    startWizard(extend)
+  }
 
   if (!remote) {
     return (
@@ -135,10 +161,10 @@ export function RemoteDetailPage() {
             <span className="truncate">{remote.name}</span>
           </CardTitle>
           <div className="flex gap-2">
-            <IconButton label="Edit" onClick={() => setEditRemoteOpen(true)}>
+            <IconButton label={t('common.edit')} onClick={() => setEditRemoteOpen(true)}>
               <Icon path={mdiPencilOutline} size={1} />
             </IconButton>
-            <IconButton label="Delete" onClick={() => setDeleteRemoteOpen(true)}>
+            <IconButton label={t('common.delete')} onClick={() => setDeleteRemoteOpen(true)}>
               <Icon path={mdiTrashCanOutline} size={1} />
             </IconButton>
           </div>
@@ -150,55 +176,25 @@ export function RemoteDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('remote.learningTitle')}</CardTitle>
+          <CardTitle>{t('remote.buttonsTitle')}</CardTitle>
           <div className="flex gap-2">
-            <IconButton
-              label="Wizard"
-              onClick={() => {
-                setWizardTargetButton(null)
-                setWizardExtend(true)
-                setWizardOpen(true)
-              }}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleWizardRequest}
+              disabled={wizardDisabled}
             >
               <Icon path={mdiMagicStaff} size={1} />
-            </IconButton>
+              {t('remote.learnWizard')}
+            </Button>
           </div>
         </CardHeader>
         <CardBody>
-          {learningActive && Number(learningRemoteId) !== Number(numericRemoteId) ? (
-            <div className="text-sm text-[rgb(var(--muted))]">
-              Learning is active for another remote. Stop it to start here.
+          {learningBlocked ? (
+            <div className="mb-3 text-sm text-[rgb(var(--muted))]">
+              {t('wizard.learningActiveElsewhere', { remote: learningRemoteLabel })}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <Button
-                onClick={() => {
-                  setWizardTargetButton(null)
-                  setWizardExtend(true)
-                  setWizardOpen(true)
-                }}
-              >
-                {t('remote.startAdd')}
-              </Button>
-
-              <Button
-                variant="danger"
-                onClick={() => {
-                  setResetWarnOpen(true)
-                }}
-              >
-                {t('remote.startReset')}
-              </Button>
-            </div>
-          )}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('remote.buttonsTitle')}</CardTitle>
-        </CardHeader>
-        <CardBody>
+          ) : null}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {existingButtons.map((b) => (
               <ButtonTile
@@ -242,29 +238,40 @@ export function RemoteDetailPage() {
       />
 
       <Modal
-        open={resetWarnOpen}
-        title={t('remote.startResetWarningTitle')}
-        onClose={() => setResetWarnOpen(false)}
+        open={learningChoiceOpen}
+        title={t('remote.learningChoiceTitle')}
+        onClose={() => setLearningChoiceOpen(false)}
         footer={
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setResetWarnOpen(false)}>
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => setLearningChoiceOpen(false)}>
               {t('common.cancel')}
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setResetWarnOpen(false)
-                setWizardTargetButton(null)
-                setWizardExtend(false)
-                setWizardOpen(true)
-              }}
-            >
-              {t('common.confirm')}
             </Button>
           </div>
         }
       >
-        <p className="text-sm text-[rgb(var(--muted))]">{t('remote.startResetWarningBody')}</p>
+        <p className="text-sm text-[rgb(var(--muted))]">{t('remote.learningChoiceBody')}</p>
+        <div className="mt-4 grid gap-2">
+          <Button
+            variant="secondary"
+            className="w-full justify-start text-left"
+            onClick={() => handleWizardChoice(true)}
+          >
+            <div className="flex flex-col items-start">
+              <span className="font-semibold">{t('remote.learningChoiceAddTitle')}</span>
+              <span className="text-xs text-[rgb(var(--muted))]">{t('remote.learningChoiceAddHint')}</span>
+            </div>
+          </Button>
+          <Button
+            variant="danger"
+            className="w-full justify-start text-left"
+            onClick={() => handleWizardChoice(false)}
+          >
+            <div className="flex flex-col items-start">
+              <span className="font-semibold">{t('remote.learningChoiceResetTitle')}</span>
+              <span className="text-xs text-white/90">{t('remote.learningChoiceResetHint')}</span>
+            </div>
+          </Button>
+        </div>
       </Modal>
 
       <Modal
