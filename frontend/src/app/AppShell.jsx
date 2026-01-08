@@ -22,7 +22,7 @@ export function AppShell() {
   const healthQuery = useQuery({
     queryKey: ['health'],
     queryFn: getHealth,
-    refetchInterval: 5000,
+    refetchInterval: 300000,
   })
 
   const settingsQuery = useQuery({
