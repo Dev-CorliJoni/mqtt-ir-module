@@ -16,9 +16,17 @@ export function Modal({ open, title, children, footer, onClose }) {
 
   return createPortal(
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/50" onClick={() => onClose?.()} />
-      <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className={cn('w-full max-w-lg rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[var(--shadow)]')}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="absolute inset-0 flex items-center justify-center p-4"
+        onClick={() => onClose?.()}
+        role="presentation"
+      >
+        {/* Close on backdrop clicks while keeping modal interactions intact. */}
+        <div
+          className={cn('w-full max-w-lg rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[var(--shadow)]')}
+          onClick={(e) => e.stopPropagation()}
+        >
           {title ? <div className="px-4 py-3 border-b border-[rgb(var(--border))] font-semibold">{title}</div> : null}
           <div className="p-4">{children}</div>
           {footer ? <div className="px-4 py-3 border-t border-[rgb(var(--border))]">{footer}</div> : null}
