@@ -18,7 +18,7 @@ export function TopBar() {
 
   const appIconSrc = useMemo(() => {
     const { publicBaseUrl } = getAppConfig()
-    return `${publicBaseUrl}app-icon-1024.png`
+    return `${publicBaseUrl}logos/app-icon-1024.png`
   }, [])
 
   return (
