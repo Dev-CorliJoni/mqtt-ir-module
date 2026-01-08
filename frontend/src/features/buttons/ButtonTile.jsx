@@ -65,13 +65,6 @@ export function ButtonTile({
         open={menuOpen}
         title={button.name}
         onClose={() => setMenuOpen(false)}
-        footer={
-          <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => setMenuOpen(false)}>
-              {t('common.close')}
-            </Button>
-          </div>
-        }
       >
         <div className="space-y-2">
           <Button variant="secondary" className="w-full justify-start" onClick={() => { setMenuOpen(false); onRename(button) }}>
