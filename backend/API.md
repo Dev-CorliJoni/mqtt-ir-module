@@ -137,11 +137,12 @@ Errors:
 
 `POST /learn/stop`
 
-#### Learning status + log
+#### Learning status (WebSocket)
 
-`GET /learn/status`
+`WS /learn/status/ws`
 
-Includes `logs` (useful for UI/debug).
+- Sends the same payload as the previous `GET /learn/status`.
+- First message is sent immediately on connect, then on every new log/status update.
 
 ### Sending
 

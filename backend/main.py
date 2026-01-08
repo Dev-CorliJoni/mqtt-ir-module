@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 import json
 
-from fastapi import FastAPI, HTTPException, Header, APIRouter
+from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -24,6 +25,7 @@ from electronics.ir_ctl_engine import IrCtlEngine
 from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
+from electronics.status_communication import StatusCommunication
 from helper import Environment
 from database import Database
 
@@ -34,6 +36,7 @@ parser = IrSignalParser()
 aggregator = IrSignalAggregator()
 hold_extractor = IrHoldExtractor(aggregator)
 engine = IrCtlEngine(ir_device=env.ir_device, wideband_default=env.ir_wideband)
+status_comm = StatusCommunication()
 
 learning = IrLearningService(
     database=database,
@@ -45,6 +48,7 @@ learning = IrLearningService(
     aggregate_round_to_us=env.aggregate_round_to_us,
     aggregate_min_match_ratio=env.aggregate_min_match_ratio,
     hold_idle_timeout_ms=env.hold_idle_timeout_ms,
+    status_comm=status_comm,
 )
 
 sender = IrSenderService(store=database, engine=engine, parser=parser)
@@ -60,6 +64,8 @@ def require_api_key(x_api_key: Optional[str]) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
+    # Store the running loop so sync code can broadcast status updates.
+    status_comm.attach_loop(asyncio.get_running_loop())
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
     if not env.debug:
@@ -258,9 +264,18 @@ def learn_stop(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any
     return learning.stop()
 
 
-@api.get("/learn/status")
-def learn_status() -> Dict[str, Any]:
-    return learning.status()
+@api.websocket("/learn/status/ws")
+async def learn_status_ws(websocket: WebSocket) -> None:
+    # Stream status updates over a single WebSocket to avoid frequent polling.
+    await status_comm.connect(websocket)
+    try:
+        await status_comm.send(websocket, learning.status())
+        while True:
+            await websocket.receive()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await status_comm.disconnect(websocket)
 
 
 # -----------------

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Drawer } from '../../components/ui/Drawer.jsx'
 import { Button } from '../../components/ui/Button.jsx'
@@ -8,7 +8,8 @@ import { NumberField } from '../../components/ui/NumberField.jsx'
 import { Collapse } from '../../components/ui/Collapse.jsx'
 import { ErrorCallout } from '../../components/ui/ErrorCallout.jsx'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
-import { startLearning, stopLearning, getLearningStatus, capturePress, captureHold } from '../../api/learningApi.js'
+import { startLearning, stopLearning, capturePress, captureHold } from '../../api/learningApi.js'
+import { createLearningStatusSocket } from '../../api/learningStatusSocket.js'
 
 export function LearningWizard({
   open,
@@ -23,35 +24,42 @@ export function LearningWizard({
   const toast = useToast()
   const queryClient = useQueryClient()
 
+  // Wizard flow state for press -> hold -> summary.
   const [step, setStep] = useState('press') // press -> hold -> next -> summary
   const [buttonName, setButtonName] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
+  // Capture configuration for press/hold.
   const [takes, setTakes] = useState(5)
   const [timeoutMs, setTimeoutMs] = useState(3000)
   const [holdTimeoutMs, setHoldTimeoutMs] = useState(4000)
 
+  // Local capture progress and status pushed over WebSocket.
   const [captured, setCaptured] = useState([]) // { name, press, hold }
   const [activeButtonName, setActiveButtonName] = useState(null)
+  const [learnStatus, setLearnStatus] = useState({ learn_enabled: false, logs: [] })
 
-  const statusQuery = useQuery({
-    queryKey: ['learnStatus'],
-    queryFn: getLearningStatus,
-    enabled: open,
-    refetchInterval: (data) => (data?.learn_enabled ? 1000 : false),
-  })
+  const logContainerRef = useRef(null)
 
+  // Use cached health to avoid extra polling during learning.
   const health = queryClient.getQueryData(['health'])
   const learningActive = Boolean(health?.learn_enabled)
   const learningRemoteId = health?.learn_remote_id ?? null
 
+  // Derive log list and key for scroll-to-latest behavior.
+  const statusLogs = learnStatus.logs || []
+  const latestLogKey = statusLogs.length
+    ? `${statusLogs[statusLogs.length - 1].timestamp}_${statusLogs[statusLogs.length - 1].level}_${statusLogs[statusLogs.length - 1].message}`
+    : ''
+
+  // Mutations coordinate server-side learning actions with consistent error handling.
   const startMutation = useMutation({
     mutationFn: async () => {
       if (learningActive && learningRemoteId && Number(learningRemoteId) !== Number(remoteId)) {
         throw new Error(`Learning is active for another remote (${health?.learn_remote_name || learningRemoteId}). Stop it first.`)
       }
       if (learningActive && Number(learningRemoteId) === Number(remoteId)) {
-        return statusQuery.data
+        return learnStatus
       }
       return startLearning({ remoteId, extend: Boolean(startExtend) })
     },
@@ -65,7 +73,6 @@ export function LearningWizard({
     mutationFn: stopLearning,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
-      queryClient.invalidateQueries({ queryKey: ['learnStatus'] })
     },
     onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || 'Failed to stop learning.' }),
   })
@@ -126,20 +133,47 @@ export function LearningWizard({
 
   useEffect(() => {
     if (!open) return
+    // Reset wizard state and start a learning session when opening the drawer.
     setCaptured([])
     setActiveButtonName(targetButton?.name || null)
     setButtonName(targetButton?.name || '')
+    setLearnStatus({ learn_enabled: false, logs: [] })
     setStep('press')
     setAdvancedOpen(false)
     startMutation.mutate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+    // Keep a single WebSocket open while the drawer is active.
+    let isActive = true
+    const socket = createLearningStatusSocket({
+      onMessage: (payload) => {
+        if (isActive) setLearnStatus(payload)
+      },
+    })
+
+    return () => {
+      isActive = false
+      socket.close()
+    }
+  }, [open])
+
+  // Keep logs pinned to the newest entry when new logs arrive.
+  useEffect(() => {
+    if (!open) return
+    if (!latestLogKey) return
+    if (!logContainerRef.current) return
+    logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
+  }, [open, latestLogKey])
+
+  // Suggest the next auto-generated button name while learning.
   const defaultHint = useMemo(() => {
-    const idx = statusQuery.data?.next_button_index
+    const idx = learnStatus.next_button_index
     if (!idx) return 'BTN_0001'
     return `BTN_${String(idx).padStart(4, '0')}`
-  }, [statusQuery.data?.next_button_index])
+  }, [learnStatus.next_button_index])
 
   const canClose = !learningActive || Number(learningRemoteId) !== Number(remoteId)
 
@@ -249,26 +283,27 @@ export function LearningWizard({
         <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-sm">Status</div>
-            <Button variant="secondary" size="sm" onClick={() => statusQuery.refetch()}>
-              {t('common.retry')}
-            </Button>
           </div>
 
-          {statusQuery.data?.learn_enabled ? (
+          {learnStatus?.learn_enabled ? (
             <div className="mt-2 text-xs text-[rgb(var(--muted))]">
-              remote: {statusQuery.data.remote_name} • extend: {String(statusQuery.data.extend)} • next: {statusQuery.data.next_button_index}
+              remote: {learnStatus.remote_name} • extend: {String(learnStatus.extend)} • next: {learnStatus.next_button_index}
             </div>
           ) : (
             <div className="mt-2 text-xs text-[rgb(var(--muted))]">learn_enabled=false</div>
           )}
 
-          {statusQuery.data?.logs?.length ? (
-            <div className="mt-3 max-h-40 overflow-auto space-y-2">
-              {statusQuery.data.logs.slice(-30).map((l, idx) => (
-                <div key={`${l.timestamp}_${idx}`} className="text-[11px] text-[rgb(var(--muted))]">
-                  [{l.level}] {l.message}
-                </div>
-              ))}
+          {statusLogs.length ? (
+            <div ref={logContainerRef} className="mt-3 max-h-40 overflow-auto space-y-2">
+              {statusLogs.slice(-30).map((l, idx) => {
+                const meta = formatLogMeta(l.data)
+                return (
+                  <div key={`${l.timestamp}_${idx}`} className="text-[11px] text-[rgb(var(--muted))]">
+                    {formatLogTime(l.timestamp)} [{l.level}] {l.message}
+                    {meta ? ` • ${meta}` : ''}
+                  </div>
+                )
+              })}
             </div>
           ) : null}
         </div>
@@ -293,4 +328,32 @@ export function LearningWizard({
     setButtonName('')
     setAdvancedOpen(false)
   }
+}
+
+function formatLogTime(timestampSeconds) {
+  // Convert epoch seconds to local HH:mm:ss.mmm to keep logs compact.
+  if (!Number.isFinite(timestampSeconds)) return ''
+  const date = new Date(timestampSeconds * 1000)
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  const millis = String(date.getMilliseconds()).padStart(3, '0')
+  return `${hours}:${minutes}:${seconds}.${millis}`
+}
+
+function formatLogMeta(data) {
+  if (!data || typeof data !== 'object') return ''
+  const entries = Object.entries(data)
+  if (!entries.length) return ''
+  return entries.map(([key, value]) => `${key}=${formatLogValue(value)}`).join(' • ')
+}
+
+function formatLogValue(value) {
+  if (value === null || value === undefined) return '—'
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) return String(value)
+    return value.toFixed(3)
+  }
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  return String(value)
 }

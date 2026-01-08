@@ -10,6 +10,7 @@ from .ir_hold_extractor import IrHoldExtractor
 from .ir_signal_aggregator import IrSignalAggregator
 from .ir_signal_parser import IrSignalParser
 from .models import LearningSession, LogEntry
+from .status_communication import StatusCommunication
 
 
 class IrLearningService:
@@ -24,6 +25,7 @@ class IrLearningService:
         aggregate_round_to_us: int,
         aggregate_min_match_ratio: float,
         hold_idle_timeout_ms: int,
+        status_comm: Optional[StatusCommunication] = None,
     ) -> None:
         self._db = database
         self._engine = engine
@@ -31,6 +33,7 @@ class IrLearningService:
         self._aggregator = aggregator
         self._hold_extractor = hold_extractor
         self._debug = debug
+        self._status_comm = status_comm
 
         self._aggregate_round_to_us = aggregate_round_to_us
         self._aggregate_min_match_ratio = aggregate_min_match_ratio
@@ -80,6 +83,9 @@ class IrLearningService:
         with self._lock:
             self._session = session
 
+        # Broadcast initial status so connected clients can render immediately.
+        self._publish_status(self._session_to_dict(session, active=True))
+
         return self.status()
 
     def stop(self) -> Dict[str, Any]:
@@ -89,6 +95,7 @@ class IrLearningService:
 
         if session:
             self._log(session, "info", "Learning session stopped")
+            self._publish_status({"learn_enabled": False})
             return self._session_to_dict(session, active=False)
 
         return {"learn_enabled": False}
@@ -367,6 +374,13 @@ class IrLearningService:
 
     def _log(self, session: LearningSession, level: str, message: str, data: Optional[Dict[str, Any]] = None) -> None:
         session.logs.append(LogEntry(timestamp=time.time(), level=level, message=message, data=data))
+        # Only broadcast when this is the active session to avoid stale updates.
+        if self._session is session:
+            self._publish_status(self._session_to_dict(session, active=True))
+
+    def _publish_status(self, payload: Dict[str, Any]) -> None:
+        if self._status_comm:
+            self._status_comm.broadcast(payload)
 
     def _session_to_dict(self, session: LearningSession, active: bool) -> Dict[str, Any]:
         return {
