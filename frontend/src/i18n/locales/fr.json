@@ -97,6 +97,8 @@
     "takeStatusWaiting": "En écoute",
     "takeStatusCaptured": "Capturé",
     "qualityTitle": "Qualité",
+    "qualityPress": "Appui",
+    "qualityHold": "Maintien",
     "qualityScore": "Score : {{score}}",
     "qualityGood": "Bonne",
     "qualityOk": "OK",

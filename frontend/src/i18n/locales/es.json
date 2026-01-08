@@ -97,6 +97,8 @@
     "takeStatusWaiting": "Esperando",
     "takeStatusCaptured": "Capturado",
     "qualityTitle": "Calidad",
+    "qualityPress": "Pulsar",
+    "qualityHold": "Mantener",
     "qualityScore": "Puntuación: {{score}}",
     "qualityGood": "Buena",
     "qualityOk": "OK",

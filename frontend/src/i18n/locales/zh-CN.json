@@ -97,6 +97,8 @@
     "takeStatusWaiting": "等待中",
     "takeStatusCaptured": "已采集",
     "qualityTitle": "质量",
+    "qualityPress": "按下",
+    "qualityHold": "长按",
     "qualityScore": "分数：{{score}}",
     "qualityGood": "良好",
     "qualityOk": "一般",

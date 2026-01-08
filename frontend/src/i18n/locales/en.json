@@ -101,6 +101,8 @@
     "takeStatusWaiting": "Waiting",
     "takeStatusCaptured": "Captured",
     "qualityTitle": "Quality",
+    "qualityPress": "Press",
+    "qualityHold": "Hold",
     "qualityScore": "Score: {{score}}",
     "qualityGood": "Good",
     "qualityOk": "OK",

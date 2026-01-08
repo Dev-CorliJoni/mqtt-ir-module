@@ -101,6 +101,8 @@
     "takeStatusWaiting": "Warte",
     "takeStatusCaptured": "Aufgenommen",
     "qualityTitle": "Qualität",
+    "qualityPress": "Drücken",
+    "qualityHold": "Halten",
     "qualityScore": "Wert: {{score}}",
     "qualityGood": "Gut",
     "qualityOk": "OK",

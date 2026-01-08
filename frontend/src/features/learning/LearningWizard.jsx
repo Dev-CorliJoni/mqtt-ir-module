@@ -57,11 +57,11 @@ export function LearningWizard({
     if (!currentCapture || currentCapture.mode !== 'press') return []
     return buildPressTakeStates(currentCapture)
   }, [currentCapture])
-  const latestQuality = useMemo(() => getLatestQuality(statusLogs), [statusLogs])
-  const qualitySummary = latestQuality ? getQualitySummary(latestQuality.score) : null
-  const statusRemoteLabel = learnStatus.remote_name || remoteName || (learnStatus.remote_id ? `#${learnStatus.remote_id}` : '-')
-  const statusExtendLabel = typeof learnStatus.extend === 'boolean' ? String(learnStatus.extend) : '-'
+  const qualityScores = useMemo(() => getQualityScores(statusLogs), [statusLogs])
+  const qualityRows = useMemo(() => buildQualityRows(qualityScores), [qualityScores])
+  const qualityHasAdvice = useMemo(() => qualityRows.some((row) => row.showAdvice), [qualityRows])
   const statusNextLabel = Number.isFinite(learnStatus.next_button_index) ? learnStatus.next_button_index : '-'
+  const mutedSuccessStyle = { backgroundColor: 'rgb(var(--success) / 0.7)' }
 
   // Mutations coordinate server-side learning actions with consistent error handling.
   const startMutation = useMutation({
@@ -188,7 +188,7 @@ export function LearningWizard({
 
   const canClose = !learningActive || Number(learningRemoteId) !== Number(remoteId)
 
-  // Use a single exit handler so only the stop button is explicit, while outside clicks still exit.
+  // Use a single exit handler so closing the drawer stops learning when needed.
   const handleStopAndClose = async () => {
     if (!canClose) {
       await stopMutation.mutateAsync()
@@ -291,84 +291,93 @@ export function LearningWizard({
           </div>
         ) : null}
 
-        <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold text-sm">{t('wizard.statusTitle')}</div>
-          </div>
-
-          {learnStatus?.learn_enabled ? (
-            <div className="mt-2 text-xs text-[rgb(var(--muted))]">
-              {t('wizard.statusRemote')}: {statusRemoteLabel} • {t('wizard.statusExtend')}: {statusExtendLabel} • {t('wizard.statusNext')}: {statusNextLabel}
+        {step !== 'summary' ? (
+          <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-sm">{t('wizard.statusTitle')}</div>
             </div>
-          ) : (
-            <div className="mt-2 text-xs text-[rgb(var(--muted))]">{t('wizard.statusInactive')}</div>
-          )}
 
-          {currentCapture ? (
-            <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))] p-2">
-              <div className="text-xs font-semibold">{t('wizard.captureProgressTitle')}</div>
-              <div className="mt-1 text-xs text-[rgb(var(--muted))]">
-                {currentCapture.mode === 'press' ? t('wizard.captureProgressPress') : t('wizard.captureProgressHold')}
-                {currentCapture.buttonName ? ` • ${currentCapture.buttonName}` : ''}
+            {learnStatus?.learn_enabled ? (
+              <div className="mt-2 text-xs text-[rgb(var(--muted))]">
+                {t('wizard.statusNext')}: {statusNextLabel}
               </div>
+            ) : (
+              <div className="mt-2 text-xs text-[rgb(var(--muted))]">{t('wizard.statusInactive')}</div>
+            )}
 
-              {currentCapture.mode === 'press' ? (
-                <div className="mt-2 grid gap-2">
-                  {pressTakeStates.map((take) => (
-                    <div key={take.index} className="flex items-center justify-between text-xs">
-                      <div>{t('wizard.takeLabel', { index: take.index })}</div>
-                      <Badge variant={take.variant}>{t(take.labelKey)}</Badge>
+            {currentCapture ? (
+              <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2">
+                <div className="text-xs font-semibold">{t('wizard.captureProgressTitle')}</div>
+                <div className="mt-1 text-xs text-[rgb(var(--muted))]">
+                  {currentCapture.mode === 'press' ? t('wizard.captureProgressPress') : t('wizard.captureProgressHold')}
+                  {currentCapture.buttonName ? ` • ${currentCapture.buttonName}` : ''}
+                </div>
+
+                {currentCapture.mode === 'press' ? (
+                  <div className="mt-2 grid gap-2">
+                    {pressTakeStates.map((take) => (
+                      <div key={take.index} className="flex items-center justify-between text-xs">
+                        <div>{t('wizard.takeLabel', { index: take.index })}</div>
+                        <Badge variant={take.variant} style={take.variant === 'success' ? mutedSuccessStyle : undefined} className="gap-1">
+                          {take.status === 'captured' ? <CheckIcon /> : null}
+                          {t(take.labelKey)}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <Badge
+                      variant={currentCapture.finished ? 'success' : currentCapture.waiting ? 'warning' : 'neutral'}
+                      style={currentCapture.finished ? mutedSuccessStyle : undefined}
+                      className="gap-1"
+                    >
+                      {currentCapture.finished ? <CheckIcon /> : null}
+                      {currentCapture.finished ? t('wizard.takeStatusCaptured') : t('wizard.takeStatusWaiting')}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {qualityRows.length ? (
+              <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2">
+                <div className="text-xs font-semibold">{t('wizard.qualityTitle')}</div>
+                <div className="mt-2 grid gap-2 text-xs">
+                  {qualityRows.map((row) => (
+                    <div key={row.key} className="flex items-center justify-between">
+                      <div>{t(row.labelKey)}</div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={row.variant} style={row.variant === 'success' ? mutedSuccessStyle : undefined} className="gap-1">
+                          {row.variant === 'success' ? <CheckIcon /> : null}
+                          {t(row.qualityLabelKey)}
+                        </Badge>
+                        <span>{t('wizard.qualityScore', { score: formatQualityScore(row.score) })}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="mt-2 flex items-center gap-2 text-xs">
-                  <Badge variant={currentCapture.finished ? 'success' : 'warning'}>
-                    {currentCapture.finished ? t('wizard.takeStatusCaptured') : t('wizard.takeStatusWaiting')}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {qualitySummary ? (
-            <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))] p-2">
-              <div className="text-xs font-semibold">{t('wizard.qualityTitle')}</div>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                <Badge variant={qualitySummary.variant}>{t(qualitySummary.labelKey)}</Badge>
-                <span>{t('wizard.qualityScore', { score: formatQualityScore(latestQuality.score) })}</span>
-              </div>
-              {qualitySummary.showAdvice ? (
-                <div className="mt-1 text-[11px] text-[rgb(var(--warning))]">
-                  {t('wizard.qualityAdvice')}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {statusLogs.length ? (
-            <div ref={logContainerRef} className="mt-3 max-h-40 overflow-auto space-y-2">
-              {statusLogs.slice(-30).map((l, idx) => {
-                return (
-                  <div key={`${l.timestamp}_${idx}`} className="text-[11px] text-[rgb(var(--muted))]">
-                    {formatLogTime(l.timestamp)} [{l.level}] {l.message}
+                {qualityHasAdvice ? (
+                  <div className="mt-2 text-[11px] text-[rgb(var(--warning))]">
+                    {t('wizard.qualityAdvice')}
                   </div>
-                )
-              })}
-            </div>
-          ) : null}
-        </div>
+                ) : null}
+              </div>
+            ) : null}
 
-        <div className="flex gap-2">
-          <Button
-            variant="danger"
-            className="w-full"
-            onClick={handleStopAndClose}
-            disabled={stopMutation.isPending}
-          >
-            {t('remote.stopLearning')}
-          </Button>
-        </div>
+            {statusLogs.length ? (
+              <div ref={logContainerRef} className="mt-3 max-h-40 overflow-auto space-y-2">
+                {statusLogs.slice(-30).map((l, idx) => {
+                  return (
+                    <div key={`${l.timestamp}_${idx}`} className="text-[11px] text-[rgb(var(--muted))]">
+                      {formatLogTime(l.timestamp)} [{l.level}] {l.message}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </Drawer>
   )
@@ -379,6 +388,19 @@ export function LearningWizard({
     setButtonName('')
     setAdvancedOpen(false)
   }
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="h-3 w-3"
+      fill="currentColor"
+    >
+      <path d="M16.704 5.296a1 1 0 0 1 0 1.414l-7.5 7.5a1 1 0 0 1-1.414 0l-3.5-3.5a1 1 0 1 1 1.414-1.414l2.793 2.793 6.793-6.793a1 1 0 0 1 1.414 0z" />
+    </svg>
+  )
 }
 
 function formatLogTime(timestampSeconds) {
@@ -480,35 +502,73 @@ function buildPressTakeStates(capture) {
   return states
 }
 
-function getLatestQuality(logs) {
-  // Find the most recent quality score reported by a finished capture.
-  if (!Array.isArray(logs) || !logs.length) return null
+function getQualityScores(logs) {
+  // Extract the latest press/hold quality scores from capture completion logs.
+  if (!Array.isArray(logs) || !logs.length) return { press: null, hold: null }
+
+  let press = null
+  let hold = null
 
   for (let i = logs.length - 1; i >= 0; i -= 1) {
     const entry = logs[i]
-    if (entry?.message === 'Capture press finished' || entry?.message === 'Capture hold finished') {
-      const score = toNumber(entry?.data?.quality)
-      if (Number.isFinite(score)) {
-        return {
-          score,
-          mode: entry.message.includes('press') ? 'press' : 'hold',
-        }
+    if (!press && entry?.message === 'Capture press finished') {
+      const rawScore = entry?.data?.quality
+      if (rawScore != null) {
+        const score = Number(rawScore)
+        if (Number.isFinite(score)) press = { score }
       }
     }
+    if (!hold && entry?.message === 'Capture hold finished') {
+      const rawScore = entry?.data?.quality
+      if (rawScore != null) {
+        const score = Number(rawScore)
+        if (Number.isFinite(score)) hold = { score }
+      }
+    }
+    if (press && hold) break
   }
-  return null
+
+  return { press, hold }
+}
+
+function buildQualityRows(scores) {
+  // Convert quality scores into UI rows for press/hold.
+  if (!scores) return []
+  const rows = []
+  if (scores.press) {
+    const row = buildQualityRow({ key: 'press', labelKey: 'wizard.qualityPress', score: scores.press.score })
+    if (row) rows.push(row)
+  }
+  if (scores.hold) {
+    const row = buildQualityRow({ key: 'hold', labelKey: 'wizard.qualityHold', score: scores.hold.score })
+    if (row) rows.push(row)
+  }
+  return rows
+}
+
+function buildQualityRow({ key, labelKey, score }) {
+  const summary = getQualitySummary(score)
+  if (!summary) return null
+  return {
+    key,
+    labelKey,
+    score,
+    qualityLabelKey: summary.qualityLabelKey,
+    variant: summary.variant,
+    showAdvice: summary.showAdvice,
+  }
 }
 
 function getQualitySummary(score) {
   // Map the quality score to a badge style and optional guidance text.
   if (!Number.isFinite(score)) return null
   if (score >= 0.85) {
-    return { labelKey: 'wizard.qualityGood', variant: 'success', showAdvice: false }
+    return { qualityLabelKey: 'wizard.qualityGood', variant: 'success', showAdvice: false }
   }
   if (score >= 0.7) {
-    return { labelKey: 'wizard.qualityOk', variant: 'warning', showAdvice: false }
+    return { qualityLabelKey: 'wizard.qualityOk', variant: 'warning', showAdvice: false }
   }
-  return { labelKey: 'wizard.qualityLow', variant: 'danger', showAdvice: true }
+  return { qualityLabelKey: 'wizard.qualityLow', variant: 'danger', showAdvice: true }
 }
 
 function formatQualityScore(score) {

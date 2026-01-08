@@ -97,6 +97,8 @@
     "takeStatusWaiting": "प्रतीक्षा",
     "takeStatusCaptured": "कैप्चर हो गया",
     "qualityTitle": "गुणवत्ता",
+    "qualityPress": "दबाना",
+    "qualityHold": "होल्ड",
     "qualityScore": "स्कोर: {{score}}",
     "qualityGood": "अच्छी",
     "qualityOk": "ठीक",
