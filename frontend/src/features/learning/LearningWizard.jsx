@@ -60,7 +60,6 @@ export function LearningWizard({
   const qualityScores = useMemo(() => getQualityScores(statusLogs), [statusLogs])
   const qualityRows = useMemo(() => buildQualityRows(qualityScores), [qualityScores])
   const qualityHasAdvice = useMemo(() => qualityRows.some((row) => row.showAdvice), [qualityRows])
-  const statusNextLabel = Number.isFinite(learnStatus.next_button_index) ? learnStatus.next_button_index : '-'
   const mutedSuccessStyle = { backgroundColor: 'rgb(var(--success) / 0.7)' }
 
   // Mutations coordinate server-side learning actions with consistent error handling.
@@ -297,11 +296,7 @@ export function LearningWizard({
               <div className="font-semibold text-sm">{t('wizard.statusTitle')}</div>
             </div>
 
-            {learnStatus?.learn_enabled ? (
-              <div className="mt-2 text-xs text-[rgb(var(--muted))]">
-                {t('wizard.statusNext')}: {statusNextLabel}
-              </div>
-            ) : (
+            {learnStatus?.learn_enabled ? null : (
               <div className="mt-2 text-xs text-[rgb(var(--muted))]">{t('wizard.statusInactive')}</div>
             )}
 
