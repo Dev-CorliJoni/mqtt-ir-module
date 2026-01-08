@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button.jsx'
 import { TextField } from '../../components/ui/TextField.jsx'
 import { NumberField } from '../../components/ui/NumberField.jsx'
 import { Collapse } from '../../components/ui/Collapse.jsx'
+import { Badge } from '../../components/ui/Badge.jsx'
 import { ErrorCallout } from '../../components/ui/ErrorCallout.jsx'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
 import { startLearning, stopLearning, capturePress, captureHold } from '../../api/learningApi.js'
@@ -51,6 +52,16 @@ export function LearningWizard({
   const latestLogKey = statusLogs.length
     ? `${statusLogs[statusLogs.length - 1].timestamp}_${statusLogs[statusLogs.length - 1].level}_${statusLogs[statusLogs.length - 1].message}`
     : ''
+  const currentCapture = useMemo(() => getCurrentCapture(statusLogs), [statusLogs])
+  const pressTakeStates = useMemo(() => {
+    if (!currentCapture || currentCapture.mode !== 'press') return []
+    return buildPressTakeStates(currentCapture)
+  }, [currentCapture])
+  const latestQuality = useMemo(() => getLatestQuality(statusLogs), [statusLogs])
+  const qualitySummary = latestQuality ? getQualitySummary(latestQuality.score) : null
+  const statusRemoteLabel = learnStatus.remote_name || remoteName || (learnStatus.remote_id ? `#${learnStatus.remote_id}` : '-')
+  const statusExtendLabel = typeof learnStatus.extend === 'boolean' ? String(learnStatus.extend) : '-'
+  const statusNextLabel = Number.isFinite(learnStatus.next_button_index) ? learnStatus.next_button_index : '-'
 
   // Mutations coordinate server-side learning actions with consistent error handling.
   const startMutation = useMutation({
@@ -282,25 +293,65 @@ export function LearningWizard({
 
         <div className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
           <div className="flex items-center justify-between">
-            <div className="font-semibold text-sm">Status</div>
+            <div className="font-semibold text-sm">{t('wizard.statusTitle')}</div>
           </div>
 
           {learnStatus?.learn_enabled ? (
             <div className="mt-2 text-xs text-[rgb(var(--muted))]">
-              remote: {learnStatus.remote_name} • extend: {String(learnStatus.extend)} • next: {learnStatus.next_button_index}
+              {t('wizard.statusRemote')}: {statusRemoteLabel} • {t('wizard.statusExtend')}: {statusExtendLabel} • {t('wizard.statusNext')}: {statusNextLabel}
             </div>
           ) : (
-            <div className="mt-2 text-xs text-[rgb(var(--muted))]">learn_enabled=false</div>
+            <div className="mt-2 text-xs text-[rgb(var(--muted))]">{t('wizard.statusInactive')}</div>
           )}
+
+          {currentCapture ? (
+            <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))] p-2">
+              <div className="text-xs font-semibold">{t('wizard.captureProgressTitle')}</div>
+              <div className="mt-1 text-xs text-[rgb(var(--muted))]">
+                {currentCapture.mode === 'press' ? t('wizard.captureProgressPress') : t('wizard.captureProgressHold')}
+                {currentCapture.buttonName ? ` • ${currentCapture.buttonName}` : ''}
+              </div>
+
+              {currentCapture.mode === 'press' ? (
+                <div className="mt-2 grid gap-2">
+                  {pressTakeStates.map((take) => (
+                    <div key={take.index} className="flex items-center justify-between text-xs">
+                      <div>{t('wizard.takeLabel', { index: take.index })}</div>
+                      <Badge variant={take.variant}>{t(take.labelKey)}</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-2 flex items-center gap-2 text-xs">
+                  <Badge variant={currentCapture.finished ? 'success' : 'warning'}>
+                    {currentCapture.finished ? t('wizard.takeStatusCaptured') : t('wizard.takeStatusWaiting')}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {qualitySummary ? (
+            <div className="mt-3 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--panel))] p-2">
+              <div className="text-xs font-semibold">{t('wizard.qualityTitle')}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                <Badge variant={qualitySummary.variant}>{t(qualitySummary.labelKey)}</Badge>
+                <span>{t('wizard.qualityScore', { score: formatQualityScore(latestQuality.score) })}</span>
+              </div>
+              {qualitySummary.showAdvice ? (
+                <div className="mt-1 text-[11px] text-[rgb(var(--warning))]">
+                  {t('wizard.qualityAdvice')}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {statusLogs.length ? (
             <div ref={logContainerRef} className="mt-3 max-h-40 overflow-auto space-y-2">
               {statusLogs.slice(-30).map((l, idx) => {
-                const meta = formatLogMeta(l.data)
                 return (
                   <div key={`${l.timestamp}_${idx}`} className="text-[11px] text-[rgb(var(--muted))]">
                     {formatLogTime(l.timestamp)} [{l.level}] {l.message}
-                    {meta ? ` • ${meta}` : ''}
                   </div>
                 )
               })}
@@ -331,29 +382,159 @@ export function LearningWizard({
 }
 
 function formatLogTime(timestampSeconds) {
-  // Convert epoch seconds to local HH:mm:ss.mmm to keep logs compact.
+  // Convert epoch seconds to local HH:mm:ss to keep logs compact.
   if (!Number.isFinite(timestampSeconds)) return ''
   const date = new Date(timestampSeconds * 1000)
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   const seconds = String(date.getSeconds()).padStart(2, '0')
-  const millis = String(date.getMilliseconds()).padStart(3, '0')
-  return `${hours}:${minutes}:${seconds}.${millis}`
+  return `${hours}:${minutes}:${seconds}`
 }
 
-function formatLogMeta(data) {
-  if (!data || typeof data !== 'object') return ''
-  const entries = Object.entries(data)
-  if (!entries.length) return ''
-  return entries.map(([key, value]) => `${key}=${formatLogValue(value)}`).join(' • ')
-}
+function getCurrentCapture(logs) {
+  // Inspect the latest capture-related log group to infer current capture state.
+  if (!Array.isArray(logs) || !logs.length) return null
 
-function formatLogValue(value) {
-  if (value === null || value === undefined) return '—'
-  if (typeof value === 'number') {
-    if (Number.isInteger(value)) return String(value)
-    return value.toFixed(3)
+  const startIndex = findLastIndex(logs, (entry) =>
+    entry?.message === 'Capture press started' || entry?.message === 'Capture hold started'
+  )
+  if (startIndex < 0) return null
+
+  const startEntry = logs[startIndex]
+  const slice = logs.slice(startIndex)
+
+  if (startEntry.message === 'Capture press started') {
+    const totalTakes = toNumber(startEntry?.data?.takes)
+    const buttonName = toStringValue(startEntry?.data?.button_name)
+    let waitingTake = null
+    const capturedTakes = []
+    let finished = false
+
+    for (const entry of slice) {
+      if (entry?.message === 'Waiting for IR press') {
+        waitingTake = toNumber(entry?.data?.take)
+      }
+      if (entry?.message === 'Captured press take') {
+        const takeNumber = toNumber(entry?.data?.take)
+        if (takeNumber) capturedTakes.push(takeNumber)
+      }
+      if (entry?.message === 'Capture press finished') {
+        finished = true
+      }
+    }
+
+    return {
+      mode: 'press',
+      buttonName,
+      totalTakes,
+      waitingTake,
+      capturedTakes,
+      finished,
+    }
   }
-  if (typeof value === 'boolean') return value ? 'true' : 'false'
-  return String(value)
+
+  if (startEntry.message === 'Capture hold started') {
+    let finished = false
+    let waiting = false
+    for (const entry of slice) {
+      if (entry?.message === 'Waiting for IR hold (initial frame)') {
+        waiting = true
+      }
+      if (entry?.message === 'Capture hold finished') {
+        finished = true
+      }
+    }
+    return {
+      mode: 'hold',
+      buttonName: null,
+      finished,
+      waiting,
+    }
+  }
+
+  return null
+}
+
+function buildPressTakeStates(capture) {
+  // Build per-take UI status from the most recent press capture logs.
+  const totalTakes = Math.max(0, toNumber(capture.totalTakes))
+  const capturedSet = new Set((capture.capturedTakes || []).filter(Boolean))
+  const waitingTake = toNumber(capture.waitingTake)
+
+  const states = []
+  for (let i = 1; i <= totalTakes; i += 1) {
+    let status = 'pending'
+    if (capturedSet.has(i)) status = 'captured'
+    else if (waitingTake === i) status = 'waiting'
+    states.push({
+      index: i,
+      status,
+      labelKey: status === 'captured'
+        ? 'wizard.takeStatusCaptured'
+        : status === 'waiting'
+          ? 'wizard.takeStatusWaiting'
+          : 'wizard.takeStatusPending',
+      variant: status === 'captured' ? 'success' : status === 'waiting' ? 'warning' : 'neutral',
+    })
+  }
+  return states
+}
+
+function getLatestQuality(logs) {
+  // Find the most recent quality score reported by a finished capture.
+  if (!Array.isArray(logs) || !logs.length) return null
+
+  for (let i = logs.length - 1; i >= 0; i -= 1) {
+    const entry = logs[i]
+    if (entry?.message === 'Capture press finished' || entry?.message === 'Capture hold finished') {
+      const score = toNumber(entry?.data?.quality)
+      if (Number.isFinite(score)) {
+        return {
+          score,
+          mode: entry.message.includes('press') ? 'press' : 'hold',
+        }
+      }
+    }
+  }
+  return null
+}
+
+function getQualitySummary(score) {
+  // Map the quality score to a badge style and optional guidance text.
+  if (!Number.isFinite(score)) return null
+  if (score >= 0.85) {
+    return { labelKey: 'wizard.qualityGood', variant: 'success', showAdvice: false }
+  }
+  if (score >= 0.7) {
+    return { labelKey: 'wizard.qualityOk', variant: 'warning', showAdvice: false }
+  }
+  return { labelKey: 'wizard.qualityLow', variant: 'danger', showAdvice: true }
+}
+
+function formatQualityScore(score) {
+  // Keep a stable two-decimal quality display.
+  if (!Number.isFinite(score)) return '0.00'
+  return score.toFixed(2)
+}
+
+function toNumber(value) {
+  // Normalize mixed data values into a usable number.
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function toStringValue(value) {
+  // Normalize mixed data values into a display-safe string.
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number') return String(value)
+  return ''
+}
+
+function findLastIndex(items, predicate) {
+  // Provide findLastIndex support without requiring newer runtime helpers.
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    if (predicate(items[i], i)) return i
+  }
+  return -1
 }
