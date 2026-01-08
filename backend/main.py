@@ -38,6 +38,7 @@ hold_extractor = IrHoldExtractor(aggregator)
 engine = IrCtlEngine(ir_device=env.ir_device, wideband_default=env.ir_wideband)
 status_comm = StatusCommunication()
 
+learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
     database=database,
     engine=engine,
@@ -45,9 +46,9 @@ learning = IrLearningService(
     aggregator=aggregator,
     hold_extractor=hold_extractor,
     debug=env.debug,
-    aggregate_round_to_us=env.aggregate_round_to_us,
-    aggregate_min_match_ratio=env.aggregate_min_match_ratio,
-    hold_idle_timeout_ms=env.hold_idle_timeout_ms,
+    aggregate_round_to_us=learning_defaults["aggregate_round_to_us"],
+    aggregate_min_match_ratio=learning_defaults["aggregate_min_match_ratio"],
+    hold_idle_timeout_ms=learning_defaults["hold_idle_timeout_ms"],
     status_comm=status_comm,
 )
 
@@ -64,6 +65,8 @@ def require_api_key(x_api_key: Optional[str]) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
+    # Load persisted learning defaults after the settings table exists.
+    learning.apply_learning_settings(database.settings.get_learning_settings())
     # Store the running loop so sync code can broadcast status updates.
     status_comm.attach_loop(asyncio.get_running_loop())
 
@@ -125,10 +128,28 @@ def get_settings() -> Dict[str, Any]:
 @api.put("/settings")
 def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
-    if body.theme is None and body.language is None:
-        raise HTTPException(status_code=400, detail="theme or language must be provided")
+    if (
+        body.theme is None
+        and body.language is None
+        and body.press_takes_default is None
+        and body.capture_timeout_ms_default is None
+        and body.hold_idle_timeout_ms is None
+        and body.aggregate_round_to_us is None
+        and body.aggregate_min_match_ratio is None
+    ):
+        raise HTTPException(status_code=400, detail="at least one setting must be provided")
     try:
-        return database.settings.update_ui_settings(theme=body.theme, language=body.language)
+        updated = database.settings.update_ui_settings(
+            theme=body.theme,
+            language=body.language,
+            press_takes_default=body.press_takes_default,
+            capture_timeout_ms_default=body.capture_timeout_ms_default,
+            hold_idle_timeout_ms=body.hold_idle_timeout_ms,
+            aggregate_round_to_us=body.aggregate_round_to_us,
+            aggregate_min_match_ratio=body.aggregate_min_match_ratio,
+        )
+        learning.apply_learning_settings(updated)
+        return updated
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -239,12 +260,17 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
 def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
 
+    learning_settings = database.settings.get_learning_settings()
+    learning.apply_learning_settings(learning_settings)
+    takes = body.takes if body.takes is not None else learning_settings["press_takes_default"]
+    timeout_ms = body.timeout_ms if body.timeout_ms is not None else learning_settings["capture_timeout_ms_default"]
+
     try:
         return learning.capture(
             remote_id=body.remote_id,
             mode=body.mode,
-            takes=body.takes,
-            timeout_ms=body.timeout_ms,
+            takes=takes,
+            timeout_ms=timeout_ms,
             overwrite=body.overwrite,
             button_name=body.button_name,
         )

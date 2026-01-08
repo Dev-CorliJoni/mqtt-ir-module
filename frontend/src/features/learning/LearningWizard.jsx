@@ -33,7 +33,6 @@ export function LearningWizard({
   // Capture configuration for press/hold.
   const [takes, setTakes] = useState(5)
   const [timeoutMs, setTimeoutMs] = useState(3000)
-  const [holdTimeoutMs, setHoldTimeoutMs] = useState(4000)
 
   // Local capture progress and status pushed over WebSocket.
   const [captured, setCaptured] = useState([]) // { name, press, hold }
@@ -66,7 +65,8 @@ export function LearningWizard({
   const startMutation = useMutation({
     mutationFn: async () => {
       if (learningActive && learningRemoteId && Number(learningRemoteId) !== Number(remoteId)) {
-        throw new Error(`Learning is active for another remote (${health?.learn_remote_name || learningRemoteId}). Stop it first.`)
+        const remoteLabel = health?.learn_remote_name || learningRemoteId
+        throw new Error(t('wizard.errorLearningActiveOther', { remote: remoteLabel }))
       }
       if (learningActive && Number(learningRemoteId) === Number(remoteId)) {
         return learnStatus
@@ -76,7 +76,7 @@ export function LearningWizard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
     },
-    onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || 'Failed to start learning.' }),
+    onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || t('wizard.errorStartFailed') }),
   })
 
   const stopMutation = useMutation({
@@ -84,7 +84,7 @@ export function LearningWizard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
     },
-    onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || 'Failed to stop learning.' }),
+    onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || t('wizard.errorStopFailed') }),
   })
 
   const pressMutation = useMutation({
@@ -104,7 +104,7 @@ export function LearningWizard({
       })
     },
     onSuccess: (data) => {
-      const name = data?.button?.name || buttonName.trim() || 'BTN'
+      const name = data?.button?.name || buttonName.trim() || t('wizard.defaultButtonName')
       setActiveButtonName(name)
       setCaptured((prev) => {
         const next = prev.filter((x) => x.name !== name)
@@ -112,7 +112,7 @@ export function LearningWizard({
         return next
       })
       queryClient.invalidateQueries({ queryKey: ['buttons', remoteId] })
-      toast.show({ title: t('wizard.capturePress'), message: `OK: ${name}` })
+      toast.show({ title: t('wizard.capturePress'), message: t('wizard.capturePressSuccess', { name }) })
       setStep('hold')
     },
   })
@@ -120,14 +120,14 @@ export function LearningWizard({
   const holdMutation = useMutation({
     mutationFn: async () => {
       const name = activeButtonName || targetButton?.name
-      if (!name) throw new Error('No active button.')
+      if (!name) throw new Error(t('wizard.errorNoActiveButton'))
 
       const existing = existingButtons.find((b) => b.name === name) || null
       const overwrite = Boolean(!startExtend || targetButton || existing?.has_hold)
 
       return captureHold({
         remoteId,
-        timeoutMs: Number(holdTimeoutMs),
+        timeoutMs: Number(timeoutMs),
         overwrite,
         buttonName: name,
       })
@@ -136,7 +136,7 @@ export function LearningWizard({
       const name = activeButtonName || targetButton?.name
       setCaptured((prev) => prev.map((x) => (x.name === name ? { ...x, hold: true } : x)))
       queryClient.invalidateQueries({ queryKey: ['buttons', remoteId] })
-      toast.show({ title: t('wizard.captureHold'), message: 'OK' })
+      toast.show({ title: t('wizard.captureHold'), message: t('wizard.captureHoldSuccess') })
       setStep('next')
     },
   })
@@ -144,12 +144,17 @@ export function LearningWizard({
   useEffect(() => {
     if (!open) return
     // Reset wizard state and start a learning session when opening the drawer.
+    const settingsSnapshot = queryClient.getQueryData(['settings'])
+    const defaultTakes = getSettingNumber(settingsSnapshot?.press_takes_default, 5)
+    const defaultTimeoutMs = getSettingNumber(settingsSnapshot?.capture_timeout_ms_default, 3000)
     setCaptured([])
     setActiveButtonName(targetButton?.name || null)
     setButtonName(targetButton?.name || '')
     setLearnStatus({ learn_enabled: false, logs: [] })
     setStep('press')
     setAdvancedOpen(false)
+    setTakes(defaultTakes)
+    setTimeoutMs(defaultTimeoutMs)
     startMutation.mutate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -221,14 +226,21 @@ export function LearningWizard({
           <div className="mt-3">
             <Collapse open={advancedOpen} onToggle={() => setAdvancedOpen((v) => !v)} title={t('common.advanced')}>
               <div className="grid grid-cols-1 gap-3">
-                <NumberField label="takes" value={takes} min={1} max={50} onChange={(e) => setTakes(e.target.value)} />
-                <NumberField label="timeout_ms" value={timeoutMs} min={100} max={60000} onChange={(e) => setTimeoutMs(e.target.value)} />
                 <NumberField
-                  label="hold_timeout_ms"
-                  value={holdTimeoutMs}
+                  label={t('wizard.takesLabel')}
+                  hint={t('wizard.takesHint')}
+                  value={takes}
+                  min={1}
+                  max={50}
+                  onChange={(e) => setTakes(e.target.value)}
+                />
+                <NumberField
+                  label={t('wizard.timeoutLabel')}
+                  hint={t('wizard.timeoutHint')}
+                  value={timeoutMs}
                   min={100}
                   max={60000}
-                  onChange={(e) => setHoldTimeoutMs(e.target.value)}
+                  onChange={(e) => setTimeoutMs(e.target.value)}
                 />
               </div>
             </Collapse>
@@ -282,7 +294,8 @@ export function LearningWizard({
                 <div key={x.name} className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3">
                   <div className="font-semibold text-sm">{x.name}</div>
                   <div className="text-xs text-[rgb(var(--muted))]">
-                    press: {x.press ? 'ok' : '—'} • hold: {x.hold ? 'ok' : '—'}
+                    {t('wizard.summaryPress')}: {x.press ? t('wizard.summaryOk') : t('wizard.summaryMissing')} • {t('wizard.summaryHold')}:{' '}
+                    {x.hold ? t('wizard.summaryOk') : t('wizard.summaryMissing')}
                   </div>
                 </div>
               ))}
@@ -584,6 +597,12 @@ function toStringValue(value) {
   if (typeof value === 'string') return value.trim()
   if (typeof value === 'number') return String(value)
   return ''
+}
+
+function getSettingNumber(value, fallback) {
+  // Allow settings defaults to safely fall back when missing or invalid.
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 function findLastIndex(items, predicate) {

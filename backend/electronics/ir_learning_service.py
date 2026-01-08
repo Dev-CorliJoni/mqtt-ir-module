@@ -133,6 +133,18 @@ class IrLearningService:
 
         return self._session_to_dict(session, active=True)
 
+    def apply_learning_settings(self, settings: Dict[str, Any]) -> None:
+        # Keep capture tuning aligned with stored settings.
+        if not settings:
+            return
+        with self._lock:
+            if "aggregate_round_to_us" in settings:
+                self._aggregate_round_to_us = int(settings["aggregate_round_to_us"])
+            if "aggregate_min_match_ratio" in settings:
+                self._aggregate_min_match_ratio = float(settings["aggregate_min_match_ratio"])
+            if "hold_idle_timeout_ms" in settings:
+                self._hold_idle_timeout_ms = int(settings["hold_idle_timeout_ms"])
+
     # -----------------------------
     # Internal
     # -----------------------------
@@ -157,7 +169,6 @@ class IrLearningService:
     ) -> Dict[str, Any]:
         name = self._resolve_press_button_name(session, button_name)
         auto_generated = not (button_name and button_name.strip())
-
 
         existing_button = self._db.buttons.get_by_name(session.remote_id, name)
         existing_signals = self._db.signals.list_by_button(int(existing_button["id"])) if existing_button else None
@@ -197,7 +208,7 @@ class IrLearningService:
 
         press_initial = self._parser.encode_pulses(aggregated)
 
-        # Update remote gap default if we can infer it from the successful takes.        
+        # Update remote gap default if we can infer it from the successful takes.
         gap_candidates: list[int] = []
         for idx in used_indices:
             if idx >= len(tail_gaps):
@@ -206,7 +217,7 @@ class IrLearningService:
             if gap is None or gap <= 0:
                 continue
             gap_candidates.append(gap)
-            
+
         if gap_candidates:
             gap_us = self._median_int(gap_candidates)
             self._db.remotes.update_gap_default_if_empty(session.remote_id, gap_us_default=gap_us)

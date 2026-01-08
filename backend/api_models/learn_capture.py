@@ -7,8 +7,8 @@ class LearnCapture(BaseModel):
     remote_id: int = Field(..., gt=0)
     mode: Literal["press", "hold"] = Field(...)
 
-    takes: int = Field(default=5, gt=0, description="Number of takes (only used for mode=press)")
-    timeout_ms: int = Field(default=3000, gt=0)
+    takes: Optional[int] = Field(default=None, gt=0, description="Number of takes (only used for mode=press). If omitted, uses settings default.")
+    timeout_ms: Optional[int] = Field(default=None, gt=0, description="Capture timeout in ms. If omitted, uses settings default.")
     overwrite: bool = Field(default=False)
 
     button_name: Optional[str] = Field(
