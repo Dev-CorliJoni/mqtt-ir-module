@@ -47,7 +47,7 @@ The API is always at `/api` (and also at `<PUBLIC_BASE_URL>/api` if you use a ba
 If you set `PUBLIC_BASE_URL`, open the UI at that path (example: `http://<host>:8000/mqtt-ir-module/`).
 
 For a docker-compose example, see:
-- [`docker-setup.md`](docker-setup.md)
+[`docker-setup.md`](docker-setup.md)
 
 ## Configuration
 All configuration is via environment variables:
@@ -68,7 +68,7 @@ If you set `API_KEY`, the UI will not be able to write unless you also set `PUBL
 
 ## Hardware and OS setup
 You need Linux IR devices at `/dev/lirc*`. For Raspberry Pi wiring and overlays, see:
-- [`raspberrypi-ir-setup.md`](raspberrypi-ir-setup.md)
+[`raspberrypi-ir-setup.md`](raspberrypi-ir-setup.md)
 
 Quick check on the host:
 ```bash
@@ -91,12 +91,12 @@ OpenAPI schema:
 - `/api/openapi.json`
 
 Full endpoint details:
-- [`backend/API.md`](backend/API.md)
+[`backend/API.md`](backend/API.md)
 
 ## Reverse proxy (optional)
 If you host under a sub-path or need to inject `X-API-Key`, see:
-- [`reverse-proxy.md`](reverse-proxy.md)
+[`reverse-proxy.md`](reverse-proxy.md)
 
 ## UI notes
 UI overview and learning flow:
-- [`website.md`](website.md)
+[`website.md`](website.md)
