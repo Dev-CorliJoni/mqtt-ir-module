@@ -25,6 +25,10 @@ export function HomePage() {
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
 
+  const irRxDevice = healthQuery.data?.ir_rx_device
+  const irTxDevice = healthQuery.data?.ir_tx_device
+  const deviceText = `RX: ${irRxDevice || '—'} / TX: ${irTxDevice || '—'}`
+
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
 
@@ -76,7 +80,7 @@ export function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.device')}</div>
-              <div className="font-semibold">{healthQuery.data?.ir_device || '—'}</div>
+              <div className="font-semibold">{deviceText}</div>
             </div>
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.debug')}</div>

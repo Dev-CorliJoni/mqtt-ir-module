@@ -19,6 +19,10 @@ export function SettingsPage() {
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
   const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings, staleTime: 60_000 })
 
+  const irRxDevice = healthQuery.data?.ir_rx_device
+  const irTxDevice = healthQuery.data?.ir_tx_device
+  const deviceText = `RX: ${irRxDevice || '—'} / TX: ${irTxDevice || '—'}`
+
   const [helpOpen, setHelpOpen] = useState(false)
   const [learningDirty, setLearningDirty] = useState(false)
   const [pressTakesDefault, setPressTakesDefault] = useState('')
@@ -115,7 +119,7 @@ export function SettingsPage() {
             </div>
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.device')}</div>
-              <div className="font-semibold">{healthQuery.data?.ir_device || '—'}</div>
+              <div className="font-semibold">{deviceText}</div>
             </div>
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.debug')}</div>
