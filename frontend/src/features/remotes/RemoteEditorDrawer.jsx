@@ -30,6 +30,17 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
 
   useEffect(() => {
+    if (!open) {
+      // Reset form state when the drawer closes to avoid stale edits.
+      setName('')
+      setIcon(null)
+      setCarrierHz('')
+      setDutyCycle('')
+      setGapUs('')
+      setAdvancedOpen(false)
+      setIconPickerOpen(false)
+      return
+    }
     if (!remote) return
     setName(remote.name || '')
     setIcon(remote.icon ?? null)
@@ -37,7 +48,7 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
     setDutyCycle(remote.duty_cycle ?? '')
     setGapUs(remote.gap_us_default ?? '')
     setAdvancedOpen(false)
-  }, [remote, open])
+  }, [open, remote])
 
   const mutation = useMutation({
     mutationFn: async () => {

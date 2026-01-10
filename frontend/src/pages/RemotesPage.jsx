@@ -24,6 +24,12 @@ export function RemotesPage() {
   const [editRemote, setEditRemote] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
+  const handleCreateClose = () => {
+    // Reset the create modal input when it closes.
+    setCreateOpen(false)
+    setNewName('')
+  }
+
   const filtered = useMemo(() => {
     const list = remotesQuery.data || []
     const q = query.trim().toLowerCase()
@@ -36,8 +42,7 @@ export function RemotesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
       toast.show({ title: t('remotes.create'), message: 'OK' })
-      setCreateOpen(false)
-      setNewName('')
+      handleCreateClose()
     },
     onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || 'Failed.' }),
   })
@@ -86,10 +91,10 @@ export function RemotesPage() {
       <Modal
         open={createOpen}
         title={t('remotes.create')}
-        onClose={() => setCreateOpen(false)}
+        onClose={handleCreateClose}
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setCreateOpen(false)}>
+            <Button variant="secondary" onClick={handleCreateClose}>
               {t('common.cancel')}
             </Button>
             <Button onClick={() => createMutation.mutate()} disabled={!newName.trim() || createMutation.isPending}>

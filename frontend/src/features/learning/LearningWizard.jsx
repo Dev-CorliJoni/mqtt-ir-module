@@ -160,6 +160,19 @@ export function LearningWizard({
   }, [open])
 
   useEffect(() => {
+    if (open) return
+    // Clear wizard state when the drawer closes to avoid stale data.
+    setStep('press')
+    setButtonName('')
+    setAdvancedOpen(false)
+    setTakes(5)
+    setTimeoutMs(3000)
+    setCaptured([])
+    setActiveButtonName(null)
+    setLearnStatus({ learn_enabled: false, logs: [] })
+  }, [open])
+
+  useEffect(() => {
     if (!open) return
     // Keep a single WebSocket open while the drawer is active.
     let isActive = true

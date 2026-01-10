@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Icon from '@mdi/react'
 import { useTranslation } from 'react-i18next'
 import { Drawer } from '../ui/Drawer.jsx'
@@ -6,21 +6,31 @@ import { TextField } from '../ui/TextField.jsx'
 import { Button } from '../ui/Button.jsx'
 import { ICONS, ICON_CATEGORIES } from '../../icons/iconRegistry.js'
 
+const DEFAULT_CATEGORY = 'All'
+
 export function IconPicker({ open, title, initialIconKey, onClose, onSelect }) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('All')
+  const [category, setCategory] = useState(DEFAULT_CATEGORY)
+
+  useEffect(() => {
+    if (!open) {
+      // Reset filters when the picker closes.
+      setQuery('')
+      setCategory(DEFAULT_CATEGORY)
+    }
+  }, [open])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return ICONS.filter((i) => {
-      const matchesCategory = category === 'All' ? true : i.category === category
+      const matchesCategory = category === DEFAULT_CATEGORY ? true : i.category === category
       const matchesQuery = q ? i.label.toLowerCase().includes(q) || i.key.toLowerCase().includes(q) : true
       return matchesCategory && matchesQuery
     })
   }, [query, category])
 
-  const categories = useMemo(() => ['All', ...ICON_CATEGORIES], [])
+  const categories = useMemo(() => [DEFAULT_CATEGORY, ...ICON_CATEGORIES], [])
 
   return (
     <Drawer

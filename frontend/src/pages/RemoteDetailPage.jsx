@@ -70,6 +70,31 @@ export function RemoteDetailPage() {
   const [wizardTargetButton, setWizardTargetButton] = useState(null)
   const [learningChoiceOpen, setLearningChoiceOpen] = useState(false)
 
+  const resetRenameState = () => {
+    // Reset rename modal state when it closes.
+    setRenameTarget(null)
+    setRenameValue('')
+  }
+
+  const resetIconPickerState = () => {
+    // Reset icon picker state when it closes.
+    setIconPickerOpen(false)
+    setIconTarget(null)
+  }
+
+  const resetHoldDialogState = () => {
+    // Reset hold dialog state when it closes.
+    setHoldDialogOpen(false)
+    setHoldTarget(null)
+  }
+
+  const resetWizardState = () => {
+    // Reset wizard entry state so the next open starts fresh.
+    setWizardOpen(false)
+    setWizardExtend(true)
+    setWizardTargetButton(null)
+  }
+
   const deleteRemoteMutation = useMutation({
     mutationFn: () => deleteRemote(numericRemoteId),
     onSuccess: () => {
@@ -85,9 +110,8 @@ export function RemoteDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buttons', numericRemoteId] })
       toast.show({ title: t('common.save'), message: 'OK' })
-      setRenameTarget(null)
-      setIconTarget(null)
-      setIconPickerOpen(false)
+      resetRenameState()
+      resetIconPickerState()
     },
     onError: (e) => toast.show({ title: 'Button', message: e?.message || 'Failed.' }),
   })
@@ -277,10 +301,10 @@ export function RemoteDetailPage() {
       <Modal
         open={Boolean(renameTarget)}
         title={t('button.rename')}
-        onClose={() => setRenameTarget(null)}
+        onClose={resetRenameState}
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setRenameTarget(null)}>
+            <Button variant="secondary" onClick={resetRenameState}>
               {t('common.cancel')}
             </Button>
             <Button
@@ -299,7 +323,7 @@ export function RemoteDetailPage() {
         open={iconPickerOpen}
         title={t('button.changeIcon')}
         initialIconKey={iconTarget?.icon || DEFAULT_BUTTON_ICON}
-        onClose={() => setIconPickerOpen(false)}
+        onClose={resetIconPickerState}
         onSelect={(key) => {
           updateButtonMutation.mutate({ buttonId: iconTarget.id, name: iconTarget.name, icon: key })
         }}
@@ -318,10 +342,11 @@ export function RemoteDetailPage() {
         open={holdDialogOpen}
         buttonName={holdTarget?.name || ''}
         defaultMs={1000}
-        onClose={() => setHoldDialogOpen(false)}
+        onClose={resetHoldDialogState}
         onSend={(ms) => {
-          setHoldDialogOpen(false)
-          sendHoldMutation.mutate({ buttonId: holdTarget.id, holdMs: ms })
+          const buttonId = holdTarget?.id
+          resetHoldDialogState()
+          if (buttonId) sendHoldMutation.mutate({ buttonId, holdMs: ms })
         }}
       />
 
@@ -332,7 +357,7 @@ export function RemoteDetailPage() {
         startExtend={wizardExtend}
         targetButton={wizardTargetButton}
         existingButtons={existingButtons}
-        onClose={() => setWizardOpen(false)}
+        onClose={resetWizardState}
       />
     </div>
   )
