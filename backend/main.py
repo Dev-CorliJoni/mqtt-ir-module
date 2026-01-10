@@ -35,7 +35,11 @@ database = Database(data_dir=env.data_folder)
 parser = IrSignalParser()
 aggregator = IrSignalAggregator()
 hold_extractor = IrHoldExtractor(aggregator)
-engine = IrCtlEngine(ir_device=env.ir_device, wideband_default=env.ir_wideband)
+engine = IrCtlEngine(
+    ir_rx_device=env.ir_rx_device,
+    ir_tx_device=env.ir_tx_device,
+    wideband_default=env.ir_wideband,
+)
 status_comm = StatusCommunication()
 
 learning_defaults = database.settings.get_learning_defaults()
@@ -107,7 +111,9 @@ api = APIRouter(prefix="/api")
 def health() -> Dict[str, Any]:
     return {
         "ok": True,
-        "ir_device": env.ir_device,
+        "ir_device": env.ir_rx_device,
+        "ir_rx_device": env.ir_rx_device,
+        "ir_tx_device": env.ir_tx_device,
         "debug": env.debug,
         "learn_enabled": learning.is_learning,
         "learn_remote_id": learning.remote_id,

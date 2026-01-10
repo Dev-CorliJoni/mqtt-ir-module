@@ -31,7 +31,7 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENV DATA_DIR=/data
-ENV IR_DEVICE=/dev/lirc0
+ENV IR_RX_DEVICE=/dev/lirc0
 ENV DEBUG=false
 
 EXPOSE 80

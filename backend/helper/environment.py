@@ -5,7 +5,8 @@ from typing import Optional
 class Environment:
     def __init__(self) -> None:
         self.api_key = os.getenv("API_KEY", "").strip()
-        self.ir_device = os.getenv("IR_DEVICE", "/dev/lirc0").strip()
+        self.ir_rx_device = os.getenv("IR_RX_DEVICE", "/dev/lirc0").strip()
+        self.ir_tx_device = os.getenv("IR_TX_DEVICE", "/dev/lirc1").strip()
         self.data_folder = os.getenv("DATA_DIR", "/data").strip()
 
         # Public base url for reverse-proxy sub-path hosting (e.g. /mqtt-ir-module/)

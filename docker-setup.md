@@ -4,7 +4,9 @@
 
 ### Backend
 - `API_KEY` (optional): If set, write endpoints require `X-API-Key`.
-- `IR_DEVICE` (default: `/dev/lirc0`)
+- `IR_RX_DEVICE` (default: `/dev/lirc0`)
+- `IR_TX_DEVICE` (default: `IR_RX_DEVICE`)
+- `IR_DEVICE` (default: `/dev/lirc0`, legacy fallback for `IR_RX_DEVICE`)
 - `DATA_DIR` (default: `/data`)
 - `DEBUG` (default: `false`)
 - `IR_WIDEBAND` (default: `false`)
@@ -40,12 +42,15 @@ services:
 
     devices:
       - "/dev/lirc0:/dev/lirc0"
+      # If RX and TX are separate devices:
+      # - "/dev/lirc1:/dev/lirc1"
 
     volumes:
       - "./data:/data"
 
     environment:
-      - IR_DEVICE=/dev/lirc0
+      - IR_RX_DEVICE=/dev/lirc0
+      - IR_TX_DEVICE=/dev/lirc0
       - DATA_DIR=/data
       - DEBUG=false
       - IR_WIDEBAND=false
