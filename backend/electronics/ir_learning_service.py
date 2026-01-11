@@ -261,18 +261,21 @@ class IrLearningService:
         frames_raw: List[str] = []
         frames: List[List[int]] = []
         tail_gaps: List[Optional[int]] = []
+        frame_end_times: List[float] = []
 
         deadline = time.time() + (timeout_ms / 1000.0)
 
         # First message (initial)
         self._log(session, "info", "Waiting for IR hold (initial frame)", {"timeout_ms": timeout_ms})
         first_raw, stdout, stderr = self._engine.receive_one_message(timeout_ms=timeout_ms)
+        first_end_time = time.perf_counter()
         if stdout or stderr:
             self._log(session, "debug", "ir-ctl output", {"stdout": stdout, "stderr": stderr})
         first_pulses, first_tail_gap = self._parser.parse_and_normalize(first_raw)
         frames_raw.append(first_raw)
         frames.append(first_pulses)
         tail_gaps.append(first_tail_gap)
+        frame_end_times.append(first_end_time)
 
         # Subsequent messages (repeats) until idle.
         while True:
@@ -287,10 +290,12 @@ class IrLearningService:
             except TimeoutError:
                 break
 
+            received_end_time = time.perf_counter()
             pulses, tail_gap_us = self._parser.parse_and_normalize(raw)
             frames_raw.append(raw)
             frames.append(pulses)
             tail_gaps.append(tail_gap_us)
+            frame_end_times.append(received_end_time)
 
         if len(frames) < 2:
             raise ValueError("Hold capture needs at least 2 frames. Hold the button longer or increase timeout_ms.")
@@ -306,7 +311,7 @@ class IrLearningService:
 
         hold_initial_text = self._parser.encode_pulses(hold_initial)
         hold_repeat_text = self._parser.encode_pulses(hold_repeat)
-        hold_gap_us = self._estimate_hold_gap_us([gap for gap in tail_gaps[1:] if gap and gap > 0])
+        hold_gap_us = self._estimate_hold_gap_us(self._resolve_hold_gap_candidates(tail_gaps, frames, frame_end_times))
         if hold_gap_us is None:
             raise ValueError("Failed to infer hold gap from capture. Hold longer and try again.")
 
@@ -425,3 +430,28 @@ class IrLearningService:
         # Drop the largest gap to avoid the release gap skewing the repeat cadence.
         trimmed = sorted(int(v) for v in repeat_gaps)[:-1]
         return self._median_int(trimmed)
+
+    def _resolve_hold_gap_candidates(
+        self,
+        tail_gaps: List[Optional[int]],
+        frames: List[List[int]],
+        frame_end_times: List[float],
+    ) -> List[int]:
+        # Prefer explicit tail gaps from the capture. If missing, fall back to timing between frames.
+        tail_candidates = [gap for gap in tail_gaps[1:] if gap and gap > 0]
+        if not tail_candidates and tail_gaps and tail_gaps[0] and tail_gaps[0] > 0:
+            tail_candidates = [int(tail_gaps[0])]
+        if tail_candidates:
+            return [int(v) for v in tail_candidates]
+
+        if len(frames) < 2 or len(frame_end_times) < 2:
+            return []
+
+        frame_durations = [sum(abs(int(v)) for v in frame) for frame in frames]
+        timestamp_candidates: List[int] = []
+        for idx in range(1, len(frames)):
+            delta_us = int(round((frame_end_times[idx] - frame_end_times[idx - 1]) * 1_000_000))
+            gap_us = delta_us - int(frame_durations[idx])
+            if gap_us > 0:
+                timestamp_candidates.append(gap_us)
+        return timestamp_candidates
