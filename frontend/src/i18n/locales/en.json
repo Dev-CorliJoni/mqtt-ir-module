@@ -252,6 +252,16 @@
       "settings": "Settings",
       "channel": "Channel",
       "tapButton": "Button"
+    },
+    "picker": {
+      "searchPlaceholder": "Search icons by name or mdi:...",
+      "featuredTitle": "Remote-ready icons",
+      "mdiTitle": "All MDI icons",
+      "resultCount": "Showing {{count}} of {{total}}",
+      "pageStatus": "Page {{current}} of {{total}}",
+      "prevPage": "Previous",
+      "nextPage": "Next",
+      "empty": "No MDI icons match your search."
     }
   }
 }

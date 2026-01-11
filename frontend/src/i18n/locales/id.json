@@ -252,6 +252,16 @@
       "settings": "Pengaturan",
       "channel": "Saluran",
       "tapButton": "Tombol"
+    },
+    "picker": {
+      "searchPlaceholder": "Cari ikon berdasarkan nama atau mdi:...",
+      "featuredTitle": "Ikon yang cocok untuk remote",
+      "mdiTitle": "Semua ikon MDI",
+      "resultCount": "Menampilkan {{count}} dari {{total}}",
+      "pageStatus": "Halaman {{current}} dari {{total}}",
+      "prevPage": "Sebelumnya",
+      "nextPage": "Berikutnya",
+      "empty": "Tidak ada ikon MDI yang cocok dengan pencarian Anda."
     }
   }
 }

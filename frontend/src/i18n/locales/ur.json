@@ -252,6 +252,16 @@
       "settings": "سیٹنگز",
       "channel": "چینل",
       "tapButton": "بٹن"
+    },
+    "picker": {
+      "searchPlaceholder": "نام یا mdi:... سے آئیکن تلاش کریں",
+      "featuredTitle": "ریمورٹ کے لیے موزوں آئیکنز",
+      "mdiTitle": "تمام MDI آئیکنز",
+      "resultCount": "{{total}} میں سے {{count}} دکھائے جا رہے ہیں",
+      "pageStatus": "صفحہ {{current}} از {{total}}",
+      "prevPage": "پچھلا",
+      "nextPage": "اگلا",
+      "empty": "آپ کی تلاش سے کوئی MDI آئیکن نہیں ملا۔"
     }
   }
 }

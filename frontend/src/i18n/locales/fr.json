@@ -252,6 +252,16 @@
       "settings": "Paramètres",
       "channel": "Chaîne",
       "tapButton": "Bouton"
+    },
+    "picker": {
+      "searchPlaceholder": "Rechercher des icônes par nom ou mdi:...",
+      "featuredTitle": "Icônes adaptées aux télécommandes",
+      "mdiTitle": "Toutes les icônes MDI",
+      "resultCount": "Affichage de {{count}} sur {{total}}",
+      "pageStatus": "Page {{current}} sur {{total}}",
+      "prevPage": "Précédent",
+      "nextPage": "Suivant",
+      "empty": "Aucune icône MDI ne correspond à votre recherche."
     }
   }
 }

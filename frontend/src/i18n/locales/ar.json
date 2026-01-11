@@ -252,6 +252,16 @@
       "settings": "الإعدادات",
       "channel": "القناة",
       "tapButton": "زر"
+    },
+    "picker": {
+      "searchPlaceholder": "ابحث عن أيقونات بالاسم أو mdi:...",
+      "featuredTitle": "أيقونات مناسبة لأجهزة التحكم",
+      "mdiTitle": "كل أيقونات MDI",
+      "resultCount": "عرض {{count}} من {{total}}",
+      "pageStatus": "الصفحة {{current}} من {{total}}",
+      "prevPage": "السابق",
+      "nextPage": "التالي",
+      "empty": "لا توجد أيقونات MDI مطابقة لبحثك."
     }
   }
 }

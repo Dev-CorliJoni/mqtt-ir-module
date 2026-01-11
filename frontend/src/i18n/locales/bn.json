@@ -252,6 +252,16 @@
       "settings": "সেটিংস",
       "channel": "চ্যানেল",
       "tapButton": "বোতাম"
+    },
+    "picker": {
+      "searchPlaceholder": "নাম বা mdi:... দিয়ে আইকন খুঁজুন",
+      "featuredTitle": "রিমোটের জন্য উপযুক্ত আইকন",
+      "mdiTitle": "সব MDI আইকন",
+      "resultCount": "{{total}}টির মধ্যে {{count}}টি দেখানো হচ্ছে",
+      "pageStatus": "পৃষ্ঠা {{current}} / {{total}}",
+      "prevPage": "পূর্ববর্তী",
+      "nextPage": "পরবর্তী",
+      "empty": "আপনার অনুসন্ধানের সাথে মেলে এমন কোনো MDI আইকন নেই।"
     }
   }
 }

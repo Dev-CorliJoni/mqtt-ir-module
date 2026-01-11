@@ -252,6 +252,16 @@
       "settings": "Definições",
       "channel": "Canal",
       "tapButton": "Botão"
+    },
+    "picker": {
+      "searchPlaceholder": "Pesquisar ícones por nome ou mdi:...",
+      "featuredTitle": "Ícones adequados para controlo remoto",
+      "mdiTitle": "Todos os ícones MDI",
+      "resultCount": "A mostrar {{count}} de {{total}}",
+      "pageStatus": "Página {{current}} de {{total}}",
+      "prevPage": "Anterior",
+      "nextPage": "Seguinte",
+      "empty": "Nenhum ícone MDI corresponde à sua pesquisa."
     }
   }
 }

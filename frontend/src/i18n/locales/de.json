@@ -252,6 +252,16 @@
       "settings": "Einstellungen",
       "channel": "Kanal",
       "tapButton": "Taste"
+    },
+    "picker": {
+      "searchPlaceholder": "Symbole nach Name oder mdi:... suchen",
+      "featuredTitle": "Fernbedienungs-geeignete Symbole",
+      "mdiTitle": "Alle MDI-Symbole",
+      "resultCount": "Zeige {{count}} von {{total}}",
+      "pageStatus": "Seite {{current}} von {{total}}",
+      "prevPage": "Zurück",
+      "nextPage": "Weiter",
+      "empty": "Keine MDI-Symbole passen zur Suche."
     }
   }
 }

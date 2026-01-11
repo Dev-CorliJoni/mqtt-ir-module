@@ -252,6 +252,16 @@
       "settings": "Настройки",
       "channel": "Канал",
       "tapButton": "Кнопка"
+    },
+    "picker": {
+      "searchPlaceholder": "Поиск значков по имени или mdi:...",
+      "featuredTitle": "Значки для пультов",
+      "mdiTitle": "Все значки MDI",
+      "resultCount": "Показано {{count}} из {{total}}",
+      "pageStatus": "Страница {{current}} из {{total}}",
+      "prevPage": "Назад",
+      "nextPage": "Вперёд",
+      "empty": "Нет значков MDI по вашему запросу."
     }
   }
 }

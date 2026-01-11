@@ -252,6 +252,16 @@
       "settings": "設定",
       "channel": "チャンネル",
       "tapButton": "ボタン"
+    },
+    "picker": {
+      "searchPlaceholder": "名前または mdi:... でアイコンを検索",
+      "featuredTitle": "リモコン向けアイコン",
+      "mdiTitle": "すべての MDI アイコン",
+      "resultCount": "{{total}} 件中 {{count}} 件を表示",
+      "pageStatus": "{{current}} / {{total}} ページ",
+      "prevPage": "前へ",
+      "nextPage": "次へ",
+      "empty": "検索に一致する MDI アイコンがありません。"
     }
   }
 }

@@ -252,6 +252,16 @@
       "settings": "सेटिंग्स",
       "channel": "चैनल",
       "tapButton": "बटन"
+    },
+    "picker": {
+      "searchPlaceholder": "नाम या mdi:... से आइकन खोजें",
+      "featuredTitle": "रिमोट के लिए उपयुक्त आइकन",
+      "mdiTitle": "सभी MDI आइकन",
+      "resultCount": "{{total}} में से {{count}} दिखाए जा रहे हैं",
+      "pageStatus": "पृष्ठ {{current}} / {{total}}",
+      "prevPage": "पिछला",
+      "nextPage": "अगला",
+      "empty": "आपकी खोज से मेल खाने वाले कोई MDI आइकन नहीं हैं।"
     }
   }
 }
