@@ -14,11 +14,13 @@ import { IconPicker } from '../../components/pickers/IconPicker.jsx'
 import { updateRemote } from '../../api/remotesApi.js'
 import { DEFAULT_REMOTE_ICON } from '../../icons/iconRegistry.js'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
 
 export function RemoteEditorDrawer({ open, remote, onClose }) {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const [name, setName] = useState('')
   const [icon, setIcon] = useState(null)
@@ -64,7 +66,7 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
       toast.show({ title: t('common.save'), message: t('common.saved') })
       onClose()
     },
-    onError: (e) => toast.show({ title: t('remote.title'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('remote.title'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   if (!remote) return null

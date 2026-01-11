@@ -24,6 +24,7 @@ import { HoldSendDialog } from '../features/buttons/HoldSendDialog.jsx'
 import { IconPicker } from '../components/pickers/IconPicker.jsx'
 import { DEFAULT_BUTTON_ICON } from '../icons/iconRegistry.js'
 import { LearningWizard } from '../features/learning/LearningWizard.jsx'
+import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function RemoteDetailPage() {
   const { t } = useTranslation()
@@ -31,6 +32,7 @@ export function RemoteDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { remoteId } = useParams()
+  const errorMapper = new ApiErrorMapper(t)
 
   const numericRemoteId = Number(remoteId)
 
@@ -102,7 +104,7 @@ export function RemoteDetailPage() {
       toast.show({ title: t('common.delete'), message: t('common.deleted') })
       navigate('/remotes')
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const updateButtonMutation = useMutation({
@@ -113,7 +115,7 @@ export function RemoteDetailPage() {
       resetRenameState()
       resetIconPickerState()
     },
-    onError: (e) => toast.show({ title: t('button.title'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('button.title'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const deleteButtonMutation = useMutation({
@@ -123,19 +125,19 @@ export function RemoteDetailPage() {
       toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteButtonTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const sendPressMutation = useMutation({
     mutationFn: (buttonId) => sendPress(buttonId),
     onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendPressSuccess') }),
-    onError: (e) => toast.show({ title: t('button.send'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('button.send'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const sendHoldMutation = useMutation({
     mutationFn: ({ buttonId, holdMs }) => sendHold(buttonId, holdMs),
     onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendHoldSuccess') }),
-    onError: (e) => toast.show({ title: t('button.send'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('button.send'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const existingButtons = buttonsQuery.data || []

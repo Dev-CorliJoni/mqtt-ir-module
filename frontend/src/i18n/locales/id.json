@@ -173,10 +173,20 @@
     "timeoutBody": "Tekan tombol dalam batas waktu dan coba lagi.",
     "conflictTitle": "Konflik",
     "conflictBody": "Server melaporkan konflik. Coba lagi atau hentikan sesi pembelajaran saat ini.",
+    "learningActiveBody": "Pembelajaran sudah aktif. Hentikan sesi saat ini lalu coba lagi.",
+    "signalExistsBody": "Sinyal ini sudah ada. Pilih belajar ulang atau timpa untuk menggantinya.",
+    "sendWhileLearningBody": "Hentikan pembelajaran sebelum mengirim sinyal.",
     "badRequestTitle": "Permintaan tidak valid",
+    "badRequestBody": "Periksa input dan coba lagi.",
+    "nameRequiredBody": "Masukkan nama untuk melanjutkan.",
+    "settingsMissingBody": "Ubah setidaknya satu pengaturan sebelum menyimpan.",
+    "signalMissingBody": "Tangkap sinyal yang diperlukan terlebih dahulu, lalu coba lagi.",
     "notFoundTitle": "Tidak ditemukan",
+    "notFoundBody": "Item yang diminta tidak ditemukan.",
     "offlineTitle": "Backend tidak dapat dijangkau",
-    "offlineBody": "Periksa container/jaringan dan coba lagi."
+    "offlineBody": "Periksa container/jaringan dan coba lagi.",
+    "genericTitle": "Terjadi kesalahan",
+    "genericBody": "Silakan coba lagi sebentar lagi."
   },
   "languages": {
     "en": "Inggris",

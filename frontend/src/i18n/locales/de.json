@@ -173,10 +173,20 @@
     "timeoutBody": "Drücke die Taste innerhalb des Timeouts und versuche es erneut.",
     "conflictTitle": "Konflikt",
     "conflictBody": "Der Server meldet einen Konflikt. Erneut versuchen oder die aktuelle Session stoppen.",
+    "learningActiveBody": "Das Lernen läuft bereits. Beende die aktuelle Sitzung und versuche es erneut.",
+    "signalExistsBody": "Dieses Signal existiert bereits. Wähle Neu lernen oder Überschreiben, um es zu ersetzen.",
+    "sendWhileLearningBody": "Beende das Lernen, bevor du ein Signal sendest.",
     "badRequestTitle": "Ungültige Anfrage",
+    "badRequestBody": "Eingaben prüfen und erneut versuchen.",
+    "nameRequiredBody": "Bitte einen Namen eingeben, um fortzufahren.",
+    "settingsMissingBody": "Ändere mindestens eine Einstellung, bevor du speicherst.",
+    "signalMissingBody": "Erfasse zuerst das benötigte Signal und versuche es erneut.",
     "notFoundTitle": "Nicht gefunden",
+    "notFoundBody": "Das angeforderte Element wurde nicht gefunden.",
     "offlineTitle": "Backend nicht erreichbar",
-    "offlineBody": "Container/Netzwerk prüfen und erneut versuchen."
+    "offlineBody": "Container/Netzwerk prüfen und erneut versuchen.",
+    "genericTitle": "Etwas ist schiefgelaufen",
+    "genericBody": "Bitte in einem Moment erneut versuchen."
   },
   "languages": {
     "en": "Englisch",

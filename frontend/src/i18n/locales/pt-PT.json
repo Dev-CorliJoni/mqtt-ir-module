@@ -173,10 +173,20 @@
     "timeoutBody": "Prima o botão dentro do tempo e tente novamente.",
     "conflictTitle": "Conflito",
     "conflictBody": "O servidor reportou um conflito. Tente novamente ou pare a sessão de aprendizagem atual.",
+    "learningActiveBody": "A aprendizagem já está ativa. Pare a sessão atual e tente novamente.",
+    "signalExistsBody": "Este sinal já existe. Escolha reaprender ou substituir para o trocar.",
+    "sendWhileLearningBody": "Pare a aprendizagem antes de enviar um sinal.",
     "badRequestTitle": "Pedido inválido",
+    "badRequestBody": "Verifique os dados e tente novamente.",
+    "nameRequiredBody": "Introduza um nome para continuar.",
+    "settingsMissingBody": "Altere pelo menos uma definição antes de guardar.",
+    "signalMissingBody": "Capture primeiro o sinal necessário e tente novamente.",
     "notFoundTitle": "Não encontrado",
+    "notFoundBody": "O item solicitado não foi encontrado.",
     "offlineTitle": "Backend indisponível",
-    "offlineBody": "Verifique o contentor / rede e tente novamente."
+    "offlineBody": "Verifique o contentor / rede e tente novamente.",
+    "genericTitle": "Algo correu mal",
+    "genericBody": "Tente novamente daqui a pouco."
   },
   "languages": {
     "en": "Inglês",

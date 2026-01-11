@@ -11,6 +11,7 @@ import { ErrorCallout } from '../../components/ui/ErrorCallout.jsx'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
 import { startLearning, stopLearning, capturePress, captureHold } from '../../api/learningApi.js'
 import { createLearningStatusSocket } from '../../api/learningStatusSocket.js'
+import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
 
 export function LearningWizard({
   open,
@@ -24,6 +25,7 @@ export function LearningWizard({
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   // Wizard flow state for press -> hold -> summary.
   const [step, setStep] = useState('press') // press -> hold -> next -> summary
@@ -76,7 +78,7 @@ export function LearningWizard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
     },
-    onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || t('wizard.errorStartFailed') }),
+    onError: (e) => toast.show({ title: t('wizard.title'), message: errorMapper.getMessage(e, 'wizard.errorStartFailed') }),
   })
 
   const stopMutation = useMutation({
@@ -84,7 +86,7 @@ export function LearningWizard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
     },
-    onError: (e) => toast.show({ title: t('wizard.title'), message: e?.message || t('wizard.errorStopFailed') }),
+    onError: (e) => toast.show({ title: t('wizard.title'), message: errorMapper.getMessage(e, 'wizard.errorStopFailed') }),
   })
 
   const pressMutation = useMutation({

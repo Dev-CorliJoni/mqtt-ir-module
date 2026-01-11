@@ -173,10 +173,20 @@
     "timeoutBody": "Appuyez sur le bouton dans le délai puis réessayez.",
     "conflictTitle": "Conflit",
     "conflictBody": "Le serveur a signalé un conflit. Réessayez ou arrêtez la session d'apprentissage en cours.",
+    "learningActiveBody": "L'apprentissage est déjà actif. Arrêtez la session en cours et réessayez.",
+    "signalExistsBody": "Ce signal existe déjà. Choisissez de réapprendre ou d'écraser pour le remplacer.",
+    "sendWhileLearningBody": "Arrêtez l'apprentissage avant d'envoyer un signal.",
     "badRequestTitle": "Requête invalide",
+    "badRequestBody": "Vérifiez vos saisies et réessayez.",
+    "nameRequiredBody": "Saisissez un nom pour continuer.",
+    "settingsMissingBody": "Modifiez au moins un paramètre avant d'enregistrer.",
+    "signalMissingBody": "Capturez d'abord le signal requis, puis réessayez.",
     "notFoundTitle": "Introuvable",
+    "notFoundBody": "L'élément demandé est introuvable.",
     "offlineTitle": "Backend injoignable",
-    "offlineBody": "Vérifiez le conteneur / réseau et réessayez."
+    "offlineBody": "Vérifiez le conteneur / réseau et réessayez.",
+    "genericTitle": "Un problème est survenu",
+    "genericBody": "Veuillez réessayer dans un instant."
   },
   "languages": {
     "en": "Anglais",

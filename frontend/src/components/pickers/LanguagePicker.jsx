@@ -6,6 +6,7 @@ import { IconButton } from '../ui/IconButton.jsx'
 import { Drawer } from '../ui/Drawer.jsx'
 import { Button } from '../ui/Button.jsx'
 import { useToast } from '../ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
 
 const LANGUAGES = [
   { code: 'en', labelKey: 'languages.en', flag: '🇬🇧' },
@@ -27,6 +28,7 @@ export function LanguagePicker() {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const [open, setOpen] = React.useState(false)
 
@@ -40,7 +42,7 @@ export function LanguagePicker() {
       queryClient.setQueryData(['settings'], data)
       toast.show({ title: t('settings.language'), message: t('common.saved') })
     },
-    onError: (e) => toast.show({ title: t('settings.language'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('settings.language'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   return (

@@ -173,10 +173,20 @@
     "timeoutBody": "Press the button within the timeout and try again.",
     "conflictTitle": "Conflict",
     "conflictBody": "The server reported a conflict. Try again or stop the current learning session.",
+    "learningActiveBody": "Learning is already active. Stop the current session and try again.",
+    "signalExistsBody": "This signal already exists. Choose re-learn or overwrite to replace it.",
+    "sendWhileLearningBody": "Stop learning before sending a signal.",
     "badRequestTitle": "Invalid request",
+    "badRequestBody": "Check your input and try again.",
+    "nameRequiredBody": "Enter a name to continue.",
+    "settingsMissingBody": "Change at least one setting before saving.",
+    "signalMissingBody": "Capture the required signal first, then try again.",
     "notFoundTitle": "Not found",
+    "notFoundBody": "The requested item could not be found.",
     "offlineTitle": "Backend not reachable",
-    "offlineBody": "Check container / network and try again."
+    "offlineBody": "Check container / network and try again.",
+    "genericTitle": "Something went wrong",
+    "genericBody": "Please try again in a moment."
   },
   "languages": {
     "en": "English",

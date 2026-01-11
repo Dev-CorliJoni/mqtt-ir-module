@@ -173,10 +173,20 @@
     "timeoutBody": "Pulsa el botón dentro del tiempo y reintenta.",
     "conflictTitle": "Conflicto",
     "conflictBody": "El servidor informó un conflicto. Reintenta o detén la sesión de aprendizaje actual.",
+    "learningActiveBody": "El aprendizaje ya está activo. Detén la sesión actual y vuelve a intentarlo.",
+    "signalExistsBody": "Esta señal ya existe. Elige volver a aprender o sobrescribir para reemplazarla.",
+    "sendWhileLearningBody": "Detén el aprendizaje antes de enviar una señal.",
     "badRequestTitle": "Solicitud inválida",
+    "badRequestBody": "Revisa los datos e inténtalo de nuevo.",
+    "nameRequiredBody": "Introduce un nombre para continuar.",
+    "settingsMissingBody": "Cambia al menos un ajuste antes de guardar.",
+    "signalMissingBody": "Captura primero la señal necesaria y vuelve a intentarlo.",
     "notFoundTitle": "No encontrado",
+    "notFoundBody": "No se pudo encontrar el elemento solicitado.",
     "offlineTitle": "Backend no disponible",
-    "offlineBody": "Comprueba el contenedor / red e inténtalo de nuevo."
+    "offlineBody": "Comprueba el contenedor / red e inténtalo de nuevo.",
+    "genericTitle": "Algo salió mal",
+    "genericBody": "Inténtalo de nuevo en unos momentos."
   },
   "languages": {
     "en": "Inglés",

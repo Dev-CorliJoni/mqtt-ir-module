@@ -10,11 +10,13 @@ import { Modal } from '../components/ui/Modal.jsx'
 import { NumberField } from '../components/ui/NumberField.jsx'
 import { ErrorCallout } from '../components/ui/ErrorCallout.jsx'
 import { useToast } from '../components/ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function SettingsPage() {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
   const config = useMemo(() => getAppConfig(), [])
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
   const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings, staleTime: 60_000 })
@@ -53,7 +55,7 @@ export function SettingsPage() {
       setLearningDirty(false)
       toast.show({ title: t('settings.learningTitle'), message: t('settings.learningSaved') })
     },
-    onError: (e) => toast.show({ title: t('settings.learningTitle'), message: e?.message || t('settings.learningSaveFailed') }),
+    onError: (e) => toast.show({ title: t('settings.learningTitle'), message: errorMapper.getMessage(e, 'settings.learningSaveFailed') }),
   })
 
   const defaults = settingsQuery.data ? getLearningDefaults(settingsQuery.data) : null

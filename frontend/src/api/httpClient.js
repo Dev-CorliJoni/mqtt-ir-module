@@ -48,10 +48,21 @@ export async function requestJson(path, {method = 'GET', body, headers} = {}) {
 
   if (!response.ok) {
     let detail = response.statusText
+    // Preserve structured error payloads for higher-level error mapping.
+    let errorDetails = null
     if (isJson) {
       try {
         const data = await response.json()
-        detail = data?.detail ?? JSON.stringify(data)
+        errorDetails = data
+        if (typeof data?.detail === 'string') {
+          detail = data.detail
+        } else if (typeof data?.message === 'string') {
+          detail = data.message
+        } else if (data?.detail) {
+          detail = JSON.stringify(data.detail)
+        } else {
+          detail = JSON.stringify(data)
+        }
       } catch {
         // ignore
       }
@@ -63,7 +74,7 @@ export async function requestJson(path, {method = 'GET', body, headers} = {}) {
         // ignore
       }
     }
-    throw new ApiError(response.status, detail || 'Request failed', detail)
+    throw new ApiError(response.status, detail || 'Request failed', errorDetails || detail)
   }
 
   if (response.status === 204) return null

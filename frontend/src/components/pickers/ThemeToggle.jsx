@@ -8,11 +8,13 @@ import { Drawer } from '../ui/Drawer.jsx'
 import { Button } from '../ui/Button.jsx'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
 
 export function ThemeToggle() {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const [open, setOpen] = React.useState(false)
 
@@ -25,7 +27,7 @@ export function ThemeToggle() {
       queryClient.setQueryData(['settings'], data)
       toast.show({ title: t('settings.theme'), message: t('common.saved') })
     },
-    onError: (e) => toast.show({ title: t('settings.theme'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('settings.theme'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const options = [

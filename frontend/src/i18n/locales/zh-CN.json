@@ -173,10 +173,20 @@
     "timeoutBody": "请在超时时间内按下按键后重试。",
     "conflictTitle": "冲突",
     "conflictBody": "服务器报告冲突。请重试或停止当前学习会话。",
+    "learningActiveBody": "学习已在进行中。请先停止当前会话再试。",
+    "signalExistsBody": "该信号已存在。选择重新学习或覆盖以替换。",
+    "sendWhileLearningBody": "发送信号前请先停止学习。",
     "badRequestTitle": "请求无效",
+    "badRequestBody": "请检查输入后重试。",
+    "nameRequiredBody": "请输入名称以继续。",
+    "settingsMissingBody": "保存前请至少修改一项设置。",
+    "signalMissingBody": "请先采集所需信号，然后重试。",
     "notFoundTitle": "未找到",
+    "notFoundBody": "未找到请求的项目。",
     "offlineTitle": "后端不可用",
-    "offlineBody": "检查容器/网络后重试。"
+    "offlineBody": "检查容器/网络后重试。",
+    "genericTitle": "出现问题",
+    "genericBody": "请稍后再试。"
   },
   "languages": {
     "en": "英语",

@@ -15,12 +15,14 @@ import { Modal } from '../components/ui/Modal.jsx'
 import { TextField } from '../components/ui/TextField.jsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '../components/ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function HomePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
@@ -62,7 +64,7 @@ export function HomePage() {
       toast.show({ title: t('remotes.create'), message: t('common.saved') })
       handleCreateClose()
     },
-    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('remotes.create'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const deleteMutation = useMutation({
@@ -72,7 +74,7 @@ export function HomePage() {
       toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteRemoteTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   return (

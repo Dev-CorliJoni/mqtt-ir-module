@@ -9,11 +9,13 @@ import { Modal } from '../components/ui/Modal.jsx'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx'
 import { RemoteEditorDrawer } from '../features/remotes/RemoteEditorDrawer.jsx'
 import { useToast } from '../components/ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function RemotesPage() {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
 
@@ -44,7 +46,7 @@ export function RemotesPage() {
       toast.show({ title: t('remotes.create'), message: t('common.saved') })
       handleCreateClose()
     },
-    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('remotes.create'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const deleteMutation = useMutation({
@@ -54,7 +56,7 @@ export function RemotesPage() {
       toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   return (
