@@ -15,6 +15,12 @@ const LANGUAGES = [
   { code: 'fr', labelKey: 'languages.fr', flag: '🇫🇷' },
   { code: 'zh-CN', labelKey: 'languages.zh-CN', flag: '🇨🇳' },
   { code: 'hi', labelKey: 'languages.hi', flag: '🇮🇳' },
+  { code: 'ru', labelKey: 'languages.ru', flag: '🇷🇺' },
+  { code: 'ar', labelKey: 'languages.ar', flag: '🇸🇦' },
+  { code: 'bn', labelKey: 'languages.bn', flag: '🇧🇩' },
+  { code: 'id', labelKey: 'languages.id', flag: '🇮🇩' },
+  { code: 'ur', labelKey: 'languages.ur', flag: '🇵🇰' },
+  { code: 'ja', labelKey: 'languages.ja', flag: '🇯🇵' },
 ]
 
 export function LanguagePicker() {

@@ -184,8 +184,14 @@
     "es": "Spanish",
     "pt-PT": "Portuguese (PT)",
     "fr": "French",
-    "zh-CN": "Chinese (Simplified)",
-    "hi": "Hindi"
+    "zh-CN": "Mandarin",
+    "hi": "Hindi",
+    "ru": "Russian",
+    "ar": "Arabic",
+    "bn": "Bengali",
+    "id": "Indonesian",
+    "ur": "Urdu",
+    "ja": "Japanese"
   },
   "icons": {
     "categories": {
