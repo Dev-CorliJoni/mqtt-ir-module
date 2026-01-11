@@ -40,7 +40,7 @@ export function SidebarNav() {
             aria-hidden="true"
             className="h-10 w-10 shrink-0"
           />
-          <div className="font-bold text-xl">Hub</div>
+          <div className="font-bold text-xl">{t('app.name')}</div>
         </div>
 
         <nav className="flex flex-col gap-2">

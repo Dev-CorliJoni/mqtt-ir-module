@@ -199,9 +199,10 @@ export function LearningWizard({
   // Suggest the next auto-generated button name while learning.
   const defaultHint = useMemo(() => {
     const idx = learnStatus.next_button_index
-    if (!idx) return 'BTN_0001'
-    return `BTN_${String(idx).padStart(4, '0')}`
-  }, [learnStatus.next_button_index])
+    const prefix = t('wizard.defaultButtonPrefix')
+    if (!idx) return `${prefix}_0001`
+    return `${prefix}_${String(idx).padStart(4, '0')}`
+  }, [learnStatus.next_button_index, t])
 
   const canClose = !learningActive || Number(learningRemoteId) !== Number(remoteId)
 

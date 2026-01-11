@@ -99,43 +99,43 @@ export function RemoteDetailPage() {
     mutationFn: () => deleteRemote(numericRemoteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('common.delete'), message: 'Remote deleted.' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       navigate('/remotes')
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
   })
 
   const updateButtonMutation = useMutation({
     mutationFn: ({ buttonId, name, icon }) => updateButton(buttonId, { name, icon }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buttons', numericRemoteId] })
-      toast.show({ title: t('common.save'), message: 'OK' })
+      toast.show({ title: t('common.save'), message: t('common.saved') })
       resetRenameState()
       resetIconPickerState()
     },
-    onError: (e) => toast.show({ title: 'Button', message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('button.title'), message: e?.message || t('common.failed') }),
   })
 
   const deleteButtonMutation = useMutation({
     mutationFn: (buttonId) => deleteButton(buttonId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buttons', numericRemoteId] })
-      toast.show({ title: t('common.delete'), message: 'OK' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteButtonTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
   })
 
   const sendPressMutation = useMutation({
     mutationFn: (buttonId) => sendPress(buttonId),
-    onSuccess: () => toast.show({ title: 'Send', message: 'Press sent.' }),
-    onError: (e) => toast.show({ title: 'Send', message: e?.message || 'Failed.' }),
+    onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendPressSuccess') }),
+    onError: (e) => toast.show({ title: t('button.send'), message: e?.message || t('common.failed') }),
   })
 
   const sendHoldMutation = useMutation({
     mutationFn: ({ buttonId, holdMs }) => sendHold(buttonId, holdMs),
-    onSuccess: () => toast.show({ title: 'Send', message: 'Hold sent.' }),
-    onError: (e) => toast.show({ title: 'Send', message: e?.message || 'Failed.' }),
+    onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendHoldSuccess') }),
+    onError: (e) => toast.show({ title: t('button.send'), message: e?.message || t('common.failed') }),
   })
 
   const existingButtons = buttonsQuery.data || []

@@ -6,7 +6,7 @@ import { TextField } from '../ui/TextField.jsx'
 import { Button } from '../ui/Button.jsx'
 import { ICONS, ICON_CATEGORIES } from '../../icons/iconRegistry.js'
 
-const DEFAULT_CATEGORY = 'All'
+const DEFAULT_CATEGORY = 'all'
 
 export function IconPicker({ open, title, initialIconKey, onClose, onSelect }) {
   const { t } = useTranslation()
@@ -25,10 +25,12 @@ export function IconPicker({ open, title, initialIconKey, onClose, onSelect }) {
     const q = query.trim().toLowerCase()
     return ICONS.filter((i) => {
       const matchesCategory = category === DEFAULT_CATEGORY ? true : i.category === category
-      const matchesQuery = q ? i.label.toLowerCase().includes(q) || i.key.toLowerCase().includes(q) : true
-      return matchesCategory && matchesQuery
+      if (!q) return matchesCategory
+      const label = t(`icons.labels.${i.key}`).toLowerCase()
+      const key = i.key.toLowerCase()
+      return matchesCategory && (label.includes(q) || key.includes(q))
     })
-  }, [query, category])
+  }, [query, category, t])
 
   const categories = useMemo(() => [DEFAULT_CATEGORY, ...ICON_CATEGORIES], [])
 
@@ -59,7 +61,7 @@ export function IconPicker({ open, title, initialIconKey, onClose, onSelect }) {
                 c === category ? 'border-[rgb(var(--primary))] text-[rgb(var(--primary))]' : 'border-[rgb(var(--border))] text-[rgb(var(--muted))]',
               ].join(' ')}
             >
-              {c}
+              {t(`icons.categories.${c}`)}
             </button>
           ))}
         </div>
@@ -77,7 +79,7 @@ export function IconPicker({ open, title, initialIconKey, onClose, onSelect }) {
             >
               <div className="flex items-center gap-2">
                 <Icon path={item.path} size={1} />
-                <div className="text-xs font-semibold truncate">{item.label}</div>
+                <div className="text-xs font-semibold truncate">{t(`icons.labels.${item.key}`)}</div>
               </div>
               <div className="text-[10px] text-[rgb(var(--muted))] truncate mt-1">{item.key}</div>
             </button>

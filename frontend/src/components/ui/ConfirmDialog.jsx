@@ -1,8 +1,11 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Modal } from './Modal.jsx'
 import { Button } from './Button.jsx'
 
 export function ConfirmDialog({ open, title, body, confirmText, confirmVariant = 'danger', onConfirm, onCancel }) {
+  const { t } = useTranslation()
+
   return (
     <Modal
       open={open}
@@ -11,10 +14,10 @@ export function ConfirmDialog({ open, title, body, confirmText, confirmVariant =
       footer={
         <div className="flex gap-2 justify-end">
           <Button variant="secondary" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant={confirmVariant} onClick={onConfirm}>
-            {confirmText || 'Confirm'}
+            {confirmText || t('common.confirm')}
           </Button>
         </div>
       }

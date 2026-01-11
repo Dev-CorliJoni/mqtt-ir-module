@@ -1,12 +1,14 @@
 import React from 'react'
 import Icon from '@mdi/react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconButton } from '../../components/ui/IconButton.jsx'
 import { findIconPath, DEFAULT_REMOTE_ICON } from '../../icons/iconRegistry.js'
 import { mdiPencilOutline, mdiTrashCanOutline } from '@mdi/js'
 
 export function RemoteTile({ remote, onEdit, onDelete }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const iconKey = remote.icon || DEFAULT_REMOTE_ICON
 
   return (
@@ -27,10 +29,10 @@ export function RemoteTile({ remote, onEdit, onDelete }) {
       </div>
 
       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-        <IconButton label="Edit" onClick={() => onEdit(remote)}>
+        <IconButton label={t('common.edit')} onClick={() => onEdit(remote)}>
           <Icon path={mdiPencilOutline} size={1} />
         </IconButton>
-        <IconButton label="Delete" onClick={() => onDelete(remote)}>
+        <IconButton label={t('common.delete')} onClick={() => onDelete(remote)}>
           <Icon path={mdiTrashCanOutline} size={1} />
         </IconButton>
       </div>

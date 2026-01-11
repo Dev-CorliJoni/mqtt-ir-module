@@ -46,10 +46,10 @@ export function AppShell() {
     const language = settingsQuery.data?.language
     if (!language) return
     i18n.changeLanguage(language).catch(() => {
-      toast.show({ title: 'i18n', message: 'Failed to change language.' })
+      toast.show({ title: t('settings.language'), message: t('settings.languageChangeFailed') })
     })
     document.documentElement.lang = language
-  }, [settingsQuery.data?.language, toast])
+  }, [settingsQuery.data?.language, t, toast])
 
   return (
     <div className="min-h-dvh">

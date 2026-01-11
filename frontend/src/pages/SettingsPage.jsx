@@ -21,7 +21,12 @@ export function SettingsPage() {
 
   const irRxDevice = healthQuery.data?.ir_rx_device
   const irTxDevice = healthQuery.data?.ir_tx_device
-  const deviceText = `RX: ${irRxDevice || '—'} / TX: ${irTxDevice || '—'}`
+  const deviceText = t('health.deviceLine', {
+    rx: irRxDevice || t('common.notAvailable'),
+    tx: irTxDevice || t('common.notAvailable'),
+  })
+  const debugLabel = healthQuery.data?.debug ? t('common.yes') : t('common.no')
+  const writeKeyRequiredLabel = config.writeRequiresApiKey ? t('common.yes') : t('common.no')
 
   const [helpOpen, setHelpOpen] = useState(false)
   const [learningDirty, setLearningDirty] = useState(false)
@@ -123,11 +128,11 @@ export function SettingsPage() {
             </div>
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.debug')}</div>
-              <div className="font-semibold">{String(Boolean(healthQuery.data?.debug))}</div>
+              <div className="font-semibold">{debugLabel}</div>
             </div>
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('settings.writeKeyRequired')}</div>
-              <div className="font-semibold">{String(Boolean(config.writeRequiresApiKey))}</div>
+              <div className="font-semibold">{writeKeyRequiredLabel}</div>
             </div>
           </div>
         </CardBody>

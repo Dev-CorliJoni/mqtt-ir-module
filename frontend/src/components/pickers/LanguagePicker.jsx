@@ -8,13 +8,13 @@ import { Button } from '../ui/Button.jsx'
 import { useToast } from '../ui/ToastProvider.jsx'
 
 const LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'pt-PT', label: 'Português (PT)', flag: '🇵🇹' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'zh-CN', label: '中文 (简体)', flag: '🇨🇳' },
-  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'en', labelKey: 'languages.en', flag: '🇬🇧' },
+  { code: 'de', labelKey: 'languages.de', flag: '🇩🇪' },
+  { code: 'es', labelKey: 'languages.es', flag: '🇪🇸' },
+  { code: 'pt-PT', labelKey: 'languages.pt-PT', flag: '🇵🇹' },
+  { code: 'fr', labelKey: 'languages.fr', flag: '🇫🇷' },
+  { code: 'zh-CN', labelKey: 'languages.zh-CN', flag: '🇨🇳' },
+  { code: 'hi', labelKey: 'languages.hi', flag: '🇮🇳' },
 ]
 
 export function LanguagePicker() {
@@ -32,9 +32,9 @@ export function LanguagePicker() {
     mutationFn: updateSettings,
     onSuccess: (data) => {
       queryClient.setQueryData(['settings'], data)
-      toast.show({ title: t('settings.language'), message: 'Saved.' })
+      toast.show({ title: t('settings.language'), message: t('common.saved') })
     },
-    onError: (e) => toast.show({ title: t('settings.language'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('settings.language'), message: e?.message || t('common.failed') }),
   })
 
   return (
@@ -70,7 +70,7 @@ export function LanguagePicker() {
             >
               <span className="flex items-center gap-3">
                 <span className="text-lg">{lang.flag}</span>
-                <span>{lang.label}</span>
+                <span>{t(lang.labelKey)}</span>
               </span>
               <span className="text-xs text-[rgb(var(--muted))]">{lang.code}</span>
             </button>

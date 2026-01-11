@@ -4,6 +4,9 @@
     "remotes": "Remotes",
     "settings": "Settings"
   },
+  "app": {
+    "name": "Hub"
+  },
   "common": {
     "cancel": "Cancel",
     "close": "Close",
@@ -14,14 +17,23 @@
     "confirm": "Confirm",
     "search": "Search",
     "advanced": "Advanced",
-    "optional": "Optional"
+    "optional": "Optional",
+    "saved": "Saved.",
+    "deleted": "Deleted.",
+    "failed": "Failed.",
+    "menu": "Menu",
+    "icon": "Icon",
+    "yes": "Yes",
+    "no": "No",
+    "notAvailable": "N/A"
   },
   "health": {
     "title": "Service status",
     "online": "Online",
     "offline": "Offline",
     "device": "IR device",
-    "debug": "Debug"
+    "debug": "Debug",
+    "deviceLine": "RX: {{rx}} / TX: {{tx}}"
   },
   "home": {
     "lastRemote": "Last opened remote",
@@ -31,13 +43,13 @@
     "createRemote": "Create remote"
   },
   "remotes": {
-    "title": "Remotes",
     "create": "Create remote",
     "name": "Remote name",
     "deleteConfirmTitle": "Delete remote?",
     "deleteConfirmBody": "This will delete the remote and all buttons/signals."
   },
   "remote": {
+    "title": "Remote",
     "buttonsTitle": "Buttons",
     "learnWizard": "Learn",
     "learningChoiceTitle": "Start learning",
@@ -46,27 +58,40 @@
     "learningChoiceAddHint": "Keep existing buttons and learn new ones.",
     "learningChoiceResetTitle": "Re-learn remote",
     "learningChoiceResetHint": "Remove existing buttons and start from scratch.",
-    "stopLearning": "Stop learning"
+    "iconTitle": "Remote icon",
+    "carrierHzLabel": "Carrier frequency (Hz)",
+    "carrierHzHint": "Auto when empty.",
+    "dutyCycleLabel": "Duty cycle (%)",
+    "dutyCycleHint": "Auto when empty.",
+    "gapUsLabel": "Default gap (us)",
+    "gapUsHint": "Auto when empty (can be inferred during learning)."
   },
   "button": {
     "press": "PRESS",
     "hold": "HOLD",
     "sendPress": "Send press",
     "sendHold": "Send hold",
+    "send": "Send",
+    "sendPressSuccess": "Press sent.",
+    "sendHoldSuccess": "Hold sent.",
+    "title": "Button",
     "rename": "Rename",
     "changeIcon": "Change icon",
     "relearn": "Re-learn",
     "deleteConfirmTitle": "Delete button?",
     "deleteConfirmBody": "This will delete the button and its signals.",
     "holdDialogTitle": "Hold duration",
-    "holdMs": "Hold (ms)"
+    "holdMs": "Hold (ms)",
+    "holdRangeHint": "{{min}}-{{max}}"
   },
   "settings": {
-    "title": "Settings",
     "theme": "Theme",
     "themeSystem": "System",
     "themeLight": "Light",
     "themeDark": "Dark",
+    "themeSystemValue": "system",
+    "themeLightValue": "light",
+    "themeDarkValue": "dark",
     "language": "Language",
     "runtime": "Runtime",
     "baseUrl": "Base URL",
@@ -92,7 +117,8 @@
     "helpApiKeyTitle": "API_KEY",
     "helpApiKeyBody": "If set, you need an API key to make changes in the UI.",
     "helpReverseProxyTitle": "Reverse proxy",
-    "helpReverseProxyBody": "Recommended: let your proxy add the API key for the UI. See reverse-proxy.md."
+    "helpReverseProxyBody": "Recommended: let your proxy add the API key for the UI. See reverse-proxy.md.",
+    "languageChangeFailed": "Failed to change language."
   },
   "wizard": {
     "title": "Learning wizard",
@@ -101,17 +127,11 @@
     "buttonNameHint": "Leave empty to auto-create",
     "capturePress": "Capture press",
     "captureHold": "Capture hold",
-    "capture": "Capture",
     "skip": "Skip",
-    "next": "Next",
     "addAnother": "Add another button",
     "finish": "Finish",
     "summary": "Summary",
-    "stopAndClose": "Stop & close",
     "statusTitle": "Status",
-    "statusRemote": "Remote",
-    "statusExtend": "Extend",
-    "statusNext": "Next",
     "statusInactive": "Learning inactive",
     "captureProgressTitle": "Capture progress",
     "captureProgressPress": "Press capture",
@@ -134,11 +154,13 @@
     "timeoutHint": "How long to wait for a signal before giving up. Used for press and hold.",
     "capturePressSuccess": "Press captured for {{name}}.",
     "captureHoldSuccess": "Hold captured.",
+    "learningActiveElsewhere": "Learning is active for another remote ({{remote}}).",
     "errorLearningActiveOther": "Learning is active for another remote ({{remote}}). Stop it first.",
     "errorStartFailed": "Failed to start learning.",
     "errorStopFailed": "Failed to stop learning.",
     "errorNoActiveButton": "No active button to capture.",
-    "defaultButtonName": "BTN",
+    "defaultButtonName": "Button",
+    "defaultButtonPrefix": "BTN",
     "summaryPress": "Press",
     "summaryHold": "Hold",
     "summaryOk": "OK",
@@ -155,5 +177,56 @@
     "notFoundTitle": "Not found",
     "offlineTitle": "Backend not reachable",
     "offlineBody": "Check container / network and try again."
+  },
+  "languages": {
+    "en": "English",
+    "de": "German",
+    "es": "Spanish",
+    "pt-PT": "Portuguese (PT)",
+    "fr": "French",
+    "zh-CN": "Chinese (Simplified)",
+    "hi": "Hindi"
+  },
+  "icons": {
+    "categories": {
+      "all": "All",
+      "remote": "Remote",
+      "power": "Power",
+      "volume": "Volume",
+      "navigation": "Navigation",
+      "media": "Media",
+      "input": "Input",
+      "default": "Default"
+    },
+    "labels": {
+      "remoteTv": "Remote TV",
+      "remote": "Remote",
+      "tv": "TV",
+      "power": "Power",
+      "standby": "Standby",
+      "volumeUp": "Volume +",
+      "volumeDown": "Volume -",
+      "mute": "Mute",
+      "up": "Up",
+      "down": "Down",
+      "left": "Left",
+      "right": "Right",
+      "ok": "OK",
+      "home": "Home",
+      "back": "Back",
+      "menu": "Menu",
+      "play": "Play",
+      "pause": "Pause",
+      "stop": "Stop",
+      "rewind": "Rewind",
+      "fastForward": "Fast forward",
+      "next": "Next",
+      "previous": "Previous",
+      "inputHdmi": "HDMI",
+      "info": "Info",
+      "settings": "Settings",
+      "channel": "Channel",
+      "tapButton": "Button"
+    }
   }
 }

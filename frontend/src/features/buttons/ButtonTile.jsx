@@ -30,7 +30,7 @@ export function ButtonTile({
             <Icon path={findIconPath(iconKey)} size={1.2} />
           </div>
 
-          <IconButton label="Menu" onClick={() => setMenuOpen(true)}>
+          <IconButton label={t('common.menu')} onClick={() => setMenuOpen(true)}>
             <Icon path={mdiDotsHorizontal} size={1} />
           </IconButton>
         </div>

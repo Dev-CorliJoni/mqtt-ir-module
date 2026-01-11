@@ -3,126 +3,49 @@ import {mdiArrowLeft, mdiCheckCircleOutline, mdiChevronDown, mdiChevronLeft, mdi
 export const DEFAULT_REMOTE_ICON = 'remoteTv'
 export const DEFAULT_BUTTON_ICON = 'tapButton'
 
-export const ICONS =
-    [
-      // Remote
-      {
-        key: 'remoteTv',
-        label: 'Remote TV',
-        category: 'Remote',
-        path: mdiRemoteTv
-      },
-      {key: 'remote', label: 'Remote', category: 'Remote', path: mdiRemote},
-      {key: 'tv', label: 'TV', category: 'Remote', path: mdiTelevision},
+export const ICONS = [
+  // Remote
+  { key: 'remoteTv', category: 'remote', path: mdiRemoteTv },
+  { key: 'remote', category: 'remote', path: mdiRemote },
+  { key: 'tv', category: 'remote', path: mdiTelevision },
 
-      // Power / volume
-      {key: 'power', label: 'Power', category: 'Power', path: mdiPower},
-      {
-        key: 'standby',
-        label: 'Standby',
-        category: 'Power',
-        path: mdiPowerStandby
-      },
-      {
-        key: 'volumeUp',
-        label: 'Volume +',
-        category: 'Volume',
-        path: mdiVolumePlus
-      },
-      {
-        key: 'volumeDown',
-        label: 'Volume -',
-        category: 'Volume',
-        path: mdiVolumeMinus
-      },
-      {key: 'mute', label: 'Mute', category: 'Volume', path: mdiVolumeMute},
+  // Power / volume
+  { key: 'power', category: 'power', path: mdiPower },
+  { key: 'standby', category: 'power', path: mdiPowerStandby },
+  { key: 'volumeUp', category: 'volume', path: mdiVolumePlus },
+  { key: 'volumeDown', category: 'volume', path: mdiVolumeMinus },
+  { key: 'mute', category: 'volume', path: mdiVolumeMute },
 
-      // Navigation
-      {key: 'up', label: 'Up', category: 'Navigation', path: mdiChevronUp},
-      {
-        key: 'down',
-        label: 'Down',
-        category: 'Navigation',
-        path: mdiChevronDown
-      },
-      {
-        key: 'left',
-        label: 'Left',
-        category: 'Navigation',
-        path: mdiChevronLeft
-      },
-      {
-        key: 'right',
-        label: 'Right',
-        category: 'Navigation',
-        path: mdiChevronRight
-      },
-      {
-        key: 'ok',
-        label: 'OK',
-        category: 'Navigation',
-        path: mdiCheckCircleOutline
-      },
-      {
-        key: 'home',
-        label: 'Home',
-        category: 'Navigation',
-        path: mdiHomeOutline
-      },
-      {key: 'back', label: 'Back', category: 'Navigation', path: mdiArrowLeft},
-      {key: 'menu', label: 'Menu', category: 'Navigation', path: mdiMenu},
+  // Navigation
+  { key: 'up', category: 'navigation', path: mdiChevronUp },
+  { key: 'down', category: 'navigation', path: mdiChevronDown },
+  { key: 'left', category: 'navigation', path: mdiChevronLeft },
+  { key: 'right', category: 'navigation', path: mdiChevronRight },
+  { key: 'ok', category: 'navigation', path: mdiCheckCircleOutline },
+  { key: 'home', category: 'navigation', path: mdiHomeOutline },
+  { key: 'back', category: 'navigation', path: mdiArrowLeft },
+  { key: 'menu', category: 'navigation', path: mdiMenu },
 
-      // Media
-      {key: 'play', label: 'Play', category: 'Media', path: mdiPlay},
-      {key: 'pause', label: 'Pause', category: 'Media', path: mdiPause},
-      {key: 'stop', label: 'Stop', category: 'Media', path: mdiStop},
-      {key: 'rewind', label: 'Rewind', category: 'Media', path: mdiRewind},
-      {
-        key: 'fastForward',
-        label: 'Fast forward',
-        category: 'Media',
-        path: mdiFastForward
-      },
-      {key: 'next', label: 'Next', category: 'Media', path: mdiSkipNext},
-      {
-        key: 'previous',
-        label: 'Previous',
-        category: 'Media',
-        path: mdiSkipPrevious
-      },
+  // Media
+  { key: 'play', category: 'media', path: mdiPlay },
+  { key: 'pause', category: 'media', path: mdiPause },
+  { key: 'stop', category: 'media', path: mdiStop },
+  { key: 'rewind', category: 'media', path: mdiRewind },
+  { key: 'fastForward', category: 'media', path: mdiFastForward },
+  { key: 'next', category: 'media', path: mdiSkipNext },
+  { key: 'previous', category: 'media', path: mdiSkipPrevious },
 
-      // Input / misc
-      {
-        key: 'inputHdmi',
-        label: 'HDMI',
-        category: 'Input',
-        path: mdiVideoInputHdmi
-      },
-      {
-        key: 'info',
-        label: 'Info',
-        category: 'Input',
-        path: mdiInformationOutline
-      },
-      {
-        key: 'settings',
-        label: 'Settings',
-        category: 'Input',
-        path: mdiCogOutline
-      },
-      {key: 'channel', label: 'Channel', category: 'Input', path: mdiNumeric},
+  // Input / misc
+  { key: 'inputHdmi', category: 'input', path: mdiVideoInputHdmi },
+  { key: 'info', category: 'input', path: mdiInformationOutline },
+  { key: 'settings', category: 'input', path: mdiCogOutline },
+  { key: 'channel', category: 'input', path: mdiNumeric },
 
-      // Default button icon
-      {
-        key: 'tapButton',
-        label: 'Button',
-        category: 'Default',
-        path: mdiGestureTapButton
-      },
-    ]
+  // Default button icon
+  { key: 'tapButton', category: 'default', path: mdiGestureTapButton },
+]
 
-    export const ICON_CATEGORIES =
-        Array.from(new Set(ICONS.map((i) => i.category)))
+export const ICON_CATEGORIES = Array.from(new Set(ICONS.map((i) => i.category)))
 
 export function findIconPath(iconKey) {
   const found = ICONS.find((i) => i.key === iconKey)

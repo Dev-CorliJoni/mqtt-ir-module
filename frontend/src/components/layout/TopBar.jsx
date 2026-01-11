@@ -9,7 +9,7 @@ function getTitle(pathname, t) {
   if (pathname === '/' || pathname === '') return t('nav.home')
   if (pathname.startsWith('/remotes')) return t('nav.remotes')
   if (pathname.startsWith('/settings')) return t('nav.settings')
-  return 'mqtt-ir-module'
+  return t('app.name')
 }
 
 export function TopBar() {
@@ -31,7 +31,7 @@ export function TopBar() {
             aria-hidden="true"
             className="h-10 w-10 shrink-0 md:hidden"
           />
-          <div className="font-semibold text-xl truncate md:hidden">Hub</div>
+          <div className="font-semibold text-xl truncate md:hidden">{t('app.name')}</div>
           <div className="font-semibold truncate md:block hidden">{getTitle(location.pathname, t)}</div>
         </div>
 

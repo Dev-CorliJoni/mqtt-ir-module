@@ -27,7 +27,10 @@ export function HomePage() {
 
   const irRxDevice = healthQuery.data?.ir_rx_device
   const irTxDevice = healthQuery.data?.ir_tx_device
-  const deviceText = `RX: ${irRxDevice || '—'} / TX: ${irTxDevice || '—'}`
+  const deviceText = t('health.deviceLine', {
+    rx: irRxDevice || t('common.notAvailable'),
+    tx: irTxDevice || t('common.notAvailable'),
+  })
 
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
@@ -56,20 +59,20 @@ export function HomePage() {
     mutationFn: () => createRemote({ name: newName.trim(), icon: null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('remotes.create'), message: 'OK' })
+      toast.show({ title: t('remotes.create'), message: t('common.saved') })
       handleCreateClose()
     },
-    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || t('common.failed') }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteRemote(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('common.delete'), message: 'OK' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteRemoteTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
   })
 
   return (

@@ -41,20 +41,20 @@ export function RemotesPage() {
     mutationFn: () => createRemote({ name: newName.trim(), icon: null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('remotes.create'), message: 'OK' })
+      toast.show({ title: t('remotes.create'), message: t('common.saved') })
       handleCreateClose()
     },
-    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || t('common.failed') }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteRemote(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('common.delete'), message: 'OK' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || t('common.failed') }),
   })
 
   return (
