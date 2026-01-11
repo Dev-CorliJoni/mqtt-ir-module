@@ -40,8 +40,11 @@ export function LearningWizard({
   const [captured, setCaptured] = useState([]) // { name, press, hold }
   const [activeButtonName, setActiveButtonName] = useState(null)
   const [learnStatus, setLearnStatus] = useState({ learn_enabled: false, logs: [] })
+  // Track timeouts locally because timeout errors are not logged in the status stream.
+  const [captureTimeout, setCaptureTimeout] = useState({ mode: null, take: null })
 
   const logContainerRef = useRef(null)
+  const currentCaptureRef = useRef(null)
 
   // Use cached health to avoid extra polling during learning.
   const health = queryClient.getQueryData(['health'])
@@ -54,14 +57,20 @@ export function LearningWizard({
     ? `${statusLogs[statusLogs.length - 1].timestamp}_${statusLogs[statusLogs.length - 1].level}_${statusLogs[statusLogs.length - 1].message}`
     : ''
   const currentCapture = useMemo(() => getCurrentCapture(statusLogs), [statusLogs])
+  const pressTimeoutTake = captureTimeout.mode === 'press' ? captureTimeout.take : null
   const pressTakeStates = useMemo(() => {
     if (!currentCapture || currentCapture.mode !== 'press') return []
-    return buildPressTakeStates(currentCapture)
-  }, [currentCapture])
+    return buildPressTakeStates(currentCapture, pressTimeoutTake)
+  }, [currentCapture, pressTimeoutTake])
   const qualityScores = useMemo(() => getQualityScores(statusLogs), [statusLogs])
   const qualityRows = useMemo(() => buildQualityRows(qualityScores), [qualityScores])
   const qualityHasAdvice = useMemo(() => qualityRows.some((row) => row.showAdvice), [qualityRows])
   const mutedSuccessStyle = { backgroundColor: 'rgb(var(--success) / 0.7)' }
+
+  useEffect(() => {
+    // Keep the latest capture snapshot accessible inside mutation callbacks.
+    currentCaptureRef.current = currentCapture
+  }, [currentCapture])
 
   // Mutations coordinate server-side learning actions with consistent error handling.
   const startMutation = useMutation({
@@ -105,6 +114,9 @@ export function LearningWizard({
         buttonName: nameForPress,
       })
     },
+    onMutate: () => {
+      setCaptureTimeout({ mode: null, take: null })
+    },
     onSuccess: (data) => {
       const name = data?.button?.name || buttonName.trim() || t('wizard.defaultButtonName')
       setActiveButtonName(name)
@@ -113,9 +125,16 @@ export function LearningWizard({
         next.push({ name, press: true, hold: false })
         return next
       })
+      setCaptureTimeout({ mode: null, take: null })
       queryClient.invalidateQueries({ queryKey: ['buttons', remoteId] })
       toast.show({ title: t('wizard.capturePress'), message: t('wizard.capturePressSuccess', { name }) })
       setStep('hold')
+    },
+    onError: (error) => {
+      const info = errorMapper.getErrorInfo(error)
+      if (info.kind !== 'timeout') return
+      const waitingTake = toNumber(currentCaptureRef.current?.waitingTake)
+      setCaptureTimeout({ mode: 'press', take: waitingTake > 0 ? waitingTake : null })
     },
   })
 
@@ -134,12 +153,21 @@ export function LearningWizard({
         buttonName: name,
       })
     },
+    onMutate: () => {
+      setCaptureTimeout({ mode: null, take: null })
+    },
     onSuccess: () => {
       const name = activeButtonName || targetButton?.name
       setCaptured((prev) => prev.map((x) => (x.name === name ? { ...x, hold: true } : x)))
+      setCaptureTimeout({ mode: null, take: null })
       queryClient.invalidateQueries({ queryKey: ['buttons', remoteId] })
       toast.show({ title: t('wizard.captureHold'), message: t('wizard.captureHoldSuccess') })
       setStep('next')
+    },
+    onError: (error) => {
+      const info = errorMapper.getErrorInfo(error)
+      if (info.kind !== 'timeout') return
+      setCaptureTimeout({ mode: 'hold', take: null })
     },
   })
 
@@ -153,6 +181,7 @@ export function LearningWizard({
     setActiveButtonName(targetButton?.name || null)
     setButtonName(targetButton?.name || '')
     setLearnStatus({ learn_enabled: false, logs: [] })
+    setCaptureTimeout({ mode: null, take: null })
     setStep('press')
     setAdvancedOpen(false)
     setTakes(defaultTakes)
@@ -172,6 +201,7 @@ export function LearningWizard({
     setCaptured([])
     setActiveButtonName(null)
     setLearnStatus({ learn_enabled: false, logs: [] })
+    setCaptureTimeout({ mode: null, take: null })
   }, [open])
 
   useEffect(() => {
@@ -352,12 +382,26 @@ export function LearningWizard({
                 ) : (
                   <div className="mt-2 flex items-center gap-2 text-xs">
                     <Badge
-                      variant={currentCapture.finished ? 'success' : currentCapture.waiting ? 'warning' : 'neutral'}
+                      variant={
+                        currentCapture.finished
+                          ? 'success'
+                          : captureTimeout.mode === 'hold'
+                            ? 'danger'
+                            : currentCapture.waiting
+                              ? 'warning'
+                              : 'neutral'
+                      }
                       style={currentCapture.finished ? mutedSuccessStyle : undefined}
                       className="gap-1"
                     >
                       {currentCapture.finished ? <CheckIcon /> : null}
-                      {currentCapture.finished ? t('wizard.takeStatusCaptured') : t('wizard.takeStatusWaiting')}
+                      {currentCapture.finished
+                        ? t('wizard.takeStatusCaptured')
+                        : captureTimeout.mode === 'hold'
+                          ? t('wizard.takeStatusTimeout')
+                          : currentCapture.waiting
+                            ? t('wizard.takeStatusWaiting')
+                            : t('wizard.takeStatusPending')}
                     </Badge>
                   </div>
                 )}
@@ -411,6 +455,7 @@ export function LearningWizard({
     setActiveButtonName(null)
     setButtonName('')
     setAdvancedOpen(false)
+    setCaptureTimeout({ mode: null, take: null })
   }
 }
 
@@ -501,26 +546,30 @@ function getCurrentCapture(logs) {
   return null
 }
 
-function buildPressTakeStates(capture) {
-  // Build per-take UI status from the most recent press capture logs.
+function buildPressTakeStates(capture, timeoutTake) {
+  // Build per-take UI status from the most recent press capture logs plus timeout state.
   const totalTakes = Math.max(0, toNumber(capture.totalTakes))
   const capturedSet = new Set((capture.capturedTakes || []).filter(Boolean))
   const waitingTake = toNumber(capture.waitingTake)
+  const timedOutTake = toNumber(timeoutTake)
 
   const states = []
   for (let i = 1; i <= totalTakes; i += 1) {
     let status = 'pending'
     if (capturedSet.has(i)) status = 'captured'
+    else if (timedOutTake === i) status = 'timeout'
     else if (waitingTake === i) status = 'waiting'
     states.push({
       index: i,
       status,
       labelKey: status === 'captured'
         ? 'wizard.takeStatusCaptured'
+        : status === 'timeout'
+          ? 'wizard.takeStatusTimeout'
         : status === 'waiting'
           ? 'wizard.takeStatusWaiting'
           : 'wizard.takeStatusPending',
-      variant: status === 'captured' ? 'success' : status === 'waiting' ? 'warning' : 'neutral',
+      variant: status === 'captured' ? 'success' : status === 'timeout' ? 'danger' : status === 'waiting' ? 'warning' : 'neutral',
     })
   }
   return states
