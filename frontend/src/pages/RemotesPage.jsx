@@ -32,6 +32,7 @@ export function RemotesPage() {
     setNewName('')
   }
 
+  // Normalize the query so search behaves consistently across different inputs.
   const filtered = useMemo(() => {
     const list = remotesQuery.data || []
     const q = query.trim().toLowerCase()
@@ -63,7 +64,13 @@ export function RemotesPage() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-2 sm:items-end sm:justify-between">
         <div className="flex-1">
-          <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('common.search')} />
+          <TextField
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onClear={() => setQuery('')}
+            clearLabel={t('common.clear')}
+            placeholder={t('common.search')}
+          />
         </div>
         <Button onClick={() => setCreateOpen(true)}>{t('remotes.create')}</Button>
       </div>

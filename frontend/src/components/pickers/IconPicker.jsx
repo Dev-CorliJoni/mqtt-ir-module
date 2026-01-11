@@ -167,6 +167,8 @@ export function IconPicker({ open, title, initialIconKey, onClose, onSelect }) {
         <TextField
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={() => setQuery('')}
+          clearLabel={t('common.clear')}
           placeholder={t('icons.picker.searchPlaceholder')}
           aria-label={t('icons.picker.searchPlaceholder')}
         />
