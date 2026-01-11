@@ -36,6 +36,61 @@ const CODE_MAP = {
     titleKey: 'errors.badRequestTitle',
     bodyKey: 'errors.signalMissingBody',
   },
+  capture_timeout: {
+    kind: 'timeout',
+    titleKey: 'errors.timeoutTitle',
+    bodyKey: 'errors.timeoutBody',
+  },
+  ir_timeout: {
+    kind: 'timeout',
+    titleKey: 'errors.timeoutTitle',
+    bodyKey: 'errors.timeoutBody',
+  },
+  ir_no_signal: {
+    kind: 'timeout',
+    titleKey: 'errors.timeoutTitle',
+    bodyKey: 'errors.timeoutBody',
+  },
+  capture_receiver_unavailable: {
+    kind: 'offline',
+    titleKey: 'errors.captureReceiverTitle',
+    bodyKey: 'errors.captureReceiverBody',
+  },
+  ir_receiver_unavailable: {
+    kind: 'offline',
+    titleKey: 'errors.captureReceiverTitle',
+    bodyKey: 'errors.captureReceiverBody',
+  },
+  capture_signal_invalid: {
+    kind: 'badRequest',
+    titleKey: 'errors.captureSignalInvalidTitle',
+    bodyKey: 'errors.captureSignalInvalidBody',
+  },
+  ir_signal_invalid: {
+    kind: 'badRequest',
+    titleKey: 'errors.captureSignalInvalidTitle',
+    bodyKey: 'errors.captureSignalInvalidBody',
+  },
+  capture_signal_inconsistent: {
+    kind: 'badRequest',
+    titleKey: 'errors.captureSignalInconsistentTitle',
+    bodyKey: 'errors.captureSignalInconsistentBody',
+  },
+  ir_signal_inconsistent: {
+    kind: 'badRequest',
+    titleKey: 'errors.captureSignalInconsistentTitle',
+    bodyKey: 'errors.captureSignalInconsistentBody',
+  },
+  capture_hold_incomplete: {
+    kind: 'badRequest',
+    titleKey: 'errors.captureHoldIncompleteTitle',
+    bodyKey: 'errors.captureHoldIncompleteBody',
+  },
+  ir_hold_incomplete: {
+    kind: 'badRequest',
+    titleKey: 'errors.captureHoldIncompleteTitle',
+    bodyKey: 'errors.captureHoldIncompleteBody',
+  },
 }
 
 // Match backend detail strings to friendly categories when no structured code is provided.
@@ -71,16 +126,66 @@ const BAD_REQUEST_PATTERNS = [
     patterns: [
       'press must be captured before hold',
       'hold signals are missing',
-      'hold gap is missing',
       'no signals for button',
-      'hold capture needs at least 2 frames',
-      'failed to extract a repeat frame',
-      'failed to infer hold gap',
+    ],
+  },
+]
+
+const TIMEOUT_PATTERNS = [
+  'no ir message received within timeout',
+  'no ir message received',
+]
+
+// Capture-specific patterns surface receiver issues and signal quality problems with localized guidance.
+const CAPTURE_PATTERNS = [
+  {
+    kind: 'offline',
+    titleKey: 'errors.captureReceiverTitle',
+    bodyKey: 'errors.captureReceiverBody',
+    patterns: [
+      'ir-ctl receive failed',
+      'ir-ctl send failed',
+      'no such file or directory',
+      'permission denied',
+      'cannot open',
+      'failed to open',
+      'device or resource busy',
+      'resource busy',
+      'no such device',
+    ],
+  },
+  {
+    kind: 'badRequest',
+    titleKey: 'errors.captureSignalInvalidTitle',
+    bodyKey: 'errors.captureSignalInvalidBody',
+    patterns: [
       'no tokens parsed from raw capture',
       'normalized signal is empty',
       'signal starts with a space',
+      'cannot normalize',
       'normalized signal does not start with a pulse',
       'normalized signal does not end with a pulse',
+      'no valid frames to aggregate',
+    ],
+  },
+  {
+    kind: 'badRequest',
+    titleKey: 'errors.captureSignalInconsistentTitle',
+    bodyKey: 'errors.captureSignalInconsistentBody',
+    patterns: [
+      'not enough matching takes',
+      'increase takes or improve capture conditions',
+    ],
+  },
+  {
+    kind: 'badRequest',
+    titleKey: 'errors.captureHoldIncompleteTitle',
+    bodyKey: 'errors.captureHoldIncompleteBody',
+    patterns: [
+      'hold capture needs at least 2 frames',
+      'failed to extract a repeat frame',
+      'failed to infer hold gap',
+      'hold gap is missing',
     ],
   },
 ]
@@ -116,8 +221,12 @@ function extractErrorCode(error) {
 
   if (typeof details.code === 'string') return details.code
   if (typeof details.error_code === 'string') return details.error_code
+  if (typeof details.cause === 'string') return details.cause
+  if (typeof details.cause_code === 'string') return details.cause_code
   if (typeof details.error?.code === 'string') return details.error.code
+  if (typeof details.error?.cause === 'string') return details.error.cause
   if (typeof details.detail?.code === 'string') return details.detail.code
+  if (typeof details.detail?.cause === 'string') return details.detail.cause
   return null
 }
 
@@ -166,7 +275,7 @@ export class ApiErrorMapper {
       return { kind: 'unauthorized', titleKey: 'errors.unauthorizedTitle', bodyKey: 'errors.unauthorizedBody' }
     }
 
-    if (status === 408) {
+    if (status === 408 || matchList(detailText, TIMEOUT_PATTERNS)) {
       return { kind: 'timeout', titleKey: 'errors.timeoutTitle', bodyKey: 'errors.timeoutBody' }
     }
 
@@ -184,6 +293,14 @@ export class ApiErrorMapper {
     }
 
     if (status === 400 || status === 422) {
+      const captureMatch = matchPattern(detailText, CAPTURE_PATTERNS)
+      if (captureMatch) {
+        return {
+          kind: captureMatch.kind || 'badRequest',
+          titleKey: captureMatch.titleKey,
+          bodyKey: captureMatch.bodyKey,
+        }
+      }
       const match = matchPattern(detailText, BAD_REQUEST_PATTERNS)
       return {
         kind: 'badRequest',
