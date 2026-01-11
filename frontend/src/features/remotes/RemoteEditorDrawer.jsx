@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
@@ -24,7 +24,6 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
   const [icon, setIcon] = useState(null)
   const [carrierHz, setCarrierHz] = useState('')
   const [dutyCycle, setDutyCycle] = useState('')
-  const [gapUs, setGapUs] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
@@ -36,7 +35,6 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
       setIcon(null)
       setCarrierHz('')
       setDutyCycle('')
-      setGapUs('')
       setAdvancedOpen(false)
       setIconPickerOpen(false)
       return
@@ -46,7 +44,6 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
     setIcon(remote.icon ?? null)
     setCarrierHz(remote.carrier_hz ?? '')
     setDutyCycle(remote.duty_cycle ?? '')
-    setGapUs(remote.gap_us_default ?? '')
     setAdvancedOpen(false)
   }, [open, remote])
 
@@ -58,7 +55,6 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
         icon: icon ?? null,
         carrier_hz: carrierHz === '' ? null : Number(carrierHz),
         duty_cycle: dutyCycle === '' ? null : Number(dutyCycle),
-        gap_us_default: gapUs === '' ? null : Number(gapUs),
       }
       return updateRemote(remote.id, payload)
     },
@@ -115,13 +111,6 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
                 value={dutyCycle}
                 onChange={(e) => setDutyCycle(e.target.value)}
                 placeholder="33"
-              />
-              <NumberField
-                label={t('remote.gapUsLabel')}
-                hint={t('remote.gapUsHint')}
-                value={gapUs}
-                onChange={(e) => setGapUs(e.target.value)}
-                placeholder="125000"
               />
             </div>
           </Collapse>

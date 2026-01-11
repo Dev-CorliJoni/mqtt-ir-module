@@ -21,6 +21,7 @@ class Signals(DatabaseBase):
                 press_repeat TEXT NULL,
                 hold_initial TEXT NULL,
                 hold_repeat TEXT NULL,
+                hold_gap_us INTEGER NULL,
                 sample_count_press INTEGER NOT NULL,
                 sample_count_hold INTEGER NOT NULL,
                 quality_score_press REAL NULL,
@@ -103,6 +104,7 @@ class Signals(DatabaseBase):
                         press_repeat,
                         hold_initial,
                         hold_repeat,
+                        hold_gap_us,
                         sample_count_press,
                         sample_count_hold,
                         quality_score_press,
@@ -114,7 +116,7 @@ class Signals(DatabaseBase):
                         created_at,
                         updated_at
                     )
-                    VALUES(?, ?, ?, ?, NULL, NULL, ?, 0, ?, NULL, NULL, NULL, NULL, NULL, ?, ?)
+                    VALUES(?, ?, ?, ?, NULL, NULL, NULL, ?, 0, ?, NULL, NULL, NULL, NULL, NULL, ?, ?)
                     """,
                     (button_id, encoding, press_initial, press_repeat, sample_count_press, quality_score_press, now, now),
                 )
@@ -133,6 +135,7 @@ class Signals(DatabaseBase):
         button_id: int,
         hold_initial: str,
         hold_repeat: Optional[str],
+        hold_gap_us: Optional[int],
         sample_count_hold: int,
         quality_score_hold: Optional[float],
         conn: Optional[sqlite3.Connection] = None,
@@ -158,12 +161,13 @@ class Signals(DatabaseBase):
                 UPDATE button_signals
                 SET hold_initial = ?,
                     hold_repeat = ?,
+                    hold_gap_us = ?,
                     sample_count_hold = ?,
                     quality_score_hold = ?,
                     updated_at = ?
                 WHERE button_id = ?
                 """,
-                (hold_initial, hold_repeat, sample_count_hold, quality_score_hold, now, button_id),
+                (hold_initial, hold_repeat, hold_gap_us, sample_count_hold, quality_score_hold, now, button_id),
             )
             c.commit()
 

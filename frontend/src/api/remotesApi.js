@@ -17,7 +17,6 @@ export function updateRemote(remoteId, remote) {
       icon: remote.icon ?? null,
       carrier_hz: remote.carrier_hz ?? null,
       duty_cycle: remote.duty_cycle ?? null,
-      gap_us_default: remote.gap_us_default ?? null,
     },
   })
 }

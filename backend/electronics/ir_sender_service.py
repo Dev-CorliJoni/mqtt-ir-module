@@ -26,7 +26,6 @@ class IrSenderService:
 
         remote = self._db.remotes.get(int(button["remote_id"]))
 
-        gap_us = int(remote["gap_us_default"]) if remote.get("gap_us_default") else None
         carrier_hz = int(remote["carrier_hz"]) if remote.get("carrier_hz") else None
         duty_cycle = int(remote["duty_cycle"]) if remote.get("duty_cycle") else None
 
@@ -38,7 +37,6 @@ class IrSenderService:
 
                 stdout, stderr = self._engine.send_pulse_space_files(
                     [press_path],
-                    gap_us=gap_us,
                     carrier_hz=carrier_hz,
                     duty_cycle=duty_cycle,
                 )
@@ -48,7 +46,7 @@ class IrSenderService:
                     "mode": "press",
                     "carrier_hz": carrier_hz,
                     "duty_cycle": duty_cycle,
-                    "gap_us": gap_us,
+                    "gap_us": None,
                     "repeats": 0,
                     "stdout": stdout,
                     "stderr": stderr,
@@ -62,6 +60,12 @@ class IrSenderService:
             if not hold_initial_text or not hold_repeat_text:
                 raise ValueError("Hold signals are missing for this button")
 
+            # Hold repeats require an explicit inter-frame gap because stored pulses end on a pulse.
+            hold_gap_us = signals.get("hold_gap_us")
+            if hold_gap_us is None or int(hold_gap_us) <= 0:
+                raise ValueError("Hold gap is missing for this button; re-capture hold to compute it")
+            hold_gap_us_value = int(hold_gap_us)
+
             hold_initial = self._parser.decode_pulses(hold_initial_text)
             hold_repeat = self._parser.decode_pulses(hold_repeat_text)
 
@@ -74,14 +78,14 @@ class IrSenderService:
                 hold_ms=int(hold_ms),
                 initial_pulses=hold_initial,
                 repeat_pulses=hold_repeat,
-                gap_us=gap_us,
+                gap_us=hold_gap_us_value,
             )
 
             file_paths = [initial_path] + [repeat_path] * repeat_count
 
             stdout, stderr = self._engine.send_pulse_space_files(
                 file_paths,
-                gap_us=gap_us,
+                gap_us=hold_gap_us_value,
                 carrier_hz=carrier_hz,
                 duty_cycle=duty_cycle,
             )
@@ -92,7 +96,7 @@ class IrSenderService:
                 "hold_ms": int(hold_ms),
                 "carrier_hz": carrier_hz,
                 "duty_cycle": duty_cycle,
-                "gap_us": gap_us,
+                "gap_us": hold_gap_us_value,
                 "repeats": repeat_count,
                 "stdout": stdout,
                 "stderr": stderr,
@@ -110,8 +114,7 @@ class IrSenderService:
         initial_us = sum(abs(int(v)) for v in initial_pulses)
         repeat_us = sum(abs(int(v)) for v in repeat_pulses)
 
-        assumed_gap_us = int(gap_us) if gap_us and gap_us > 0 else 125000
-        repeat_period_us = repeat_us + assumed_gap_us
+        repeat_period_us = repeat_us + (int(gap_us) if gap_us and gap_us > 0 else 0)
 
         remaining_us = max(0, target_us - initial_us)
         if repeat_period_us <= 0:

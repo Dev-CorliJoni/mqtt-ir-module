@@ -189,7 +189,6 @@ def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] =
             icon=body.icon,
             carrier_hz=body.carrier_hz,
             duty_cycle=body.duty_cycle,
-            gap_us_default=body.gap_us_default,
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

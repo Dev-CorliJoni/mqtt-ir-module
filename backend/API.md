@@ -55,7 +55,7 @@ Body:
 
 `GET /api/remotes`
 
-#### Update remote (rename + optional transmit defaults)
+#### Update remote (rename + optional transmit parameters)
 
 `PUT /api/remotes/{remote_id}`
 
@@ -64,8 +64,7 @@ Body:
 {
   "name": "TV Remote",
   "carrier_hz": 38000,
-  "duty_cycle": 33,
-  "gap_us_default": 125000
+  "duty_cycle": 33
 }
 ```
 
@@ -173,7 +172,7 @@ Body (hold):
 
 Notes:
 - Sending is disabled while a learning session is active.
-- `hold` uses the captured `hold_initial` + repeated `hold_repeat` frames.
+- `hold` uses the captured `hold_initial`, repeated `hold_repeat`, and the captured `hold_gap_us` timing.
 
 ## Debug capture storage
 

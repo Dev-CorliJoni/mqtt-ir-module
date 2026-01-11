@@ -19,7 +19,6 @@ class Remotes(DatabaseBase):
                 icon TEXT NULL,
                 carrier_hz INTEGER NULL,
                 duty_cycle INTEGER NULL,
-                gap_us_default INTEGER NULL,
                 created_at REAL NOT NULL,
                 updated_at REAL NOT NULL
             );
@@ -35,7 +34,6 @@ class Remotes(DatabaseBase):
         icon: Optional[str] = None,
         carrier_hz: Optional[int] = None,
         duty_cycle: Optional[int] = None,
-        gap_us_default: Optional[int] = None,
         conn: Optional[sqlite3.Connection] = None,
     ) -> Dict[str, Any]:
         name = name.strip()
@@ -46,14 +44,14 @@ class Remotes(DatabaseBase):
         try:
             now = time.time()
             c.execute(
-                "INSERT OR IGNORE INTO remotes(name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at) "
-                "VALUES(?, ?, ?, ?, ?, ?, ?)",
-                (name, icon, carrier_hz, duty_cycle, gap_us_default, now, now),
+                "INSERT OR IGNORE INTO remotes(name, icon, carrier_hz, duty_cycle, created_at, updated_at) "
+                "VALUES(?, ?, ?, ?, ?, ?)",
+                (name, icon, carrier_hz, duty_cycle, now, now),
             )
             c.commit()
 
             row = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE name = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE name = ?",
                 (name,),
             ).fetchone()
             if not row:
@@ -70,7 +68,6 @@ class Remotes(DatabaseBase):
         icon: Optional[str] = None,
         carrier_hz: Optional[int] = None,
         duty_cycle: Optional[int] = None,
-        gap_us_default: Optional[int] = None,
         conn: Optional[sqlite3.Connection] = None,
     ) -> Dict[str, Any]:
         name = name.strip()
@@ -85,13 +82,13 @@ class Remotes(DatabaseBase):
 
             now = time.time()
             c.execute(
-                "UPDATE remotes SET name = ?, icon = ?, carrier_hz = ?, duty_cycle = ?, gap_us_default = ?, updated_at = ? WHERE id = ?",
-                (name, icon, carrier_hz, duty_cycle, gap_us_default, now, remote_id),
+                "UPDATE remotes SET name = ?, icon = ?, carrier_hz = ?, duty_cycle = ?, updated_at = ? WHERE id = ?",
+                (name, icon, carrier_hz, duty_cycle, now, remote_id),
             )
             c.commit()
 
             out = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not out:
@@ -101,43 +98,11 @@ class Remotes(DatabaseBase):
             if close:
                 c.close()
 
-    def update_gap_default_if_empty(
-        self,
-        remote_id: int,
-        gap_us_default: int,
-        conn: Optional[sqlite3.Connection] = None,
-    ) -> None:
-        if gap_us_default <= 0:
-            return
-
-        c, close = self._use_conn(conn)
-        try:
-            row = c.execute(
-                "SELECT gap_us_default FROM remotes WHERE id = ?",
-                (remote_id,),
-            ).fetchone()
-            if not row:
-                raise ValueError("Unknown remote_id")
-
-            current = row["gap_us_default"]
-            if current is not None and int(current) > 0:
-                return
-
-            now = time.time()
-            c.execute(
-                "UPDATE remotes SET gap_us_default = ?, updated_at = ? WHERE id = ?",
-                (int(gap_us_default), now, remote_id),
-            )
-            c.commit()
-        finally:
-            if close:
-                c.close()
-
     def delete(self, remote_id: int, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not row:
@@ -154,7 +119,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not row:
@@ -168,7 +133,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             rows = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, gap_us_default, created_at, updated_at FROM remotes ORDER BY name"
+                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes ORDER BY name"
             ).fetchall()
             return [dict(r) for r in rows]
         finally:

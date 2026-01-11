@@ -177,8 +177,6 @@ class IrLearningService:
 
         raw_lines: List[str] = []
         frames: List[List[int]] = []
-        tail_gaps: List[Optional[int]] = []
-
         self._log(session, "info", "Capture press started", {"button_name": name, "takes": takes})
 
         for i in range(takes):
@@ -191,7 +189,6 @@ class IrLearningService:
 
             raw_lines.append(raw)
             frames.append(pulses)
-            tail_gaps.append(tail_gap_us)
 
             self._log(
                 session,
@@ -207,20 +204,6 @@ class IrLearningService:
         )
 
         press_initial = self._parser.encode_pulses(aggregated)
-
-        # Update remote gap default if we can infer it from the successful takes.
-        gap_candidates: list[int] = []
-        for idx in used_indices:
-            if idx >= len(tail_gaps):
-                continue
-            gap = tail_gaps[idx]
-            if gap is None or gap <= 0:
-                continue
-            gap_candidates.append(gap)
-
-        if gap_candidates:
-            gap_us = self._median_int(gap_candidates)
-            self._db.remotes.update_gap_default_if_empty(session.remote_id, gap_us_default=gap_us)
 
         # Persist only after capture succeeded.
         button = existing_button
@@ -277,6 +260,7 @@ class IrLearningService:
 
         frames_raw: List[str] = []
         frames: List[List[int]] = []
+        tail_gaps: List[Optional[int]] = []
 
         deadline = time.time() + (timeout_ms / 1000.0)
 
@@ -285,9 +269,10 @@ class IrLearningService:
         first_raw, stdout, stderr = self._engine.receive_one_message(timeout_ms=timeout_ms)
         if stdout or stderr:
             self._log(session, "debug", "ir-ctl output", {"stdout": stdout, "stderr": stderr})
-        first_pulses, _ = self._parser.parse_and_normalize(first_raw)
+        first_pulses, first_tail_gap = self._parser.parse_and_normalize(first_raw)
         frames_raw.append(first_raw)
         frames.append(first_pulses)
+        tail_gaps.append(first_tail_gap)
 
         # Subsequent messages (repeats) until idle.
         while True:
@@ -302,9 +287,10 @@ class IrLearningService:
             except TimeoutError:
                 break
 
-            pulses, _ = self._parser.parse_and_normalize(raw)
+            pulses, tail_gap_us = self._parser.parse_and_normalize(raw)
             frames_raw.append(raw)
             frames.append(pulses)
+            tail_gaps.append(tail_gap_us)
 
         if len(frames) < 2:
             raise ValueError("Hold capture needs at least 2 frames. Hold the button longer or increase timeout_ms.")
@@ -320,6 +306,9 @@ class IrLearningService:
 
         hold_initial_text = self._parser.encode_pulses(hold_initial)
         hold_repeat_text = self._parser.encode_pulses(hold_repeat)
+        hold_gap_us = self._estimate_hold_gap_us([gap for gap in tail_gaps[1:] if gap and gap > 0])
+        if hold_gap_us is None:
+            raise ValueError("Failed to infer hold gap from capture. Hold longer and try again.")
 
         if self._debug:
             for idx, raw in enumerate(frames_raw):
@@ -329,6 +318,7 @@ class IrLearningService:
             button_id=button_id,
             hold_initial=hold_initial_text,
             hold_repeat=hold_repeat_text,
+            hold_gap_us=hold_gap_us,
             sample_count_hold=len(frames),
             quality_score_hold=repeat_score,
         )
@@ -340,7 +330,7 @@ class IrLearningService:
             session,
             "info",
             "Capture hold finished",
-            {"button_id": button_id, "repeat_frames": repeat_count, "quality": repeat_score},
+            {"button_id": button_id, "repeat_frames": repeat_count, "quality": repeat_score, "hold_gap_us": hold_gap_us},
         )
 
         return {
@@ -423,3 +413,15 @@ class IrLearningService:
         if n % 2 == 1:
             return int(values_sorted[mid])
         return int((values_sorted[mid - 1] + values_sorted[mid]) / 2)
+
+    def _estimate_hold_gap_us(self, repeat_gaps: List[int]) -> Optional[int]:
+        if not repeat_gaps:
+            return None
+        if len(repeat_gaps) == 1:
+            return int(repeat_gaps[0])
+        if len(repeat_gaps) == 2:
+            return int(min(repeat_gaps))
+
+        # Drop the largest gap to avoid the release gap skewing the repeat cadence.
+        trimmed = sorted(int(v) for v in repeat_gaps)[:-1]
+        return self._median_int(trimmed)
