@@ -31,6 +31,7 @@ export function AppShell() {
     staleTime: 60_000,
   })
 
+  const language = settingsQuery.data?.language
   const [offlineOpen, setOfflineOpen] = useState(false)
 
   useEffect(() => {
@@ -43,13 +44,20 @@ export function AppShell() {
   }, [settingsQuery.data?.theme])
 
   useEffect(() => {
-    const language = settingsQuery.data?.language
     if (!language) return
+    const currentLanguage = i18n.resolvedLanguage || i18n.language
+    if (currentLanguage === language) {
+      document.documentElement.lang = language
+      return
+    }
     i18n.changeLanguage(language).catch(() => {
-      toast.show({ title: t('settings.language'), message: t('settings.languageChangeFailed') })
+      toast.show({
+        title: i18n.t('settings.language'),
+        message: i18n.t('settings.languageChangeFailed'),
+      })
     })
     document.documentElement.lang = language
-  }, [settingsQuery.data?.language, t, toast])
+  }, [language, toast])
 
   return (
     <div className="min-h-dvh">
