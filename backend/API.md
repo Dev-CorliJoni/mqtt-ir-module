@@ -1,8 +1,10 @@
 # mqtt-ir-module API
 
 FastAPI exposes interactive Swagger UI at:
-- `GET /docs`
-- OpenAPI schema: `GET /openapi.json`
+- `GET /api/docs`
+- OpenAPI schema: `GET /api/openapi.json`
+
+All endpoints below are under `/api`. If you host under a base path, the same endpoints are also available under `<PUBLIC_BASE_URL>/api`.
 
 ## Authentication
 
@@ -16,7 +18,7 @@ Read-only endpoints do not require the header.
 
 - **Remote**: a physical remote control.
 - **Button**: a named button for a remote.
-- **Button signals**: raw pulse/space timing captured from `/dev/lirc0` using `ir-ctl`.
+- **Button signals**: raw pulse/space timing captured from `IR_RX_DEVICE` using `ir-ctl`.
 
 Signals are stored as space-separated signed microseconds:
 
@@ -26,13 +28,23 @@ Example: `890 -906 871 -906 1781 -885 ...`
 
 ### Health
 
-`GET /health`
+`GET /api/health`
+
+Response fields include:
+- `ok`
+- `ir_rx_device`
+- `ir_tx_device`
+- `ir_device` (legacy alias for RX)
+- `debug`
+- `learn_enabled`
+- `learn_remote_id`
+- `learn_remote_name`
 
 ### Remotes CRUD
 
 #### Create remote
 
-`POST /remotes`
+`POST /api/remotes`
 
 Body:
 ```json
@@ -41,37 +53,36 @@ Body:
 
 #### List remotes
 
-`GET /remotes`
+`GET /api/remotes`
 
-#### Update remote (rename + optional transmit defaults)
+#### Update remote (rename + optional transmit parameters)
 
-`PUT /remotes/{remote_id}`
+`PUT /api/remotes/{remote_id}`
 
 Body:
 ```json
 {
   "name": "TV Remote",
   "carrier_hz": 38000,
-  "duty_cycle": 33,
-  "gap_us_default": 125000
+  "duty_cycle": 33
 }
 ```
 
 #### Delete remote
 
-`DELETE /remotes/{remote_id}`
+`DELETE /api/remotes/{remote_id}`
 
 ### Buttons CRUD
 
 #### List buttons for remote
 
-`GET /remotes/{remote_id}/buttons`
+`GET /api/remotes/{remote_id}/buttons`
 
 Returns `has_press` / `has_hold` flags.
 
 #### Rename button
 
-`PUT /buttons/{button_id}`
+`PUT /api/buttons/{button_id}`
 
 Body:
 ```json
@@ -80,13 +91,13 @@ Body:
 
 #### Delete button
 
-`DELETE /buttons/{button_id}`
+`DELETE /api/buttons/{button_id}`
 
 ### Learning (automated tool handling)
 
 #### Start learning session
 
-`POST /learn/start`
+`POST /api/learn/start`
 
 Body:
 ```json
@@ -98,7 +109,7 @@ Body:
 
 #### Capture press or hold
 
-`POST /learn/capture`
+`POST /api/learn/capture`
 
 Body (press):
 ```json
@@ -135,17 +146,19 @@ Errors:
 
 #### Stop learning
 
-`POST /learn/stop`
+`POST /api/learn/stop`
 
-#### Learning status + log
+#### Learning status (WebSocket)
 
-`GET /learn/status`
+`WS /api/learn/status/ws`
 
-Includes `logs` (useful for UI/debug).
+- Sends the current learning status payload on connect, then on every new log/status update.
 
 ### Sending
 
-`POST /send`
+`POST /api/send`
+
+Sending uses `IR_TX_DEVICE` under the hood.
 
 Body (press):
 ```json
@@ -159,7 +172,7 @@ Body (hold):
 
 Notes:
 - Sending is disabled while a learning session is active.
-- `hold` uses the captured `hold_initial` + repeated `hold_repeat` frames.
+- `hold` uses the captured `hold_initial`, repeated `hold_repeat`, and the captured `hold_gap_us` timing.
 
 ## Debug capture storage
 

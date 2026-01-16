@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
@@ -14,30 +14,40 @@ import { IconPicker } from '../../components/pickers/IconPicker.jsx'
 import { updateRemote } from '../../api/remotesApi.js'
 import { DEFAULT_REMOTE_ICON } from '../../icons/iconRegistry.js'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
 
 export function RemoteEditorDrawer({ open, remote, onClose }) {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const [name, setName] = useState('')
   const [icon, setIcon] = useState(null)
   const [carrierHz, setCarrierHz] = useState('')
   const [dutyCycle, setDutyCycle] = useState('')
-  const [gapUs, setGapUs] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
 
   useEffect(() => {
+    if (!open) {
+      // Reset form state when the drawer closes to avoid stale edits.
+      setName('')
+      setIcon(null)
+      setCarrierHz('')
+      setDutyCycle('')
+      setAdvancedOpen(false)
+      setIconPickerOpen(false)
+      return
+    }
     if (!remote) return
     setName(remote.name || '')
     setIcon(remote.icon ?? null)
     setCarrierHz(remote.carrier_hz ?? '')
     setDutyCycle(remote.duty_cycle ?? '')
-    setGapUs(remote.gap_us_default ?? '')
     setAdvancedOpen(false)
-  }, [remote, open])
+  }, [open, remote])
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -47,17 +57,16 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
         icon: icon ?? null,
         carrier_hz: carrierHz === '' ? null : Number(carrierHz),
         duty_cycle: dutyCycle === '' ? null : Number(dutyCycle),
-        gap_us_default: gapUs === '' ? null : Number(gapUs),
       }
       return updateRemote(remote.id, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
       queryClient.invalidateQueries({ queryKey: ['buttons', remote.id] })
-      toast.show({ title: t('common.save'), message: 'Remote updated.' })
+      toast.show({ title: t('common.save'), message: t('common.saved') })
       onClose()
     },
-    onError: (e) => toast.show({ title: 'Remote', message: e?.message || 'Update failed.' }),
+    onError: (e) => toast.show({ title: t('remote.title'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   if (!remote) return null
@@ -82,7 +91,7 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-semibold">{t('remotes.name')}</div>
-            <IconButton label="Icon" onClick={() => setIconPickerOpen(true)}>
+            <IconButton label={t('common.icon')} onClick={() => setIconPickerOpen(true)}>
               <Icon path={mdiImageEditOutline} size={1} />
             </IconButton>
           </div>
@@ -92,25 +101,18 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
           <Collapse open={advancedOpen} onToggle={() => setAdvancedOpen((v) => !v)} title={t('common.advanced')}>
             <div className="grid grid-cols-1 gap-3">
               <NumberField
-                label="carrier_hz"
-                hint="Auto = empty"
+                label={t('remote.carrierHzLabel')}
+                hint={t('remote.carrierHzHint')}
                 value={carrierHz}
                 onChange={(e) => setCarrierHz(e.target.value)}
                 placeholder="38000"
               />
               <NumberField
-                label="duty_cycle"
-                hint="Auto = empty"
+                label={t('remote.dutyCycleLabel')}
+                hint={t('remote.dutyCycleHint')}
                 value={dutyCycle}
                 onChange={(e) => setDutyCycle(e.target.value)}
                 placeholder="33"
-              />
-              <NumberField
-                label="gap_us_default"
-                hint="Auto = empty (can be inferred during learning)"
-                value={gapUs}
-                onChange={(e) => setGapUs(e.target.value)}
-                placeholder="125000"
               />
             </div>
           </Collapse>
@@ -119,7 +121,7 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
 
       <IconPicker
         open={iconPickerOpen}
-        title="Remote icon"
+        title={t('remote.iconTitle')}
         initialIconKey={icon || DEFAULT_REMOTE_ICON}
         onClose={() => setIconPickerOpen(false)}
         onSelect={(key) => {

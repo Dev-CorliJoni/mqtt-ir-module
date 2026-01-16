@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
 import { mdiHomeOutline, mdiRemoteTv, mdiCogOutline } from '@mdi/js'
+import { getAppConfig } from '../../utils/appConfig.js'
 
 function Item({ to, icon, label }) {
   return (
@@ -24,10 +25,24 @@ function Item({ to, icon, label }) {
 export function SidebarNav() {
   const { t } = useTranslation()
 
+  const appIconSrc = useMemo(() => {
+    const { publicBaseUrl } = getAppConfig()
+    return `${publicBaseUrl}logos/app-icon-1024.png`
+  }, [])
+
   return (
     <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 border-r border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
       <div className="w-full flex flex-col gap-3">
-        <div className="font-bold text-lg px-2">mqtt-ir</div>
+        <div className="px-2 flex items-center gap-2">
+          <img
+            src={appIconSrc}
+            alt=""
+            aria-hidden="true"
+            className="h-10 w-10 shrink-0"
+          />
+          <div className="font-bold text-xl">{t('app.name')}</div>
+        </div>
+
         <nav className="flex flex-col gap-2">
           <Item to="/" icon={mdiHomeOutline} label={t('nav.home')} />
           <Item to="/remotes" icon={mdiRemoteTv} label={t('nav.remotes')} />

@@ -9,11 +9,13 @@ import { Modal } from '../components/ui/Modal.jsx'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx'
 import { RemoteEditorDrawer } from '../features/remotes/RemoteEditorDrawer.jsx'
 import { useToast } from '../components/ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function RemotesPage() {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
 
@@ -24,6 +26,13 @@ export function RemotesPage() {
   const [editRemote, setEditRemote] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
+  const handleCreateClose = () => {
+    // Reset the create modal input when it closes.
+    setCreateOpen(false)
+    setNewName('')
+  }
+
+  // Normalize the query so search behaves consistently across different inputs.
   const filtered = useMemo(() => {
     const list = remotesQuery.data || []
     const q = query.trim().toLowerCase()
@@ -35,28 +44,33 @@ export function RemotesPage() {
     mutationFn: () => createRemote({ name: newName.trim(), icon: null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('remotes.create'), message: 'OK' })
-      setCreateOpen(false)
-      setNewName('')
+      toast.show({ title: t('remotes.create'), message: t('common.saved') })
+      handleCreateClose()
     },
-    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('remotes.create'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteRemote(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('common.delete'), message: 'OK' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-2 sm:items-end sm:justify-between">
         <div className="flex-1">
-          <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('common.search')} />
+          <TextField
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onClear={() => setQuery('')}
+            clearLabel={t('common.clear')}
+            placeholder={t('common.search')}
+          />
         </div>
         <Button onClick={() => setCreateOpen(true)}>{t('remotes.create')}</Button>
       </div>
@@ -86,10 +100,10 @@ export function RemotesPage() {
       <Modal
         open={createOpen}
         title={t('remotes.create')}
-        onClose={() => setCreateOpen(false)}
+        onClose={handleCreateClose}
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setCreateOpen(false)}>
+            <Button variant="secondary" onClick={handleCreateClose}>
               {t('common.cancel')}
             </Button>
             <Button onClick={() => createMutation.mutate()} disabled={!newName.trim() || createMutation.isPending}>

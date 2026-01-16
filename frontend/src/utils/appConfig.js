@@ -13,7 +13,11 @@ export function getAppConfig() {
   const publicBaseUrl = normalizeBaseUrl(runtime?.publicBaseUrl || '/')
   const routerBasePath =
       publicBaseUrl === '/' ? '/' : publicBaseUrl.replace(/\/$/, '')
-  const apiBaseUrl = `${publicBaseUrl.replace(/\/$/, '')}/api`
+  const runtimeApiBaseUrl = (runtime?.apiBaseUrl || '').trim()
+  const defaultApiBaseUrl = `${publicBaseUrl.replace(/\/$/, '')}/api`
+
+  // Keep API calls same-origin; the dev proxy handles routing to the backend.
+  const apiBaseUrl = runtimeApiBaseUrl || defaultApiBaseUrl
 
   return {
     publicBaseUrl, routerBasePath, apiBaseUrl,

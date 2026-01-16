@@ -8,11 +8,13 @@ import { Drawer } from '../ui/Drawer.jsx'
 import { Button } from '../ui/Button.jsx'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
 
 export function ThemeToggle() {
   const { t } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const [open, setOpen] = React.useState(false)
 
@@ -23,15 +25,15 @@ export function ThemeToggle() {
     mutationFn: updateSettings,
     onSuccess: (data) => {
       queryClient.setQueryData(['settings'], data)
-      toast.show({ title: t('settings.theme'), message: 'Saved.' })
+      toast.show({ title: t('settings.theme'), message: t('common.saved') })
     },
-    onError: (e) => toast.show({ title: t('settings.theme'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('settings.theme'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const options = [
-    { value: 'system', label: t('settings.themeSystem') },
-    { value: 'light', label: t('settings.themeLight') },
-    { value: 'dark', label: t('settings.themeDark') },
+    { value: 'system', label: t('settings.themeSystem'), valueLabel: t('settings.themeSystemValue') },
+    { value: 'light', label: t('settings.themeLight'), valueLabel: t('settings.themeLightValue') },
+    { value: 'dark', label: t('settings.themeDark'), valueLabel: t('settings.themeDarkValue') },
   ]
 
   return (
@@ -64,7 +66,7 @@ export function ThemeToggle() {
               onClick={() => updateMutation.mutate({ theme: opt.value, language: settingsQuery.data?.language })}
             >
               <span>{opt.label}</span>
-              <span className="text-xs text-[rgb(var(--muted))]">{opt.value}</span>
+              <span className="text-xs text-[rgb(var(--muted))]">{opt.valueLabel}</span>
             </button>
           ))}
         </div>

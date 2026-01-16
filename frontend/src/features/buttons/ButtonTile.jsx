@@ -30,7 +30,7 @@ export function ButtonTile({
             <Icon path={findIconPath(iconKey)} size={1.2} />
           </div>
 
-          <IconButton label="Menu" onClick={() => setMenuOpen(true)}>
+          <IconButton label={t('common.menu')} onClick={() => setMenuOpen(true)}>
             <Icon path={mdiDotsHorizontal} size={1} />
           </IconButton>
         </div>
@@ -65,13 +65,6 @@ export function ButtonTile({
         open={menuOpen}
         title={button.name}
         onClose={() => setMenuOpen(false)}
-        footer={
-          <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => setMenuOpen(false)}>
-              {t('common.close')}
-            </Button>
-          </div>
-        }
       >
         <div className="space-y-2">
           <Button variant="secondary" className="w-full justify-start" onClick={() => { setMenuOpen(false); onRename(button) }}>

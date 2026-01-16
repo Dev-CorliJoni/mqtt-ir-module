@@ -24,7 +24,7 @@ export function Providers({ router }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <RouterProvider router={router} />
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
       </ToastProvider>
     </QueryClientProvider>
   )

@@ -9,7 +9,12 @@ export function HoldSendDialog({ open, buttonName, defaultMs = 1000, onClose, on
   const [holdMs, setHoldMs] = useState(defaultMs)
 
   useEffect(() => {
-    if (open) setHoldMs(defaultMs)
+    if (!open) {
+      // Reset the dialog input when it closes.
+      setHoldMs(defaultMs)
+      return
+    }
+    setHoldMs(defaultMs)
   }, [open, defaultMs])
 
   return (
@@ -39,7 +44,7 @@ export function HoldSendDialog({ open, buttonName, defaultMs = 1000, onClose, on
           min={0}
           max={5000}
           onChange={(e) => setHoldMs(e.target.value)}
-          hint="0–5000"
+          hint={t('button.holdRangeHint', { min: 0, max: 5000 })}
         />
         <input
           type="range"

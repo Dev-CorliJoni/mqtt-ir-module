@@ -4,14 +4,21 @@
     <meta charset="UTF-8" />
     <base href="__PUBLIC_BASE_URL__" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mqtt-ir-module</title>
+    <title>IR Hub</title>
+
+    <link rel="icon" href="/logos/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logos/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/logos/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logos/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#2563EB" />
 
     <script>
       window.__APP_CONFIG__ =
         (typeof __APP_CONFIG_JSON__ !== 'undefined')
           ? __APP_CONFIG_JSON__
           : { publicBaseUrl: '/', apiBaseUrl: '/api', publicApiKey: '', writeRequiresApiKey: false };
-  </script>
+    </script>
   </head>
   <body>
     <div id="root"></div>

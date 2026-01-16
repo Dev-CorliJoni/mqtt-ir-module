@@ -1,8 +1,9 @@
 import React from 'react'
 import { cn } from './cn.js'
+import { Tooltip } from './Tooltip.jsx'
 
 export function IconButton({ label, className, ...props }) {
-  return (
+  const button = (
     <button
       aria-label={label}
       className={cn(
@@ -12,4 +13,10 @@ export function IconButton({ label, className, ...props }) {
       {...props}
     />
   )
+
+  if (!label) {
+    return button
+  }
+
+  return <Tooltip label={label}>{button}</Tooltip>
 }

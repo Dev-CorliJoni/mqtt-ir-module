@@ -15,15 +15,24 @@ import { Modal } from '../components/ui/Modal.jsx'
 import { TextField } from '../components/ui/TextField.jsx'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '../components/ui/ToastProvider.jsx'
+import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function HomePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const errorMapper = new ApiErrorMapper(t)
 
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
+
+  const irRxDevice = healthQuery.data?.ir_rx_device
+  const irTxDevice = healthQuery.data?.ir_tx_device
+  const deviceText = t('health.deviceLine', {
+    rx: irRxDevice || t('common.notAvailable'),
+    tx: irTxDevice || t('common.notAvailable'),
+  })
 
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
@@ -32,6 +41,12 @@ export function HomePage() {
   const [deleteRemoteTarget, setDeleteRemoteTarget] = useState(null)
 
   const lastOpenedId = readLocalStorage('lastOpenedRemoteId', null)
+
+  const handleCreateClose = () => {
+    // Reset the create modal input when it closes.
+    setCreateOpen(false)
+    setNewName('')
+  }
 
   const bestRemote = useMemo(() => {
     const remotes = remotesQuery.data || []
@@ -46,21 +61,20 @@ export function HomePage() {
     mutationFn: () => createRemote({ name: newName.trim(), icon: null }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('remotes.create'), message: 'OK' })
-      setCreateOpen(false)
-      setNewName('')
+      toast.show({ title: t('remotes.create'), message: t('common.saved') })
+      handleCreateClose()
     },
-    onError: (e) => toast.show({ title: t('remotes.create'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('remotes.create'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteRemote(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('common.delete'), message: 'OK' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteRemoteTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   return (
@@ -76,7 +90,7 @@ export function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.device')}</div>
-              <div className="font-semibold">{healthQuery.data?.ir_device || '—'}</div>
+              <div className="font-semibold">{deviceText}</div>
             </div>
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.debug')}</div>
@@ -124,10 +138,10 @@ export function HomePage() {
       <Modal
         open={createOpen}
         title={t('remotes.create')}
-        onClose={() => setCreateOpen(false)}
+        onClose={handleCreateClose}
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setCreateOpen(false)}>
+            <Button variant="secondary" onClick={handleCreateClose}>
               {t('common.cancel')}
             </Button>
             <Button onClick={() => createMutation.mutate()} disabled={!newName.trim() || createMutation.isPending}>

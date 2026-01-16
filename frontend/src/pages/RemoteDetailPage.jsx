@@ -24,6 +24,7 @@ import { HoldSendDialog } from '../features/buttons/HoldSendDialog.jsx'
 import { IconPicker } from '../components/pickers/IconPicker.jsx'
 import { DEFAULT_BUTTON_ICON } from '../icons/iconRegistry.js'
 import { LearningWizard } from '../features/learning/LearningWizard.jsx'
+import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function RemoteDetailPage() {
   const { t } = useTranslation()
@@ -31,6 +32,7 @@ export function RemoteDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { remoteId } = useParams()
+  const errorMapper = new ApiErrorMapper(t)
 
   const numericRemoteId = Number(remoteId)
 
@@ -54,8 +56,6 @@ export function RemoteDetailPage() {
   const [editRemoteOpen, setEditRemoteOpen] = useState(false)
   const [deleteRemoteOpen, setDeleteRemoteOpen] = useState(false)
 
-  const [resetWarnOpen, setResetWarnOpen] = useState(false)
-
   const [renameTarget, setRenameTarget] = useState(null)
   const [renameValue, setRenameValue] = useState('')
 
@@ -70,52 +70,104 @@ export function RemoteDetailPage() {
   const [wizardOpen, setWizardOpen] = useState(false)
   const [wizardExtend, setWizardExtend] = useState(true)
   const [wizardTargetButton, setWizardTargetButton] = useState(null)
+  const [learningChoiceOpen, setLearningChoiceOpen] = useState(false)
+
+  const resetRenameState = () => {
+    // Reset rename modal state when it closes.
+    setRenameTarget(null)
+    setRenameValue('')
+  }
+
+  const resetIconPickerState = () => {
+    // Reset icon picker state when it closes.
+    setIconPickerOpen(false)
+    setIconTarget(null)
+  }
+
+  const resetHoldDialogState = () => {
+    // Reset hold dialog state when it closes.
+    setHoldDialogOpen(false)
+    setHoldTarget(null)
+  }
+
+  const resetWizardState = () => {
+    // Reset wizard entry state so the next open starts fresh.
+    setWizardOpen(false)
+    setWizardExtend(true)
+    setWizardTargetButton(null)
+  }
 
   const deleteRemoteMutation = useMutation({
     mutationFn: () => deleteRemote(numericRemoteId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
-      toast.show({ title: t('common.delete'), message: 'Remote deleted.' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       navigate('/remotes')
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const updateButtonMutation = useMutation({
     mutationFn: ({ buttonId, name, icon }) => updateButton(buttonId, { name, icon }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buttons', numericRemoteId] })
-      toast.show({ title: t('common.save'), message: 'OK' })
-      setRenameTarget(null)
-      setIconTarget(null)
-      setIconPickerOpen(false)
+      toast.show({ title: t('common.save'), message: t('common.saved') })
+      resetRenameState()
+      resetIconPickerState()
     },
-    onError: (e) => toast.show({ title: 'Button', message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('button.title'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const deleteButtonMutation = useMutation({
     mutationFn: (buttonId) => deleteButton(buttonId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buttons', numericRemoteId] })
-      toast.show({ title: t('common.delete'), message: 'OK' })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
       setDeleteButtonTarget(null)
     },
-    onError: (e) => toast.show({ title: t('common.delete'), message: e?.message || 'Failed.' }),
+    onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const sendPressMutation = useMutation({
     mutationFn: (buttonId) => sendPress(buttonId),
-    onSuccess: () => toast.show({ title: 'Send', message: 'Press sent.' }),
-    onError: (e) => toast.show({ title: 'Send', message: e?.message || 'Failed.' }),
+    onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendPressSuccess') }),
+    onError: (e) => toast.show({ title: t('button.send'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const sendHoldMutation = useMutation({
     mutationFn: ({ buttonId, holdMs }) => sendHold(buttonId, holdMs),
-    onSuccess: () => toast.show({ title: 'Send', message: 'Hold sent.' }),
-    onError: (e) => toast.show({ title: 'Send', message: e?.message || 'Failed.' }),
+    onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendHoldSuccess') }),
+    onError: (e) => toast.show({ title: t('button.send'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const existingButtons = buttonsQuery.data || []
+  const hasExistingButtons = existingButtons.length > 0
+  const learningBlocked = learningActive && Number(learningRemoteId) !== Number(numericRemoteId)
+  const learningRemoteLabel = healthQuery.data?.learn_remote_name || (learningRemoteId ? `#${learningRemoteId}` : '')
+  const buttonsLoading = buttonsQuery.isLoading
+  const wizardDisabled = learningBlocked || buttonsLoading
+
+  // Centralize wizard setup so every entry point uses the same state reset.
+  const startWizard = (extend) => {
+    setWizardTargetButton(null)
+    setWizardExtend(extend)
+    setWizardOpen(true)
+  }
+
+  // Decide between immediate start or the choice dialog based on existing buttons.
+  const handleWizardRequest = () => {
+    if (wizardDisabled) return
+    if (!hasExistingButtons) {
+      startWizard(true)
+      return
+    }
+    setLearningChoiceOpen(true)
+  }
+
+  const handleWizardChoice = (extend) => {
+    setLearningChoiceOpen(false)
+    startWizard(extend)
+  }
 
   if (!remote) {
     return (
@@ -135,10 +187,10 @@ export function RemoteDetailPage() {
             <span className="truncate">{remote.name}</span>
           </CardTitle>
           <div className="flex gap-2">
-            <IconButton label="Edit" onClick={() => setEditRemoteOpen(true)}>
+            <IconButton label={t('common.edit')} onClick={() => setEditRemoteOpen(true)}>
               <Icon path={mdiPencilOutline} size={1} />
             </IconButton>
-            <IconButton label="Delete" onClick={() => setDeleteRemoteOpen(true)}>
+            <IconButton label={t('common.delete')} onClick={() => setDeleteRemoteOpen(true)}>
               <Icon path={mdiTrashCanOutline} size={1} />
             </IconButton>
           </div>
@@ -150,60 +202,27 @@ export function RemoteDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('remote.learningTitle')}</CardTitle>
+          <CardTitle>{t('remote.buttonsTitle')}</CardTitle>
           <div className="flex gap-2">
-            <IconButton
-              label="Wizard"
-              onClick={() => {
-                setWizardTargetButton(null)
-                setWizardExtend(true)
-                setWizardOpen(true)
-              }}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleWizardRequest}
+              disabled={wizardDisabled}
             >
               <Icon path={mdiMagicStaff} size={1} />
-            </IconButton>
+              {t('remote.learnWizard')}
+            </Button>
           </div>
         </CardHeader>
         <CardBody>
-          {learningActive && Number(learningRemoteId) !== Number(numericRemoteId) ? (
-            <div className="text-sm text-[rgb(var(--muted))]">
-              Learning is active for another remote. Stop it to start here.
+          {learningBlocked ? (
+            <div className="mb-3 text-sm text-[rgb(var(--muted))]">
+              {t('wizard.learningActiveElsewhere', { remote: learningRemoteLabel })}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <Button
-                onClick={() => {
-                  setWizardTargetButton(null)
-                  setWizardExtend(true)
-                  setWizardOpen(true)
-                }}
-              >
-                {t('remote.startAdd')}
-              </Button>
-
-              <Button
-                variant="danger"
-                onClick={() => {
-                  setResetWarnOpen(true)
-                }}
-              >
-                {t('remote.startReset')}
-              </Button>
-            </div>
-          )}
-
-          {sendingDisabled ? (
-            <div className="mt-3 text-xs text-[rgb(var(--muted))]">{t('remote.sendingBlocked')}</div>
           ) : null}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('remote.buttonsTitle')}</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {/* Mobile-first grid: keep one column until the small breakpoint. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {existingButtons.map((b) => (
               <ButtonTile
                 key={b.id}
@@ -246,38 +265,49 @@ export function RemoteDetailPage() {
       />
 
       <Modal
-        open={resetWarnOpen}
-        title={t('remote.startResetWarningTitle')}
-        onClose={() => setResetWarnOpen(false)}
+        open={learningChoiceOpen}
+        title={t('remote.learningChoiceTitle')}
+        onClose={() => setLearningChoiceOpen(false)}
         footer={
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setResetWarnOpen(false)}>
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={() => setLearningChoiceOpen(false)}>
               {t('common.cancel')}
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setResetWarnOpen(false)
-                setWizardTargetButton(null)
-                setWizardExtend(false)
-                setWizardOpen(true)
-              }}
-            >
-              {t('common.confirm')}
             </Button>
           </div>
         }
       >
-        <p className="text-sm text-[rgb(var(--muted))]">{t('remote.startResetWarningBody')}</p>
+        <p className="text-sm text-[rgb(var(--muted))]">{t('remote.learningChoiceBody')}</p>
+        <div className="mt-4 grid gap-2">
+          <Button
+            variant="secondary"
+            className="w-full justify-start text-left"
+            onClick={() => handleWizardChoice(true)}
+          >
+            <div className="flex flex-col items-start">
+              <span className="font-semibold">{t('remote.learningChoiceAddTitle')}</span>
+              <span className="text-xs text-[rgb(var(--muted))]">{t('remote.learningChoiceAddHint')}</span>
+            </div>
+          </Button>
+          <Button
+            variant="danger"
+            className="w-full justify-start text-left"
+            onClick={() => handleWizardChoice(false)}
+          >
+            <div className="flex flex-col items-start">
+              <span className="font-semibold">{t('remote.learningChoiceResetTitle')}</span>
+              <span className="text-xs text-white/90">{t('remote.learningChoiceResetHint')}</span>
+            </div>
+          </Button>
+        </div>
       </Modal>
 
       <Modal
         open={Boolean(renameTarget)}
         title={t('button.rename')}
-        onClose={() => setRenameTarget(null)}
+        onClose={resetRenameState}
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setRenameTarget(null)}>
+            <Button variant="secondary" onClick={resetRenameState}>
               {t('common.cancel')}
             </Button>
             <Button
@@ -296,7 +326,7 @@ export function RemoteDetailPage() {
         open={iconPickerOpen}
         title={t('button.changeIcon')}
         initialIconKey={iconTarget?.icon || DEFAULT_BUTTON_ICON}
-        onClose={() => setIconPickerOpen(false)}
+        onClose={resetIconPickerState}
         onSelect={(key) => {
           updateButtonMutation.mutate({ buttonId: iconTarget.id, name: iconTarget.name, icon: key })
         }}
@@ -315,10 +345,11 @@ export function RemoteDetailPage() {
         open={holdDialogOpen}
         buttonName={holdTarget?.name || ''}
         defaultMs={1000}
-        onClose={() => setHoldDialogOpen(false)}
+        onClose={resetHoldDialogState}
         onSend={(ms) => {
-          setHoldDialogOpen(false)
-          sendHoldMutation.mutate({ buttonId: holdTarget.id, holdMs: ms })
+          const buttonId = holdTarget?.id
+          resetHoldDialogState()
+          if (buttonId) sendHoldMutation.mutate({ buttonId, holdMs: ms })
         }}
       />
 
@@ -329,7 +360,7 @@ export function RemoteDetailPage() {
         startExtend={wizardExtend}
         targetButton={wizardTargetButton}
         existingButtons={existingButtons}
-        onClose={() => setWizardOpen(false)}
+        onClose={resetWizardState}
       />
     </div>
   )

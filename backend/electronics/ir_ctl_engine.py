@@ -6,8 +6,9 @@ from typing import List, Optional, Tuple
 
 
 class IrCtlEngine:
-    def __init__(self, ir_device: str, wideband_default: bool = False) -> None:
-        self._ir_device = ir_device
+    def __init__(self, ir_rx_device: str, ir_tx_device: str, wideband_default: bool = False) -> None:
+        self._ir_rx_device = ir_rx_device
+        self._ir_tx_device = ir_tx_device
         self._wideband_default = wideband_default
 
     def receive_one_message(self, timeout_ms: int, wideband: Optional[bool] = None) -> Tuple[str, str, str]:
@@ -22,7 +23,7 @@ class IrCtlEngine:
         cmd: List[str] = [
             "ir-ctl",
             "-d",
-            self._ir_device,
+            self._ir_rx_device,
             f"--receive={path}",
             "--one-shot",
         ]
@@ -68,7 +69,7 @@ class IrCtlEngine:
         if not file_paths:
             raise ValueError("file_paths must not be empty")
 
-        cmd: List[str] = ["ir-ctl", "-d", self._ir_device]
+        cmd: List[str] = ["ir-ctl", "-d", self._ir_tx_device]
 
         if gap_us is not None and gap_us > 0:
             cmd.append(f"--gap={int(gap_us)}")

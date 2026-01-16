@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 import json
 
-from fastapi import FastAPI, HTTPException, Header, APIRouter
+from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -23,6 +25,7 @@ from electronics.ir_ctl_engine import IrCtlEngine
 from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
+from electronics.status_communication import StatusCommunication
 from helper import Environment
 from database import Database
 
@@ -32,8 +35,14 @@ database = Database(data_dir=env.data_folder)
 parser = IrSignalParser()
 aggregator = IrSignalAggregator()
 hold_extractor = IrHoldExtractor(aggregator)
-engine = IrCtlEngine(ir_device=env.ir_device, wideband_default=env.ir_wideband)
+engine = IrCtlEngine(
+    ir_rx_device=env.ir_rx_device,
+    ir_tx_device=env.ir_tx_device,
+    wideband_default=env.ir_wideband,
+)
+status_comm = StatusCommunication()
 
+learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
     database=database,
     engine=engine,
@@ -41,9 +50,10 @@ learning = IrLearningService(
     aggregator=aggregator,
     hold_extractor=hold_extractor,
     debug=env.debug,
-    aggregate_round_to_us=env.aggregate_round_to_us,
-    aggregate_min_match_ratio=env.aggregate_min_match_ratio,
-    hold_idle_timeout_ms=env.hold_idle_timeout_ms,
+    aggregate_round_to_us=learning_defaults["aggregate_round_to_us"],
+    aggregate_min_match_ratio=learning_defaults["aggregate_min_match_ratio"],
+    hold_idle_timeout_ms=learning_defaults["hold_idle_timeout_ms"],
+    status_comm=status_comm,
 )
 
 sender = IrSenderService(store=database, engine=engine, parser=parser)
@@ -59,6 +69,10 @@ def require_api_key(x_api_key: Optional[str]) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
+    # Load persisted learning defaults after the settings table exists.
+    learning.apply_learning_settings(database.settings.get_learning_settings())
+    # Store the running loop so sync code can broadcast status updates.
+    status_comm.attach_loop(asyncio.get_running_loop())
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
     if not env.debug:
@@ -79,6 +93,17 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 api = APIRouter(prefix="/api")
 
 
@@ -86,7 +111,9 @@ api = APIRouter(prefix="/api")
 def health() -> Dict[str, Any]:
     return {
         "ok": True,
-        "ir_device": env.ir_device,
+        "ir_device": env.ir_rx_device,
+        "ir_rx_device": env.ir_rx_device,
+        "ir_tx_device": env.ir_tx_device,
         "debug": env.debug,
         "learn_enabled": learning.is_learning,
         "learn_remote_id": learning.remote_id,
@@ -107,10 +134,28 @@ def get_settings() -> Dict[str, Any]:
 @api.put("/settings")
 def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
-    if body.theme is None and body.language is None:
-        raise HTTPException(status_code=400, detail="theme or language must be provided")
+    if (
+        body.theme is None
+        and body.language is None
+        and body.press_takes_default is None
+        and body.capture_timeout_ms_default is None
+        and body.hold_idle_timeout_ms is None
+        and body.aggregate_round_to_us is None
+        and body.aggregate_min_match_ratio is None
+    ):
+        raise HTTPException(status_code=400, detail="at least one setting must be provided")
     try:
-        return database.settings.update_ui_settings(theme=body.theme, language=body.language)
+        updated = database.settings.update_ui_settings(
+            theme=body.theme,
+            language=body.language,
+            press_takes_default=body.press_takes_default,
+            capture_timeout_ms_default=body.capture_timeout_ms_default,
+            hold_idle_timeout_ms=body.hold_idle_timeout_ms,
+            aggregate_round_to_us=body.aggregate_round_to_us,
+            aggregate_min_match_ratio=body.aggregate_min_match_ratio,
+        )
+        learning.apply_learning_settings(updated)
+        return updated
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -144,7 +189,6 @@ def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] =
             icon=body.icon,
             carrier_hz=body.carrier_hz,
             duty_cycle=body.duty_cycle,
-            gap_us_default=body.gap_us_default,
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -221,12 +265,17 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
 def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
 
+    learning_settings = database.settings.get_learning_settings()
+    learning.apply_learning_settings(learning_settings)
+    takes = body.takes if body.takes is not None else learning_settings["press_takes_default"]
+    timeout_ms = body.timeout_ms if body.timeout_ms is not None else learning_settings["capture_timeout_ms_default"]
+
     try:
         return learning.capture(
             remote_id=body.remote_id,
             mode=body.mode,
-            takes=body.takes,
-            timeout_ms=body.timeout_ms,
+            takes=takes,
+            timeout_ms=timeout_ms,
             overwrite=body.overwrite,
             button_name=body.button_name,
         )
@@ -246,9 +295,18 @@ def learn_stop(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any
     return learning.stop()
 
 
-@api.get("/learn/status")
-def learn_status() -> Dict[str, Any]:
-    return learning.status()
+@api.websocket("/learn/status/ws")
+async def learn_status_ws(websocket: WebSocket) -> None:
+    # Stream status updates over a single WebSocket to avoid frequent polling.
+    await status_comm.connect(websocket)
+    try:
+        await status_comm.send(websocket, learning.status())
+        while True:
+            await websocket.receive()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await status_comm.disconnect(websocket)
 
 
 # -----------------

@@ -4,6 +4,6 @@ export function getSettings() {
   return requestJson('/settings')
 }
 
-export function updateSettings({theme, language}) {
-  return requestJson('/settings', {method: 'PUT', body: {theme, language}})
+export function updateSettings(settings) {
+  return requestJson('/settings', {method: 'PUT', body: settings})
 }
