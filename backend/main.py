@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from agents import AgentRegistry, AgentRoutingError, LocalAgent, LocalTransport
+from agents.agent_id_store import get_or_create_agent_id
 from api_models import (
     RemoteCreate,
     RemoteUpdate,
@@ -44,7 +45,8 @@ engine = IrCtlEngine(
 status_comm = StatusCommunication()
 agent_registry = AgentRegistry(database=database)
 local_transport = LocalTransport(engine=engine, parser=parser)
-local_agent = LocalAgent(transport=local_transport)
+local_agent_id = get_or_create_agent_id(data_dir=env.data_folder)
+local_agent = LocalAgent(transport=local_transport, agent_id=local_agent_id)
 
 learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(

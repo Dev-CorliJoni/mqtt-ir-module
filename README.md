@@ -64,6 +64,10 @@ All configuration is via environment variables:
 | `PUBLIC_API_KEY` | empty | Injects API key into the UI (exposes it to browsers). |
 | `PUBLIC_BASE_URL` | `/` | Base path for hosting under a sub-path. |
 
+## Agent ID persistence
+The Hub local agent persists its agent ID at `${DATA_DIR}/agent/agent_id`.
+Keep the `/data` volume between updates to retain the same ID; removing the volume generates a new ID on next start.
+
 If you set `API_KEY`, the UI will not be able to write unless you also set `PUBLIC_API_KEY` or inject `X-API-Key` via a reverse proxy.
 
 ## Hardware and OS setup
