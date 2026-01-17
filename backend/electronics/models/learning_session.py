@@ -8,6 +8,7 @@ from .log_entry import LogEntry
 class LearningSession:
     remote_id: int
     remote_name: str
+    agent_id: str
     extend: bool
     started_at: float
     next_button_index: int

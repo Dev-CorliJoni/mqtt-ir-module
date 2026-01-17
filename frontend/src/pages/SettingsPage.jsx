@@ -8,6 +8,7 @@ import { getSettings, updateSettings } from '../api/settingsApi.js'
 import { Button } from '../components/ui/Button.jsx'
 import { Modal } from '../components/ui/Modal.jsx'
 import { NumberField } from '../components/ui/NumberField.jsx'
+import { SelectField } from '../components/ui/SelectField.jsx'
 import { ErrorCallout } from '../components/ui/ErrorCallout.jsx'
 import { useToast } from '../components/ui/ToastProvider.jsx'
 import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
@@ -37,6 +38,7 @@ export function SettingsPage() {
   const [holdIdleTimeoutMs, setHoldIdleTimeoutMs] = useState('')
   const [aggregateRoundToUs, setAggregateRoundToUs] = useState('')
   const [aggregateMinMatchPercent, setAggregateMinMatchPercent] = useState('')
+  const [hubIsAgent, setHubIsAgent] = useState(true)
 
   useEffect(() => {
     if (!settingsQuery.data || learningDirty) return
@@ -48,6 +50,11 @@ export function SettingsPage() {
     setAggregateMinMatchPercent(String(defaults.aggregateMinMatchPercent))
   }, [settingsQuery.data, learningDirty])
 
+  useEffect(() => {
+    if (!settingsQuery.data) return
+    setHubIsAgent(Boolean(settingsQuery.data.hub_is_agent ?? true))
+  }, [settingsQuery.data])
+
   const updateMutation = useMutation({
     mutationFn: updateSettings,
     onSuccess: (data) => {
@@ -56,6 +63,17 @@ export function SettingsPage() {
       toast.show({ title: t('settings.learningTitle'), message: t('settings.learningSaved') })
     },
     onError: (e) => toast.show({ title: t('settings.learningTitle'), message: errorMapper.getMessage(e, 'settings.learningSaveFailed') }),
+  })
+
+  const hubAgentMutation = useMutation({
+    mutationFn: (value) => updateSettings({ hub_is_agent: value }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['settings'], data)
+      queryClient.invalidateQueries({ queryKey: ['agents'] })
+      setHubIsAgent(Boolean(data?.hub_is_agent ?? true))
+      toast.show({ title: t('settings.agentTitle'), message: t('common.saved') })
+    },
+    onError: (e) => toast.show({ title: t('settings.agentTitle'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const defaults = settingsQuery.data ? getLearningDefaults(settingsQuery.data) : null
@@ -136,6 +154,31 @@ export function SettingsPage() {
               <div className="text-xs text-[rgb(var(--muted))]">{t('settings.writeKeyRequired')}</div>
               <div className="font-semibold">{writeKeyRequiredLabel}</div>
             </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.agentTitle')}</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <div className="text-sm text-[rgb(var(--muted))]">{t('settings.agentDescription')}</div>
+          <div className="mt-3 max-w-sm">
+            <SelectField
+              label={t('settings.hubIsAgentLabel')}
+              hint={t('settings.hubIsAgentHint')}
+              value={hubIsAgent ? 'true' : 'false'}
+              onChange={(event) => {
+                const nextValue = event.target.value === 'true'
+                setHubIsAgent(nextValue)
+                hubAgentMutation.mutate(nextValue)
+              }}
+              disabled={!settingsQuery.data || hubAgentMutation.isPending}
+            >
+              <option value="true">{t('common.yes')}</option>
+              <option value="false">{t('common.no')}</option>
+            </SelectField>
           </div>
         </CardBody>
       </Card>

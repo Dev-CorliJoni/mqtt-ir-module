@@ -2,36 +2,32 @@ import math
 import tempfile
 from typing import Any, Dict, Optional
 
-from database import Database
-
 from .ir_ctl_engine import IrCtlEngine
 from .ir_signal_parser import IrSignalParser
 
 
 class IrSenderService:
-    def __init__(self, store: Database, engine: IrCtlEngine, parser: IrSignalParser) -> None:
-        self._db = store
+    def __init__(self, engine: IrCtlEngine, parser: IrSignalParser) -> None:
         self._engine = engine
         self._parser = parser
 
-    def send(self, button_id: int, mode: str, hold_ms: Optional[int]) -> Dict[str, Any]:
-        mode = mode.strip().lower()
+    def send(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        button_id = payload.get("button_id")
+        mode = str(payload.get("mode") or "").strip().lower()
         if mode not in ("press", "hold"):
             raise ValueError("mode must be 'press' or 'hold'")
 
-        button = self._db.buttons.get(button_id)
-        signals = self._db.signals.list_by_button(button_id)
-        if not signals:
+        hold_ms = payload.get("hold_ms")
+        press_initial_text = str(payload.get("press_initial") or "").strip()
+        if not press_initial_text:
             raise ValueError("No signals for button")
 
-        remote = self._db.remotes.get(int(button["remote_id"]))
-
-        carrier_hz = int(remote["carrier_hz"]) if remote.get("carrier_hz") else None
-        duty_cycle = int(remote["duty_cycle"]) if remote.get("duty_cycle") else None
+        carrier_hz = int(payload["carrier_hz"]) if payload.get("carrier_hz") else None
+        duty_cycle = int(payload["duty_cycle"]) if payload.get("duty_cycle") else None
 
         with tempfile.TemporaryDirectory(prefix="ir_tx_") as tmpdir:
             if mode == "press":
-                press_initial = self._parser.decode_pulses(str(signals["press_initial"]))
+                press_initial = self._parser.decode_pulses(press_initial_text)
                 press_path = f"{tmpdir}/press_initial.txt"
                 self._write_pulse_space_file(press_path, press_initial)
 
@@ -55,13 +51,13 @@ class IrSenderService:
             if hold_ms is None or int(hold_ms) <= 0:
                 raise ValueError("hold_ms is required for mode=hold")
 
-            hold_initial_text = str(signals.get("hold_initial") or "").strip()
-            hold_repeat_text = str(signals.get("hold_repeat") or "").strip()
+            hold_initial_text = str(payload.get("hold_initial") or "").strip()
+            hold_repeat_text = str(payload.get("hold_repeat") or "").strip()
             if not hold_initial_text or not hold_repeat_text:
                 raise ValueError("Hold signals are missing for this button")
 
             # Hold repeats require an explicit inter-frame gap because stored pulses end on a pulse.
-            hold_gap_us = signals.get("hold_gap_us")
+            hold_gap_us = payload.get("hold_gap_us")
             if hold_gap_us is None or int(hold_gap_us) <= 0:
                 raise ValueError("Hold gap is missing for this button; re-capture hold to compute it")
             hold_gap_us_value = int(hold_gap_us)

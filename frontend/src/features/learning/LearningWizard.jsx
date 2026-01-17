@@ -21,6 +21,7 @@ export function LearningWizard({
   targetButton,
   existingButtons,
   onClose,
+  onAgentRequired,
 }) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -86,8 +87,17 @@ export function LearningWizard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health'] })
+      queryClient.invalidateQueries({ queryKey: ['remotes'] })
     },
-    onError: (e) => toast.show({ title: t('wizard.title'), message: errorMapper.getMessage(e, 'wizard.errorStartFailed') }),
+    onError: (error) => {
+      const info = errorMapper.getErrorInfo(error)
+      if (info.code === 'agent_required') {
+        startMutation.reset()
+        onAgentRequired?.(() => startMutation.mutate())
+        return
+      }
+      toast.show({ title: t('wizard.title'), message: errorMapper.getMessage(error, 'wizard.errorStartFailed') })
+    },
   })
 
   const stopMutation = useMutation({
@@ -132,6 +142,11 @@ export function LearningWizard({
     },
     onError: (error) => {
       const info = errorMapper.getErrorInfo(error)
+      if (info.code === 'agent_required') {
+        pressMutation.reset()
+        onAgentRequired?.(() => pressMutation.mutate())
+        return
+      }
       if (info.kind !== 'timeout') return
       const waitingTake = toNumber(currentCaptureRef.current?.waitingTake)
       setCaptureTimeout({ mode: 'press', take: waitingTake > 0 ? waitingTake : null })
@@ -166,6 +181,11 @@ export function LearningWizard({
     },
     onError: (error) => {
       const info = errorMapper.getErrorInfo(error)
+      if (info.code === 'agent_required') {
+        holdMutation.reset()
+        onAgentRequired?.(() => holdMutation.mutate())
+        return
+      }
       if (info.kind !== 'timeout') return
       setCaptureTimeout({ mode: 'hold', take: null })
     },

@@ -1,14 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
 import { mdiTrashCanOutline, mdiPencilOutline, mdiMagicStaff } from '@mdi/js'
 
-import { listRemotes, deleteRemote } from '../api/remotesApi.js'
+import { listRemotes, updateRemote, deleteRemote } from '../api/remotesApi.js'
 import { listButtons, updateButton, deleteButton, sendPress, sendHold } from '../api/buttonsApi.js'
 import { getHealth } from '../api/healthApi.js'
 import { writeLocalStorage } from '../utils/storage.js'
+import { listAgents } from '../api/agentsApi.js'
 
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
 import { Button } from '../components/ui/Button.jsx'
@@ -24,6 +25,7 @@ import { HoldSendDialog } from '../features/buttons/HoldSendDialog.jsx'
 import { IconPicker } from '../components/pickers/IconPicker.jsx'
 import { DEFAULT_BUTTON_ICON } from '../icons/iconRegistry.js'
 import { LearningWizard } from '../features/learning/LearningWizard.jsx'
+import { AgentPickerModal } from '../components/agents/AgentPickerModal.jsx'
 import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
 export function RemoteDetailPage() {
@@ -39,6 +41,8 @@ export function RemoteDetailPage() {
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
   const buttonsQuery = useQuery({ queryKey: ['buttons', numericRemoteId], queryFn: () => listButtons(numericRemoteId) })
+  const agentsQuery = useQuery({ queryKey: ['agents'], queryFn: listAgents, staleTime: 30_000 })
+  const agents = agentsQuery.data || []
 
   const remote = useMemo(() => {
     const list = remotesQuery.data || []
@@ -71,6 +75,9 @@ export function RemoteDetailPage() {
   const [wizardExtend, setWizardExtend] = useState(true)
   const [wizardTargetButton, setWizardTargetButton] = useState(null)
   const [learningChoiceOpen, setLearningChoiceOpen] = useState(false)
+  const [agentPickerOpen, setAgentPickerOpen] = useState(false)
+  const [selectedAgentId, setSelectedAgentId] = useState('')
+  const pendingActionRef = useRef(null)
 
   const resetRenameState = () => {
     // Reset rename modal state when it closes.
@@ -97,6 +104,23 @@ export function RemoteDetailPage() {
     setWizardTargetButton(null)
   }
 
+  const resolveDefaultAgentId = () => {
+    if (!agents.length) return ''
+    const online = agents.find((agent) => agent.status === 'online')
+    return (online || agents[0]).agent_id
+  }
+
+  const openAgentPicker = (retryAction) => {
+    pendingActionRef.current = retryAction
+    setSelectedAgentId(resolveDefaultAgentId())
+    setAgentPickerOpen(true)
+  }
+
+  const closeAgentPicker = () => {
+    pendingActionRef.current = null
+    setAgentPickerOpen(false)
+  }
+
   const deleteRemoteMutation = useMutation({
     mutationFn: () => deleteRemote(numericRemoteId),
     onSuccess: () => {
@@ -105,6 +129,25 @@ export function RemoteDetailPage() {
       navigate('/remotes')
     },
     onError: (e) => toast.show({ title: t('common.delete'), message: errorMapper.getMessage(e, 'common.failed') }),
+  })
+
+  const assignAgentMutation = useMutation({
+    mutationFn: async (agentId) => {
+      if (!remote) throw new Error(t('errors.notFoundTitle'))
+      const payload = {
+        ...remote,
+        assigned_agent_id: agentId || null,
+      }
+      return updateRemote(remote.id, payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['remotes'] })
+      const retry = pendingActionRef.current
+      pendingActionRef.current = null
+      setAgentPickerOpen(false)
+      if (retry) retry()
+    },
+    onError: (e) => toast.show({ title: t('agents.pickerTitle'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
 
   const updateButtonMutation = useMutation({
@@ -130,14 +173,34 @@ export function RemoteDetailPage() {
 
   const sendPressMutation = useMutation({
     mutationFn: (buttonId) => sendPress(buttonId),
-    onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendPressSuccess') }),
-    onError: (e) => toast.show({ title: t('button.send'), message: errorMapper.getMessage(e, 'common.failed') }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['remotes'] })
+      toast.show({ title: t('button.send'), message: t('button.sendPressSuccess') })
+    },
+    onError: (error, buttonId) => {
+      const info = errorMapper.getErrorInfo(error)
+      if (info.code === 'agent_required') {
+        openAgentPicker(() => sendPressMutation.mutate(buttonId))
+        return
+      }
+      toast.show({ title: t('button.send'), message: errorMapper.getMessage(error, 'common.failed') })
+    },
   })
 
   const sendHoldMutation = useMutation({
     mutationFn: ({ buttonId, holdMs }) => sendHold(buttonId, holdMs),
-    onSuccess: () => toast.show({ title: t('button.send'), message: t('button.sendHoldSuccess') }),
-    onError: (e) => toast.show({ title: t('button.send'), message: errorMapper.getMessage(e, 'common.failed') }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['remotes'] })
+      toast.show({ title: t('button.send'), message: t('button.sendHoldSuccess') })
+    },
+    onError: (error, variables) => {
+      const info = errorMapper.getErrorInfo(error)
+      if (info.code === 'agent_required') {
+        openAgentPicker(() => sendHoldMutation.mutate(variables))
+        return
+      }
+      toast.show({ title: t('button.send'), message: errorMapper.getMessage(error, 'common.failed') })
+    },
   })
 
   const existingButtons = buttonsQuery.data || []
@@ -353,6 +416,16 @@ export function RemoteDetailPage() {
         }}
       />
 
+      <AgentPickerModal
+        open={agentPickerOpen}
+        agents={agents}
+        selectedAgentId={selectedAgentId}
+        onSelectAgent={setSelectedAgentId}
+        onClose={closeAgentPicker}
+        onConfirm={() => assignAgentMutation.mutate(selectedAgentId)}
+        isSaving={assignAgentMutation.isPending}
+      />
+
       <LearningWizard
         open={wizardOpen}
         remoteId={numericRemoteId}
@@ -361,6 +434,7 @@ export function RemoteDetailPage() {
         targetButton={wizardTargetButton}
         existingButtons={existingButtons}
         onClose={resetWizardState}
+        onAgentRequired={(retry) => openAgentPicker(retry)}
       />
     </div>
   )

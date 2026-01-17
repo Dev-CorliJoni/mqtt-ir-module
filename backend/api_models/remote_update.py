@@ -10,4 +10,6 @@ class RemoteUpdate(BaseModel):
     duty_cycle: Optional[int] = Field(default=None, description="Duty cycle in percent (1..100)")
 
     icon: Optional[str] = Field(default=None, description="MDI icon key (UI)")
+
+    assigned_agent_id: Optional[str] = Field(default=None, description="Assigned agent id for routing")
     
