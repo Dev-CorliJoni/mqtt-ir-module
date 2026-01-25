@@ -18,6 +18,9 @@ class Environment:
 
         self.debug = self._read_bool("DEBUG", default=False)
 
+        # Optional: force-enable/disable the local agent when running the hub.
+        self.local_agent_enabled = self._read_optional_bool("LOCAL_AGENT_ENABLED")
+
         # ir-ctl receiver options
         self.ir_wideband = self._read_bool("IR_WIDEBAND", default=False)
 
@@ -33,6 +36,17 @@ class Environment:
         if value in ("0", "false", "no", "n", "off"):
             return False
         return default
+
+    def _read_optional_bool(self, name: str) -> Optional[bool]:
+        raw = os.getenv(name)
+        if raw is None:
+            return None
+        value = raw.strip().lower()
+        if value in ("1", "true", "yes", "y", "on"):
+            return True
+        if value in ("0", "false", "no", "n", "off"):
+            return False
+        return None
 
     def _read_int(self, name: str, default: int, min_value: Optional[int] = None, max_value: Optional[int] = None) -> int:
         raw = os.getenv(name)

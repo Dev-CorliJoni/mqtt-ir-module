@@ -21,6 +21,8 @@ LEARNING_KEY_MAP = {
     "aggregate_min_match_ratio": "learning.aggregate_min_match_ratio",
 }
 
+HUB_IS_AGENT_KEY = "hub.is_agent"
+
 
 class Settings(DatabaseBase):
     def _create_schema(self, conn: sqlite3.Connection) -> None:
@@ -117,7 +119,8 @@ class Settings(DatabaseBase):
     def get_ui_settings(self, conn: Optional[sqlite3.Connection] = None) -> Dict[str, Any]:
         theme = self.get("ui.theme", default="system", conn=conn) or "system"
         language = self.get("ui.language", default="en", conn=conn) or "en"
-        settings = {"theme": theme, "language": language}
+        hub_is_agent = self._read_bool_setting(HUB_IS_AGENT_KEY, default=True, conn=conn)
+        settings = {"theme": theme, "language": language, "hub_is_agent": hub_is_agent}
         settings.update(self.get_learning_settings(conn=conn))
         return settings
 
@@ -130,6 +133,7 @@ class Settings(DatabaseBase):
         hold_idle_timeout_ms: Optional[int] = None,
         aggregate_round_to_us: Optional[int] = None,
         aggregate_min_match_ratio: Optional[float] = None,
+        hub_is_agent: Optional[bool] = None,
         conn: Optional[sqlite3.Connection] = None,
     ) -> Dict[str, Any]:
         c, close = self._use_conn(conn)
@@ -138,6 +142,8 @@ class Settings(DatabaseBase):
                 self.set("ui.theme", str(theme), conn=c)
             if language is not None:
                 self.set("ui.language", str(language), conn=c)
+            if hub_is_agent is not None:
+                self.set(HUB_IS_AGENT_KEY, str(bool(hub_is_agent)).lower(), conn=c)
             if press_takes_default is not None:
                 self.set(LEARNING_KEY_MAP["press_takes_default"], str(press_takes_default), conn=c)
             if capture_timeout_ms_default is not None:
@@ -173,6 +179,22 @@ class Settings(DatabaseBase):
         if max_value is not None and value > max_value:
             return default
         return value
+
+    def _read_bool_setting(
+        self,
+        key: str,
+        default: bool,
+        conn: Optional[sqlite3.Connection] = None,
+    ) -> bool:
+        raw = self.get(key, default=None, conn=conn)
+        if raw is None:
+            return default
+        value = str(raw).strip().lower()
+        if value in ("1", "true", "yes", "y", "on"):
+            return True
+        if value in ("0", "false", "no", "n", "off"):
+            return False
+        return default
 
     def _read_float_setting(
         self,

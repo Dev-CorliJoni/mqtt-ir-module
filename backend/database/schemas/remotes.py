@@ -17,6 +17,7 @@ class Remotes(DatabaseBase):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
                 icon TEXT NULL,
+                assigned_agent_id TEXT NULL,
                 carrier_hz INTEGER NULL,
                 duty_cycle INTEGER NULL,
                 created_at REAL NOT NULL,
@@ -32,6 +33,7 @@ class Remotes(DatabaseBase):
         self,
         name: str,
         icon: Optional[str] = None,
+        assigned_agent_id: Optional[str] = None,
         carrier_hz: Optional[int] = None,
         duty_cycle: Optional[int] = None,
         conn: Optional[sqlite3.Connection] = None,
@@ -44,14 +46,14 @@ class Remotes(DatabaseBase):
         try:
             now = time.time()
             c.execute(
-                "INSERT OR IGNORE INTO remotes(name, icon, carrier_hz, duty_cycle, created_at, updated_at) "
-                "VALUES(?, ?, ?, ?, ?, ?)",
-                (name, icon, carrier_hz, duty_cycle, now, now),
+                "INSERT OR IGNORE INTO remotes(name, icon, assigned_agent_id, carrier_hz, duty_cycle, created_at, updated_at) "
+                "VALUES(?, ?, ?, ?, ?, ?, ?)",
+                (name, icon, assigned_agent_id, carrier_hz, duty_cycle, now, now),
             )
             c.commit()
 
             row = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE name = ?",
+                "SELECT id, name, icon, assigned_agent_id, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE name = ?",
                 (name,),
             ).fetchone()
             if not row:
@@ -66,6 +68,7 @@ class Remotes(DatabaseBase):
         remote_id: int,
         name: str,
         icon: Optional[str] = None,
+        assigned_agent_id: Optional[str] = None,
         carrier_hz: Optional[int] = None,
         duty_cycle: Optional[int] = None,
         conn: Optional[sqlite3.Connection] = None,
@@ -82,13 +85,13 @@ class Remotes(DatabaseBase):
 
             now = time.time()
             c.execute(
-                "UPDATE remotes SET name = ?, icon = ?, carrier_hz = ?, duty_cycle = ?, updated_at = ? WHERE id = ?",
-                (name, icon, carrier_hz, duty_cycle, now, remote_id),
+                "UPDATE remotes SET name = ?, icon = ?, assigned_agent_id = ?, carrier_hz = ?, duty_cycle = ?, updated_at = ? WHERE id = ?",
+                (name, icon, assigned_agent_id, carrier_hz, duty_cycle, now, remote_id),
             )
             c.commit()
 
             out = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, assigned_agent_id, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not out:
@@ -102,7 +105,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, assigned_agent_id, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not row:
@@ -119,7 +122,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             row = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
+                "SELECT id, name, icon, assigned_agent_id, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
                 (remote_id,),
             ).fetchone()
             if not row:
@@ -133,7 +136,7 @@ class Remotes(DatabaseBase):
         c, close = self._use_conn(conn)
         try:
             rows = c.execute(
-                "SELECT id, name, icon, carrier_hz, duty_cycle, created_at, updated_at FROM remotes ORDER BY name"
+                "SELECT id, name, icon, assigned_agent_id, carrier_hz, duty_cycle, created_at, updated_at FROM remotes ORDER BY name"
             ).fetchall()
             return [dict(r) for r in rows]
         finally:
@@ -149,6 +152,35 @@ class Remotes(DatabaseBase):
 
             c.execute("DELETE FROM buttons WHERE remote_id = ?", (remote_id,))
             c.commit()
+        finally:
+            if close:
+                c.close()
+
+    def set_assigned_agent(
+        self,
+        remote_id: int,
+        assigned_agent_id: Optional[str],
+        conn: Optional[sqlite3.Connection] = None,
+    ) -> Dict[str, Any]:
+        c, close = self._use_conn(conn)
+        try:
+            row = c.execute("SELECT id FROM remotes WHERE id = ?", (remote_id,)).fetchone()
+            if not row:
+                raise ValueError("Unknown remote_id")
+
+            now = time.time()
+            c.execute(
+                "UPDATE remotes SET assigned_agent_id = ?, updated_at = ? WHERE id = ?",
+                (assigned_agent_id, now, remote_id),
+            )
+            c.commit()
+            out = c.execute(
+                "SELECT id, name, icon, assigned_agent_id, carrier_hz, duty_cycle, created_at, updated_at FROM remotes WHERE id = ?",
+                (remote_id,),
+            ).fetchone()
+            if not out:
+                raise ValueError("Unknown remote_id")
+            return dict(out)
         finally:
             if close:
                 c.close()

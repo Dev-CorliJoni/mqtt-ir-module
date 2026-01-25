@@ -3,9 +3,9 @@ import threading
 import time
 from typing import Any, Dict, List, Optional
 
+from agents.agent_registry import AgentRegistry
 from database import Database
 
-from .ir_ctl_engine import IrCtlEngine
 from .ir_hold_extractor import IrHoldExtractor
 from .ir_signal_aggregator import IrSignalAggregator
 from .ir_signal_parser import IrSignalParser
@@ -17,7 +17,7 @@ class IrLearningService:
     def __init__(
         self,
         database: Database,
-        engine: IrCtlEngine,
+        agent_registry: AgentRegistry,
         parser: IrSignalParser,
         aggregator: IrSignalAggregator,
         hold_extractor: IrHoldExtractor,
@@ -28,7 +28,7 @@ class IrLearningService:
         status_comm: Optional[StatusCommunication] = None,
     ) -> None:
         self._db = database
-        self._engine = engine
+        self._agent_registry = agent_registry
         self._parser = parser
         self._aggregator = aggregator
         self._hold_extractor = hold_extractor
@@ -63,6 +63,7 @@ class IrLearningService:
                 raise RuntimeError("Learning session is already running")
 
         remote = self._db.remotes.get(remote_id)
+        agent = self._agent_registry.resolve_agent_for_remote(remote_id, remote)
 
         if not extend:
             self._db.remotes.clear_buttons(remote_id)
@@ -74,6 +75,7 @@ class IrLearningService:
         session = LearningSession(
             remote_id=remote_id,
             remote_name=str(remote["name"]),
+            agent_id=agent.agent_id,
             extend=bool(extend),
             started_at=time.time(),
             next_button_index=next_index,
@@ -82,6 +84,13 @@ class IrLearningService:
 
         with self._lock:
             self._session = session
+
+        try:
+            agent.learn_start({"remote_id": remote_id, "remote_name": str(remote["name"])})
+        except Exception:
+            with self._lock:
+                self._session = None
+            raise
 
         # Broadcast initial status so connected clients can render immediately.
         self._publish_status(self._session_to_dict(session, active=True))
@@ -94,6 +103,11 @@ class IrLearningService:
             self._session = None
 
         if session:
+            try:
+                agent = self._agent_registry.get_agent_by_id(session.agent_id)
+                agent.learn_stop({"remote_id": session.remote_id, "remote_name": session.remote_name})
+            except Exception:
+                pass
             self._log(session, "info", "Learning session stopped")
             self._publish_status({"learn_enabled": False})
             return self._session_to_dict(session, active=False)
@@ -159,6 +173,9 @@ class IrLearningService:
             raise RuntimeError("Learning session is running for a different remote")
         return session
 
+    def _get_agent_or_raise(self, session: LearningSession):
+        return self._agent_registry.get_agent_by_id(session.agent_id)
+
     def _capture_press(
         self,
         session: LearningSession,
@@ -167,6 +184,7 @@ class IrLearningService:
         overwrite: bool,
         button_name: Optional[str],
     ) -> Dict[str, Any]:
+        agent = self._get_agent_or_raise(session)
         name = self._resolve_press_button_name(session, button_name)
         auto_generated = not (button_name and button_name.strip())
 
@@ -181,7 +199,10 @@ class IrLearningService:
 
         for i in range(takes):
             self._log(session, "info", "Waiting for IR press", {"take": i + 1, "timeout_ms": timeout_ms})
-            raw, stdout, stderr = self._engine.receive_one_message(timeout_ms=timeout_ms)
+            capture = agent.learn_capture({"timeout_ms": timeout_ms, "mode": "press"})
+            raw = str(capture.get("raw") or "")
+            stdout = str(capture.get("stdout") or "")
+            stderr = str(capture.get("stderr") or "")
             if stdout or stderr:
                 self._log(session, "debug", "ir-ctl output", {"stdout": stdout, "stderr": stderr})
 
@@ -245,6 +266,7 @@ class IrLearningService:
         overwrite: bool,
         button_name: Optional[str],
     ) -> Dict[str, Any]:
+        agent = self._get_agent_or_raise(session)
         button = self._resolve_hold_button(session, button_name)
         button_id = int(button["id"])
 
@@ -267,7 +289,10 @@ class IrLearningService:
 
         # First message (initial)
         self._log(session, "info", "Waiting for IR hold (initial frame)", {"timeout_ms": timeout_ms})
-        first_raw, stdout, stderr = self._engine.receive_one_message(timeout_ms=timeout_ms)
+        first_capture = agent.learn_capture({"timeout_ms": timeout_ms, "mode": "hold"})
+        first_raw = str(first_capture.get("raw") or "")
+        stdout = str(first_capture.get("stdout") or "")
+        stderr = str(first_capture.get("stderr") or "")
         first_end_time = time.perf_counter()
         if stdout or stderr:
             self._log(session, "debug", "ir-ctl output", {"stdout": stdout, "stderr": stderr})
@@ -286,7 +311,8 @@ class IrLearningService:
             per_call_timeout_ms = min(self._hold_idle_timeout_ms, remaining_ms)
 
             try:
-                raw, _, _ = self._engine.receive_one_message(timeout_ms=per_call_timeout_ms)
+                capture = agent.learn_capture({"timeout_ms": per_call_timeout_ms, "mode": "hold"})
+                raw = str(capture.get("raw") or "")
             except TimeoutError:
                 break
 
@@ -393,6 +419,7 @@ class IrLearningService:
             "learn_enabled": bool(active),
             "remote_id": session.remote_id,
             "remote_name": session.remote_name,
+            "agent_id": session.agent_id,
             "extend": bool(session.extend),
             "started_at": session.started_at,
             "last_button_id": session.last_button_id,

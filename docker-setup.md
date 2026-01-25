@@ -11,6 +11,10 @@
 - `DEBUG` (default: `false`)
 - `IR_WIDEBAND` (default: `false`)
 
+Agent ID persistence:
+- Stored at `${DATA_DIR}/agent/agent_id`
+- Keep the `/data` volume to retain the same ID across updates
+
 ### UI base path (reverse-proxy sub-path hosting)
 - `PUBLIC_BASE_URL` (default: `/`)
 

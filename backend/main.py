@@ -2,15 +2,17 @@
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 import json
 
 from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from agents import AgentRegistry, AgentRoutingError, LocalAgent, LocalTransport
+from agents.agent_id_store import get_or_create_agent_id
 from api_models import (
     RemoteCreate,
     RemoteUpdate,
@@ -20,7 +22,7 @@ from api_models import (
     SendRequest,
     SettingsUpdate,
 )
-from electronics import IrLearningService, IrSenderService
+from electronics import IrLearningService
 from electronics.ir_ctl_engine import IrCtlEngine
 from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
@@ -41,11 +43,15 @@ engine = IrCtlEngine(
     wideband_default=env.ir_wideband,
 )
 status_comm = StatusCommunication()
+agent_registry = AgentRegistry(database=database)
+local_transport = LocalTransport(engine=engine, parser=parser)
+local_agent_id = get_or_create_agent_id(data_dir=env.data_folder)
+local_agent = LocalAgent(transport=local_transport, agent_id=local_agent_id)
 
 learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
     database=database,
-    engine=engine,
+    agent_registry=agent_registry,
     parser=parser,
     aggregator=aggregator,
     hold_extractor=hold_extractor,
@@ -56,14 +62,39 @@ learning = IrLearningService(
     status_comm=status_comm,
 )
 
-sender = IrSenderService(store=database, engine=engine, parser=parser)
-
 
 def require_api_key(x_api_key: Optional[str]) -> None:
     if not env.api_key:
         return
     if not x_api_key or x_api_key != env.api_key:
         raise HTTPException(status_code=401, detail="Invalid API key")
+
+
+AgentActionResponse = Union[Dict[str, Any], JSONResponse]
+
+
+def agent_error_response(error: AgentRoutingError) -> JSONResponse:
+    return JSONResponse(
+        status_code=error.status_code,
+        content={"code": error.code, "message": error.message},
+    )
+
+
+def apply_hub_agent_setting(enabled: bool) -> None:
+    if enabled:
+        agent_registry.register_agent(local_agent)
+    else:
+        agent_registry.unregister_agent(local_agent.agent_id)
+
+
+def resolve_hub_agent_setting() -> bool:
+    settings = database.settings.get_ui_settings()
+    hub_is_agent = bool(settings.get("hub_is_agent", True))
+    if env.local_agent_enabled is None:
+        return hub_is_agent
+    if env.local_agent_enabled != hub_is_agent:
+        database.settings.update_ui_settings(hub_is_agent=env.local_agent_enabled)
+    return bool(env.local_agent_enabled)
 
 
 @asynccontextmanager
@@ -73,6 +104,8 @@ async def lifespan(app: FastAPI):
     learning.apply_learning_settings(database.settings.get_learning_settings())
     # Store the running loop so sync code can broadcast status updates.
     status_comm.attach_loop(asyncio.get_running_loop())
+
+    apply_hub_agent_setting(resolve_hub_agent_setting())
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
     if not env.debug:
@@ -121,6 +154,11 @@ def health() -> Dict[str, Any]:
     }
 
 
+@api.get("/agents")
+def list_agents() -> List[Dict[str, Any]]:
+    return agent_registry.list_agents()
+
+
 # -----------------
 # Settings (UI)
 # -----------------
@@ -137,6 +175,7 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
     if (
         body.theme is None
         and body.language is None
+        and body.hub_is_agent is None
         and body.press_takes_default is None
         and body.capture_timeout_ms_default is None
         and body.hold_idle_timeout_ms is None
@@ -145,9 +184,14 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
     ):
         raise HTTPException(status_code=400, detail="at least one setting must be provided")
     try:
+        previous_settings = database.settings.get_ui_settings()
+        hub_is_agent = body.hub_is_agent
+        if env.local_agent_enabled is not None:
+            hub_is_agent = env.local_agent_enabled
         updated = database.settings.update_ui_settings(
             theme=body.theme,
             language=body.language,
+            hub_is_agent=hub_is_agent,
             press_takes_default=body.press_takes_default,
             capture_timeout_ms_default=body.capture_timeout_ms_default,
             hold_idle_timeout_ms=body.hold_idle_timeout_ms,
@@ -155,6 +199,8 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             aggregate_min_match_ratio=body.aggregate_min_match_ratio,
         )
         learning.apply_learning_settings(updated)
+        if updated.get("hub_is_agent") != previous_settings.get("hub_is_agent"):
+            apply_hub_agent_setting(bool(updated.get("hub_is_agent")))
         return updated
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -187,6 +233,7 @@ def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] =
             remote_id=remote_id,
             name=body.name,
             icon=body.icon,
+            assigned_agent_id=body.assigned_agent_id,
             carrier_hz=body.carrier_hz,
             duty_cycle=body.duty_cycle,
         )
@@ -249,10 +296,12 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 
 
 @api.post("/learn/start")
-def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
     try:
         return learning.start(remote_id=body.remote_id, extend=body.extend)
+    except AgentRoutingError as e:
+        return agent_error_response(e)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -262,7 +311,7 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
 
 
 @api.post("/learn/capture")
-def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
 
     learning_settings = database.settings.get_learning_settings()
@@ -279,6 +328,8 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
             overwrite=body.overwrite,
             button_name=body.button_name,
         )
+    except AgentRoutingError as e:
+        return agent_error_response(e)
     except TimeoutError as e:
         raise HTTPException(status_code=408, detail=str(e))
     except RuntimeError as e:
@@ -315,14 +366,36 @@ async def learn_status_ws(websocket: WebSocket) -> None:
 
 
 @api.post("/send")
-def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
 
     if learning.is_learning:
         raise HTTPException(status_code=409, detail="Cannot send while learning is active")
 
     try:
-        return sender.send(button_id=body.button_id, mode=body.mode, hold_ms=body.hold_ms)
+        button = database.buttons.get(body.button_id)
+        signals = database.signals.list_by_button(body.button_id)
+        if not signals:
+            raise ValueError("No signals for button")
+
+        remote = database.remotes.get(int(button["remote_id"]))
+        agent = agent_registry.resolve_agent_for_remote(remote_id=int(remote["id"]), remote=remote)
+
+        payload = {
+            "button_id": body.button_id,
+            "mode": body.mode,
+            "hold_ms": body.hold_ms,
+            "press_initial": signals.get("press_initial"),
+            "hold_initial": signals.get("hold_initial"),
+            "hold_repeat": signals.get("hold_repeat"),
+            "hold_gap_us": signals.get("hold_gap_us"),
+            "carrier_hz": remote.get("carrier_hz"),
+            "duty_cycle": remote.get("duty_cycle"),
+        }
+
+        return agent.send(payload)
+    except AgentRoutingError as e:
+        return agent_error_response(e)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

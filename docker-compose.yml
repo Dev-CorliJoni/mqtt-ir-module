@@ -1,4 +1,18 @@
 services:
-  mqtt-ir-service:
-    build: .
-    image: ${IMAGE_PREFIX}:${BRANCH}-${SUFFIX}
+  ir-hub:
+    build:
+      context: .
+      target: ir-hub
+    image: ${IMAGE_PREFIX}-hub:${BRANCH}-${SUFFIX}
+
+  ir-agent-hub:
+    build:
+      context: .
+      target: ir-agent-hub
+    image: ${IMAGE_PREFIX}-agent-hub:${BRANCH}-${SUFFIX}
+
+  ir-agent:
+    build:
+      context: .
+      target: ir-agent
+    image: ${IMAGE_PREFIX}-agent:${BRANCH}-${SUFFIX}

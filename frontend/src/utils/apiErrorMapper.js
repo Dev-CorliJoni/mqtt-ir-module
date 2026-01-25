@@ -91,6 +91,21 @@ const CODE_MAP = {
     titleKey: 'errors.captureHoldIncompleteTitle',
     bodyKey: 'errors.captureHoldIncompleteBody',
   },
+  agent_required: {
+    kind: 'badRequest',
+    titleKey: 'errors.agentRequiredTitle',
+    bodyKey: 'errors.agentRequiredBody',
+  },
+  no_agents: {
+    kind: 'offline',
+    titleKey: 'errors.noAgentsTitle',
+    bodyKey: 'errors.noAgentsBody',
+  },
+  agent_offline: {
+    kind: 'offline',
+    titleKey: 'errors.agentOfflineTitle',
+    bodyKey: 'errors.agentOfflineBody',
+  },
 }
 
 // Match backend detail strings to friendly categories when no structured code is provided.
@@ -256,7 +271,7 @@ export class ApiErrorMapper {
 
     // Prefer structured error codes when the backend provides them.
     if (normalizedCode && CODE_MAP[normalizedCode]) {
-      return CODE_MAP[normalizedCode]
+      return { ...CODE_MAP[normalizedCode], code: normalizedCode }
     }
 
     if (!isApi && detailText) {

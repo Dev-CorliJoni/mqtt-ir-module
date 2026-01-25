@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
 import { mdiImageEditOutline } from '@mdi/js'
@@ -8,9 +8,11 @@ import { Drawer } from '../../components/ui/Drawer.jsx'
 import { TextField } from '../../components/ui/TextField.jsx'
 import { NumberField } from '../../components/ui/NumberField.jsx'
 import { Collapse } from '../../components/ui/Collapse.jsx'
+import { SelectField } from '../../components/ui/SelectField.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import { IconButton } from '../../components/ui/IconButton.jsx'
 import { IconPicker } from '../../components/pickers/IconPicker.jsx'
+import { listAgents } from '../../api/agentsApi.js'
 import { updateRemote } from '../../api/remotesApi.js'
 import { DEFAULT_REMOTE_ICON } from '../../icons/iconRegistry.js'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
@@ -26,9 +28,12 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
   const [icon, setIcon] = useState(null)
   const [carrierHz, setCarrierHz] = useState('')
   const [dutyCycle, setDutyCycle] = useState('')
+  const [assignedAgentId, setAssignedAgentId] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
+  const agentsQuery = useQuery({ queryKey: ['agents'], queryFn: listAgents, staleTime: 30_000 })
+  const agents = agentsQuery.data || []
 
   useEffect(() => {
     if (!open) {
@@ -37,6 +42,7 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
       setIcon(null)
       setCarrierHz('')
       setDutyCycle('')
+      setAssignedAgentId('')
       setAdvancedOpen(false)
       setIconPickerOpen(false)
       return
@@ -46,6 +52,7 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
     setIcon(remote.icon ?? null)
     setCarrierHz(remote.carrier_hz ?? '')
     setDutyCycle(remote.duty_cycle ?? '')
+    setAssignedAgentId(remote.assigned_agent_id ?? '')
     setAdvancedOpen(false)
   }, [open, remote])
 
@@ -57,6 +64,7 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
         icon: icon ?? null,
         carrier_hz: carrierHz === '' ? null : Number(carrierHz),
         duty_cycle: dutyCycle === '' ? null : Number(dutyCycle),
+        assigned_agent_id: assignedAgentId ? assignedAgentId : null,
       }
       return updateRemote(remote.id, payload)
     },
@@ -70,6 +78,16 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
   })
 
   if (!remote) return null
+
+  const hasAgents = agents.length > 0
+  const allowUnassigned = !remote.assigned_agent_id || (agentsQuery.isSuccess && !hasAgents)
+  const assignedExists = assignedAgentId && agents.some((agent) => agent.agent_id === assignedAgentId)
+  const sortedAgents = [...agents].sort((a, b) => {
+    if (a.status === b.status) return (a.name || a.agent_id).localeCompare(b.name || b.agent_id)
+    if (a.status === 'online') return -1
+    if (b.status === 'online') return 1
+    return (a.name || a.agent_id).localeCompare(b.name || b.agent_id)
+  })
 
   return (
     <>
@@ -97,6 +115,27 @@ export function RemoteEditorDrawer({ open, remote, onClose }) {
           </div>
 
           <TextField value={name} onChange={(e) => setName(e.target.value)} placeholder={t('remotes.name')} />
+
+          <SelectField
+            label={t('agents.remoteLabel')}
+            hint={t('agents.remoteHint')}
+            value={assignedAgentId || ''}
+            onChange={(event) => setAssignedAgentId(event.target.value)}
+          >
+            {allowUnassigned ? <option value="">{t('agents.unassigned')}</option> : null}
+            {!assignedExists && assignedAgentId ? (
+              <option value={assignedAgentId}>{t('agents.unknownAgent', { id: assignedAgentId })}</option>
+            ) : null}
+            {sortedAgents.map((agent) => {
+              const label = agent.name || agent.agent_id
+              const statusLabel = agent.status === 'online' ? '' : ` (${t('agents.statusOffline')})`
+              return (
+                <option key={agent.agent_id} value={agent.agent_id}>
+                  {label}{statusLabel}
+                </option>
+              )
+            })}
+          </SelectField>
 
           <Collapse open={advancedOpen} onToggle={() => setAdvancedOpen((v) => !v)} title={t('common.advanced')}>
             <div className="grid grid-cols-1 gap-3">

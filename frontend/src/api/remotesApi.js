@@ -15,6 +15,7 @@ export function updateRemote(remoteId, remote) {
     body: {
       name: remote.name,
       icon: remote.icon ?? null,
+      assigned_agent_id: remote.assigned_agent_id ?? null,
       carrier_hz: remote.carrier_hz ?? null,
       duty_cycle: remote.duty_cycle ?? null,
     },
