@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-        PROJECT = "mqtt-ir-module"
+        PROJECT = "mqtt-ir"
         IMAGE_PREFIX = "${REGISTRY}/${PROJECT}"
     }
 
@@ -94,9 +94,9 @@ pipeline {
                             sh "docker-compose -f docker-compose.yml push"
                             script {
                                 def images = [
-                                    "${IMAGE_PREFIX}-ir-hub",
-                                    "${IMAGE_PREFIX}-ir-agent-hub",
-                                    "${IMAGE_PREFIX}-ir-agent",
+                                    "${IMAGE_PREFIX}-hub",
+                                    "${IMAGE_PREFIX}-agent-hub",
+                                    "${IMAGE_PREFIX}-agent",
                                 ]
                                 images.each { image ->
                                     echo "Published ${image}:${env.BRANCH}-${ARCH_SUFFIX}"
@@ -113,9 +113,9 @@ pipeline {
             steps {
                 script {
                     def images = [
-                        "${IMAGE_PREFIX}-ir-hub",
-                        "${IMAGE_PREFIX}-ir-agent-hub",
-                        "${IMAGE_PREFIX}-ir-agent",
+                        "${IMAGE_PREFIX}-hub",
+                        "${IMAGE_PREFIX}-agent-hub",
+                        "${IMAGE_PREFIX}-agent",
                     ]
                     def branch = env.BRANCH
                     def tag = env.BUILD_TAG

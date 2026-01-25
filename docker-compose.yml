@@ -3,16 +3,16 @@ services:
     build:
       context: .
       target: ir-hub
-    image: ${IMAGE_PREFIX}-ir-hub:${BRANCH}-${SUFFIX}
+    image: ${IMAGE_PREFIX}-hub:${BRANCH}-${SUFFIX}
 
   ir-agent-hub:
     build:
       context: .
       target: ir-agent-hub
-    image: ${IMAGE_PREFIX}-ir-agent-hub:${BRANCH}-${SUFFIX}
+    image: ${IMAGE_PREFIX}-agent-hub:${BRANCH}-${SUFFIX}
 
   ir-agent:
     build:
       context: .
       target: ir-agent
-    image: ${IMAGE_PREFIX}-ir-agent:${BRANCH}-${SUFFIX}
+    image: ${IMAGE_PREFIX}-agent:${BRANCH}-${SUFFIX}
