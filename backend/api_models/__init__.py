@@ -5,3 +5,7 @@ from .learn_capture import LearnCapture
 from .button_update import ButtonUpdate
 from .send_request import SendRequest
 from .settings_update import SettingsUpdate
+from .agent_error_response import AgentErrorResponse
+from .learn_start_response import LearnStartResponse
+from .learn_capture_response import LearnCaptureResponse
+from .send_response import SendResponse

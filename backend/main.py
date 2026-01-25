@@ -2,11 +2,11 @@
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any
 
 import json
 
-from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -21,6 +21,10 @@ from api_models import (
     ButtonUpdate,
     SendRequest,
     SettingsUpdate,
+    AgentErrorResponse,
+    LearnStartResponse,
+    LearnCaptureResponse,
+    SendResponse,
 )
 from electronics import IrLearningService
 from electronics.ir_ctl_engine import IrCtlEngine
@@ -70,13 +74,11 @@ def require_api_key(x_api_key: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-AgentActionResponse = Union[Dict[str, Any], JSONResponse]
-
-
 def agent_error_response(error: AgentRoutingError) -> JSONResponse:
+    payload = AgentErrorResponse(code=error.code, message=error.message)
     return JSONResponse(
         status_code=error.status_code,
-        content={"code": error.code, "message": error.message},
+        content=payload.model_dump(),
     )
 
 
@@ -125,6 +127,11 @@ app = FastAPI(
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
 )
+
+
+@app.exception_handler(AgentRoutingError)
+async def agent_routing_error_handler(request: Request, exc: AgentRoutingError) -> JSONResponse:
+    return agent_error_response(exc)
 
 app.add_middleware(
     CORSMiddleware,
@@ -295,13 +302,15 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 # -----------------
 
 
-@api.post("/learn/start", response_model=None)
-def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
+@api.post(
+    "/learn/start",
+    response_model=LearnStartResponse,
+    responses={400: {"model": AgentErrorResponse}, 503: {"model": AgentErrorResponse}},
+)
+def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> LearnStartResponse:
     require_api_key(x_api_key)
     try:
         return learning.start(remote_id=body.remote_id, extend=body.extend)
-    except AgentRoutingError as e:
-        return agent_error_response(e)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -310,8 +319,12 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@api.post("/learn/capture", response_model=None)
-def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
+@api.post(
+    "/learn/capture",
+    response_model=LearnCaptureResponse,
+    responses={400: {"model": AgentErrorResponse}, 503: {"model": AgentErrorResponse}},
+)
+def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> LearnCaptureResponse:
     require_api_key(x_api_key)
 
     learning_settings = database.settings.get_learning_settings()
@@ -328,8 +341,6 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
             overwrite=body.overwrite,
             button_name=body.button_name,
         )
-    except AgentRoutingError as e:
-        return agent_error_response(e)
     except TimeoutError as e:
         raise HTTPException(status_code=408, detail=str(e))
     except RuntimeError as e:
@@ -365,8 +376,12 @@ async def learn_status_ws(websocket: WebSocket) -> None:
 # -----------------
 
 
-@api.post("/send", response_model=None)
-def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
+@api.post(
+    "/send",
+    response_model=SendResponse,
+    responses={400: {"model": AgentErrorResponse}, 503: {"model": AgentErrorResponse}},
+)
+def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> SendResponse:
     require_api_key(x_api_key)
 
     if learning.is_learning:
@@ -394,8 +409,6 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
         }
 
         return agent.send(payload)
-    except AgentRoutingError as e:
-        return agent_error_response(e)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
