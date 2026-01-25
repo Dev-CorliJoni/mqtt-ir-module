@@ -8,8 +8,8 @@ pipeline {
     }
 
     environment {
-        PROJECT = "mqtt-ir"
-        IMAGE_PREFIX = "${REGISTRY}/${PROJECT}"
+        PROJECT_PREFIX = "mqtt-ir"
+        IMAGE_PREFIX = "${REGISTRY}/${PROJECT_PREFIX}"
     }
 
     parameters {
@@ -27,7 +27,7 @@ pipeline {
                 script {
                     checkout([$class: 'GitSCM',
                         branches: [[name: params.GIT_REF]],
-                        userRemoteConfigs: [[url: "${GITHUB_PREFIX}/${PROJECT}.git"]],
+                        userRemoteConfigs: [[url: "${GITHUB_PREFIX}/${PROJECT_PREFIX}-module.git"]],
                         extensions: [[$class: 'CleanBeforeCheckout']]
                     ])
                     stash name: 'ws', includes: '**/*'
