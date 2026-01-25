@@ -45,13 +45,15 @@ export function Modal({ open, title, children, footer, onClose }) {
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/50" />
       <div
-        className="absolute inset-0 flex items-center justify-center p-4"
+        className="absolute inset-0 flex items-center justify-center p-4 cursor-pointer"
         onClick={() => onClose?.()}
         role="presentation"
       >
         {/* Close on backdrop clicks while keeping modal interactions intact. */}
         <div
-          className={cn('w-full max-w-lg rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[var(--shadow)]')}
+          className={cn(
+            'w-full max-w-lg rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[var(--shadow)] cursor-default',
+          )}
           onClick={(e) => e.stopPropagation()}
           ref={panelRef}
         >

@@ -11,7 +11,7 @@ function Item({ to, icon, label }) {
       to={to}
       className={({ isActive }) =>
         [
-          'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold',
+          'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold cursor-pointer transition-colors',
           isActive ? 'bg-[rgb(var(--bg))] border border-[rgb(var(--border))]' : 'hover:bg-[rgb(var(--bg))]',
         ].join(' ')
       }
