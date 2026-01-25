@@ -310,7 +310,8 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> LearnStartResponse:
     require_api_key(x_api_key)
     try:
-        return learning.start(remote_id=body.remote_id, extend=body.extend)
+        result = learning.start(remote_id=body.remote_id, extend=body.extend)
+        return LearnStartResponse.model_validate(result)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -333,7 +334,7 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
     timeout_ms = body.timeout_ms if body.timeout_ms is not None else learning_settings["capture_timeout_ms_default"]
 
     try:
-        return learning.capture(
+        result = learning.capture(
             remote_id=body.remote_id,
             mode=body.mode,
             takes=takes,
@@ -341,6 +342,7 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
             overwrite=body.overwrite,
             button_name=body.button_name,
         )
+        return LearnCaptureResponse.model_validate(result)
     except TimeoutError as e:
         raise HTTPException(status_code=408, detail=str(e))
     except RuntimeError as e:
@@ -408,7 +410,8 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
             "duty_cycle": remote.get("duty_cycle"),
         }
 
-        return agent.send(payload)
+        result = agent.send(payload)
+        return SendResponse.model_validate(result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
