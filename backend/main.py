@@ -295,7 +295,7 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 # -----------------
 
 
-@api.post("/learn/start")
+@api.post("/learn/start", response_model=None)
 def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
     try:
@@ -310,7 +310,7 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@api.post("/learn/capture")
+@api.post("/learn/capture", response_model=None)
 def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
 
@@ -365,7 +365,7 @@ async def learn_status_ws(websocket: WebSocket) -> None:
 # -----------------
 
 
-@api.post("/send")
+@api.post("/send", response_model=None)
 def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
 
