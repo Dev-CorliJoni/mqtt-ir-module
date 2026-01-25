@@ -1,6 +1,18 @@
 services:
-  mqtt-ir-service:
-    build: .
-    image: ${IMAGE_PREFIX}:${BRANCH}-${SUFFIX}
-    volumes:
-      - "./data:/data"
+  ir-hub:
+    build:
+      context: .
+      target: ir-hub
+    image: ${IMAGE_PREFIX}-ir-hub:${BRANCH}-${SUFFIX}
+
+  ir-agent-hub:
+    build:
+      context: .
+      target: ir-agent-hub
+    image: ${IMAGE_PREFIX}-ir-agent-hub:${BRANCH}-${SUFFIX}
+
+  ir-agent:
+    build:
+      context: .
+      target: ir-agent
+    image: ${IMAGE_PREFIX}-ir-agent:${BRANCH}-${SUFFIX}

@@ -92,7 +92,16 @@ pipeline {
                             unstash 'ws'
                             sh "docker-compose -f docker-compose.yml build"
                             sh "docker-compose -f docker-compose.yml push"
-                            echo "Published ${IMAGE_PREFIX}:${env.BRANCH}-${ARCH_SUFFIX}"
+                            script {
+                                def images = [
+                                    "${IMAGE_PREFIX}-ir-hub",
+                                    "${IMAGE_PREFIX}-ir-agent-hub",
+                                    "${IMAGE_PREFIX}-ir-agent",
+                                ]
+                                images.each { image ->
+                                    echo "Published ${image}:${env.BRANCH}-${ARCH_SUFFIX}"
+                                }
+                            }
                         }
                     }
                 }
@@ -103,27 +112,33 @@ pipeline {
             agent { label 'agent-01' }
             steps {
                 script {
-                    def image = "${IMAGE_PREFIX}"
+                    def images = [
+                        "${IMAGE_PREFIX}-ir-hub",
+                        "${IMAGE_PREFIX}-ir-agent-hub",
+                        "${IMAGE_PREFIX}-ir-agent",
+                    ]
                     def branch = env.BRANCH
                     def tag = env.BUILD_TAG
 
-                    // Branch manifest: points to the two per-arch tags
-                    sh "docker manifest rm ${image}:${branch} || true"
-                    sh "docker manifest create ${image}:${branch} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
-                    sh "docker manifest push --purge ${image}:${branch}"
+                    images.each { image ->
+                        // Branch manifest: points to the two per-arch tags
+                        sh "docker manifest rm ${image}:${branch} || true"
+                        sh "docker manifest create ${image}:${branch} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                        sh "docker manifest push --purge ${image}:${branch}"
 
-                    if (env.IS_TAG.toBoolean()) {
-                        // Tag manifest
-                        sh "docker manifest rm ${image}:${tag} || true"
-                        sh "docker manifest create ${image}:${tag} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
-                        sh "docker manifest push --purge ${image}:${tag}"
-                        echo "Published ${image}:${tag}"
+                        if (env.IS_TAG.toBoolean()) {
+                            // Tag manifest
+                            sh "docker manifest rm ${image}:${tag} || true"
+                            sh "docker manifest create ${image}:${tag} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                            sh "docker manifest push --purge ${image}:${tag}"
+                            echo "Published ${image}:${tag}"
 
-                        // Latest manifest
-                        sh "docker manifest rm ${image}:latest || true"
-                        sh "docker manifest create ${image}:latest ${image}:${branch}-amd64 ${image}:${branch}-arm64"
-                        sh "docker manifest push --purge ${image}:latest"
-                        echo "Published ${image}:latest"
+                            // Latest manifest
+                            sh "docker manifest rm ${image}:latest || true"
+                            sh "docker manifest create ${image}:latest ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                            sh "docker manifest push --purge ${image}:latest"
+                            echo "Published ${image}:latest"
+                        }
                     }
                 }
             }

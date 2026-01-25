@@ -2,7 +2,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 import json
 
@@ -70,6 +70,9 @@ def require_api_key(x_api_key: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
+AgentActionResponse = Union[Dict[str, Any], JSONResponse]
+
+
 def agent_error_response(error: AgentRoutingError) -> JSONResponse:
     return JSONResponse(
         status_code=error.status_code,
@@ -84,6 +87,16 @@ def apply_hub_agent_setting(enabled: bool) -> None:
         agent_registry.unregister_agent(local_agent.agent_id)
 
 
+def resolve_hub_agent_setting() -> bool:
+    settings = database.settings.get_ui_settings()
+    hub_is_agent = bool(settings.get("hub_is_agent", True))
+    if env.local_agent_enabled is None:
+        return hub_is_agent
+    if env.local_agent_enabled != hub_is_agent:
+        database.settings.update_ui_settings(hub_is_agent=env.local_agent_enabled)
+    return bool(env.local_agent_enabled)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
@@ -92,7 +105,7 @@ async def lifespan(app: FastAPI):
     # Store the running loop so sync code can broadcast status updates.
     status_comm.attach_loop(asyncio.get_running_loop())
 
-    apply_hub_agent_setting(database.settings.get_ui_settings().get("hub_is_agent", True))
+    apply_hub_agent_setting(resolve_hub_agent_setting())
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
     if not env.debug:
@@ -172,10 +185,13 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         raise HTTPException(status_code=400, detail="at least one setting must be provided")
     try:
         previous_settings = database.settings.get_ui_settings()
+        hub_is_agent = body.hub_is_agent
+        if env.local_agent_enabled is not None:
+            hub_is_agent = env.local_agent_enabled
         updated = database.settings.update_ui_settings(
             theme=body.theme,
             language=body.language,
-            hub_is_agent=body.hub_is_agent,
+            hub_is_agent=hub_is_agent,
             press_takes_default=body.press_takes_default,
             capture_timeout_ms_default=body.capture_timeout_ms_default,
             hold_idle_timeout_ms=body.hold_idle_timeout_ms,
@@ -280,7 +296,7 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 
 
 @api.post("/learn/start")
-def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
     try:
         return learning.start(remote_id=body.remote_id, extend=body.extend)
@@ -295,7 +311,7 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
 
 
 @api.post("/learn/capture")
-def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
 
     learning_settings = database.settings.get_learning_settings()
@@ -350,7 +366,7 @@ async def learn_status_ws(websocket: WebSocket) -> None:
 
 
 @api.post("/send")
-def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
     require_api_key(x_api_key)
 
     if learning.is_learning:
