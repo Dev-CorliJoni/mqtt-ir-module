@@ -1,7 +1,6 @@
-import json
 import sqlite3
 import time
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 from database.database_base import DatabaseBase
 
@@ -15,7 +14,11 @@ class Agents(DatabaseBase):
                 name TEXT NULL,
                 transport TEXT NOT NULL,
                 status TEXT NOT NULL,
-                capabilities_json TEXT NULL,
+                can_send INTEGER NOT NULL DEFAULT 0,
+                can_learn INTEGER NOT NULL DEFAULT 0,
+                sw_version TEXT NULL,
+                agent_topic TEXT NULL,
+                configuration_url TEXT NULL,
                 last_seen REAL NULL,
                 created_at REAL NOT NULL,
                 updated_at REAL NOT NULL
@@ -29,52 +32,72 @@ class Agents(DatabaseBase):
         name: Optional[str],
         transport: str,
         status: str,
-        capabilities: Optional[Dict[str, Any]],
+        can_send: bool,
+        can_learn: bool,
+        sw_version: Optional[str],
+        agent_topic: Optional[str],
         last_seen: Optional[float],
+        configuration_url: Optional[str] = None,
         conn: Optional[sqlite3.Connection] = None,
     ) -> Dict[str, Any]:
-        agent_id = (agent_id or "").strip()
-        if not agent_id:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
             raise ValueError("agent_id must not be empty")
+
+        normalized_name = self._normalize_name(name)
+        normalized_url = self._normalize_configuration_url(configuration_url)
+        normalized_sw_version = self._normalize_optional_text(sw_version)
+        normalized_agent_topic = self._normalize_optional_text(agent_topic)
 
         c, close = self._use_conn(conn)
         try:
             now = time.time()
-            cap_json = json.dumps(capabilities) if capabilities is not None else None
-            existing = c.execute("SELECT agent_id FROM agents WHERE agent_id = ?", (agent_id,)).fetchone()
-            if existing:
-                c.execute(
-                    """
-                    UPDATE agents
-                    SET name = ?,
-                        transport = ?,
-                        status = ?,
-                        capabilities_json = ?,
-                        last_seen = ?,
-                        updated_at = ?
-                    WHERE agent_id = ?
-                    """,
-                    (name, transport, status, cap_json, last_seen, now, agent_id),
+            c.execute(
+                """
+                INSERT INTO agents(
+                    agent_id,
+                    name,
+                    transport,
+                    status,
+                    can_send,
+                    can_learn,
+                    sw_version,
+                    agent_topic,
+                    configuration_url,
+                    last_seen,
+                    created_at,
+                    updated_at
                 )
-            else:
-                c.execute(
-                    """
-                    INSERT INTO agents(
-                        agent_id,
-                        name,
-                        transport,
-                        status,
-                        capabilities_json,
-                        last_seen,
-                        created_at,
-                        updated_at
-                    )
-                    VALUES(?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (agent_id, name, transport, status, cap_json, last_seen, now, now),
-                )
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(agent_id) DO UPDATE SET
+                    name = excluded.name,
+                    transport = excluded.transport,
+                    status = excluded.status,
+                    can_send = excluded.can_send,
+                    can_learn = excluded.can_learn,
+                    sw_version = excluded.sw_version,
+                    agent_topic = excluded.agent_topic,
+                    configuration_url = COALESCE(excluded.configuration_url, agents.configuration_url),
+                    last_seen = excluded.last_seen,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    normalized_agent_id,
+                    normalized_name,
+                    transport,
+                    status,
+                    self._to_int_bool(can_send),
+                    self._to_int_bool(can_learn),
+                    normalized_sw_version,
+                    normalized_agent_topic,
+                    normalized_url,
+                    last_seen,
+                    now,
+                    now,
+                ),
+            )
             c.commit()
-            row = c.execute("SELECT * FROM agents WHERE agent_id = ?", (agent_id,)).fetchone()
+            row = c.execute("SELECT * FROM agents WHERE agent_id = ?", (normalized_agent_id,)).fetchone()
             if not row:
                 raise ValueError("Failed to upsert agent")
             return self._row_to_dict(row)
@@ -82,32 +105,78 @@ class Agents(DatabaseBase):
             if close:
                 c.close()
 
-    def set_status(self, agent_id: str, status: str, last_seen: Optional[float] = None, conn: Optional[sqlite3.Connection] = None) -> None:
-        agent_id = (agent_id or "").strip()
-        if not agent_id:
+    def update_agent(
+        self,
+        agent_id: str,
+        changes: Dict[str, Any],
+        conn: Optional[sqlite3.Connection] = None,
+    ) -> Dict[str, Any]:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
+            raise ValueError("agent_id must not be empty")
+
+        c, close = self._use_conn(conn)
+        try:
+            existing = c.execute("SELECT * FROM agents WHERE agent_id = ?", (normalized_agent_id,)).fetchone()
+            if not existing:
+                raise ValueError("Unknown agent_id")
+
+            existing_data = self._row_to_dict(existing)
+            next_name = existing_data.get("name")
+            next_configuration_url = existing_data.get("configuration_url")
+
+            if "name" in changes:
+                next_name = self._normalize_name(changes.get("name"))
+            if "configuration_url" in changes:
+                next_configuration_url = self._normalize_configuration_url(changes.get("configuration_url"))
+
+            now = time.time()
+            c.execute(
+                "UPDATE agents SET name = ?, configuration_url = ?, updated_at = ? WHERE agent_id = ?",
+                (next_name, next_configuration_url, now, normalized_agent_id),
+            )
+            c.commit()
+
+            row = c.execute("SELECT * FROM agents WHERE agent_id = ?", (normalized_agent_id,)).fetchone()
+            if not row:
+                raise ValueError("Unknown agent_id")
+            return self._row_to_dict(row)
+        finally:
+            if close:
+                c.close()
+
+    def set_status(
+        self,
+        agent_id: str,
+        status: str,
+        last_seen: Optional[float] = None,
+        conn: Optional[sqlite3.Connection] = None,
+    ) -> None:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
             return
         c, close = self._use_conn(conn)
         try:
             now = time.time()
             c.execute(
                 "UPDATE agents SET status = ?, last_seen = ?, updated_at = ? WHERE agent_id = ?",
-                (status, last_seen, now, agent_id),
+                (status, last_seen, now, normalized_agent_id),
             )
             c.commit()
         finally:
             if close:
                 c.close()
 
-    def touch(self, agent_id: str, last_seen: Optional[float], conn: Optional[sqlite3.Connection] = None) -> None:
-        agent_id = (agent_id or "").strip()
-        if not agent_id:
+    def update_last_seen(self, agent_id: str, last_seen: Optional[float], conn: Optional[sqlite3.Connection] = None) -> None:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
             return
         c, close = self._use_conn(conn)
         try:
             now = time.time()
             c.execute(
                 "UPDATE agents SET last_seen = ?, updated_at = ? WHERE agent_id = ?",
-                (last_seen, now, agent_id),
+                (last_seen, now, normalized_agent_id),
             )
             c.commit()
         finally:
@@ -115,12 +184,12 @@ class Agents(DatabaseBase):
                 c.close()
 
     def get(self, agent_id: str, conn: Optional[sqlite3.Connection] = None) -> Optional[Dict[str, Any]]:
-        agent_id = (agent_id or "").strip()
-        if not agent_id:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
             return None
         c, close = self._use_conn(conn)
         try:
-            row = c.execute("SELECT * FROM agents WHERE agent_id = ?", (agent_id,)).fetchone()
+            row = c.execute("SELECT * FROM agents WHERE agent_id = ?", (normalized_agent_id,)).fetchone()
             return self._row_to_dict(row) if row else None
         finally:
             if close:
@@ -129,9 +198,7 @@ class Agents(DatabaseBase):
     def list(self, conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
         c, close = self._use_conn(conn)
         try:
-            rows = c.execute(
-                "SELECT * FROM agents ORDER BY name, agent_id"
-            ).fetchall()
+            rows = c.execute("SELECT * FROM agents ORDER BY name, agent_id").fetchall()
             return [self._row_to_dict(r) for r in rows]
         finally:
             if close:
@@ -139,13 +206,35 @@ class Agents(DatabaseBase):
 
     def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         data = dict(row)
-        raw = data.get("capabilities_json")
-        if raw:
-            try:
-                data["capabilities"] = json.loads(str(raw))
-            except Exception:
-                data["capabilities"] = None
-        else:
-            data["capabilities"] = None
-        data.pop("capabilities_json", None)
+        can_send = bool(data.get("can_send"))
+        can_learn = bool(data.get("can_learn"))
+        data["can_send"] = can_send
+        data["can_learn"] = can_learn
+        data["capabilities"] = {
+            "can_send": can_send,
+            "can_learn": can_learn,
+        }
         return data
+
+    def _normalize_name(self, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        return normalized
+
+    def _normalize_configuration_url(self, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        return normalized
+
+    def _normalize_optional_text(self, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        if not normalized:
+            return None
+        return normalized
+
+    def _to_int_bool(self, value: bool) -> int:
+        return 1 if bool(value) else 0

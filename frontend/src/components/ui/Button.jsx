@@ -3,7 +3,7 @@ import { cn } from './cn.js'
 
 export function Button({ variant = 'primary', size = 'md', disabled, className, ...props }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:ring-offset-2 focus:ring-offset-[rgb(var(--bg))] disabled:opacity-50 disabled:pointer-events-none'
+    'inline-flex items-center justify-center gap-2 rounded-xl font-medium cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:ring-offset-2 focus:ring-offset-[rgb(var(--bg))] disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed'
 
   const variants = {
     primary: 'bg-[rgb(var(--primary))] text-[rgb(var(--primary-contrast))] hover:opacity-95',

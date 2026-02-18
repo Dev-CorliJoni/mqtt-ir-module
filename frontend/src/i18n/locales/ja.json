@@ -26,7 +26,8 @@
     "icon": "アイコン",
     "yes": "はい",
     "no": "いいえ",
-    "notAvailable": "該当なし"
+    "notAvailable": "該当なし",
+    "loading": "読み込み中..."
   },
   "health": {
     "title": "サービス状況",
@@ -119,7 +120,28 @@
     "helpApiKeyBody": "設定されている場合、UIで変更するにはAPIキーが必要です。",
     "helpReverseProxyTitle": "リバースプロキシ",
     "helpReverseProxyBody": "推奨: プロキシにUI用のAPIキーを追加させてください。reverse-proxy.md を参照。",
-    "languageChangeFailed": "言語の変更に失敗しました。"
+    "languageChangeFailed": "言語の変更に失敗しました。",
+    "mqttTitle": "MQTTブローカー",
+    "mqttDescription": "外部エージェントで使用するMQTTブローカーを設定します。",
+    "mqttHostLabel": "ブローカーホスト",
+    "mqttHostHint": "ホスト名またはIPアドレス。空欄でMQTTを無効化します。",
+    "mqttPortLabel": "ブローカーポート",
+    "mqttPortHint": "既定値: 1883",
+    "mqttUsernameLabel": "ユーザー名",
+    "mqttUsernameHint": "任意のMQTTユーザー名。",
+    "mqttPasswordLabel": "パスワード",
+    "mqttPasswordHint": "現在の保存済みパスワードを維持する場合は空欄のままにします。",
+    "mqttPasswordStoredHint": "現在、パスワードはデータベースに暗号化して保存されています。",
+    "mqttBaseTopicLabel": "インスタンス",
+    "mqttBaseTopicHint": "任意。複数サービスが同じブローカーを共有する場合のみ使用します。使用可能: 英数字、_、-。",
+    "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY がありません。MQTTパスワードの保存はブロックされています。",
+    "mqttSaved": "MQTT設定を保存しました。",
+    "mqttSaveFailed": "MQTT設定の保存に失敗しました。",
+    "registeredAgentsTitle": "登録済みエージェント",
+    "noAgentsRegistered": "登録されたエージェントはありません。",
+    "openAgentPage": "エージェントページを開く",
+    "homeassistantEnabledLabel": "Home Assistant 有効",
+    "homeassistantEnabledHint": "Home Assistant向けのMQTT Discovery公開を有効にします（Hubモードのみ）。"
   },
   "wizard": {
     "title": "学習ウィザード",
@@ -196,7 +218,10 @@
     "offlineTitle": "バックエンドに接続できません",
     "offlineBody": "コンテナ/ネットワークを確認して再試行してください。",
     "genericTitle": "問題が発生しました",
-    "genericBody": "少し時間をおいて再試行してください。"
+    "genericBody": "少し時間をおいて再試行してください。",
+    "settingsMasterKeyBody": "SETTINGS_MASTER_KEY がありません。パスワードを保存する前に設定してください。",
+    "mqttPasswordDecryptFailedBody": "保存済みのMQTTパスワードを現在の SETTINGS_MASTER_KEY で復号できません。",
+    "settingsCryptoMissingBody": "バックエンドに暗号化依存関係がありません。cryptography パッケージをインストールしてください。"
   },
   "languages": {
     "en": "英語",
@@ -264,5 +289,15 @@
       "nextPage": "次へ",
       "empty": "検索に一致する MDI アイコンがありません。"
     }
+  },
+  "agents": {
+    "pageTitle": "エージェント",
+    "agentIdLabel": "エージェントID",
+    "configurationUrlLabel": "設定URL",
+    "configurationUrlHint": "このエージェント向けにHome Assistantへ表示する任意のリンクです。",
+    "configurationUrlAuto": "現在のURLを使用",
+    "configurationUrlSaved": "設定URLを保存しました。",
+    "assignedRemotesTitle": "割り当て済みリモコン",
+    "assignedRemotesEmpty": "このエージェントに割り当てられたリモコンはありません。"
   }
 }

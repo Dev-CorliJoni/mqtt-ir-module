@@ -60,7 +60,7 @@ export function ThemeToggle() {
               key={opt.value}
               type="button"
               className={[
-                'w-full flex items-center justify-between rounded-xl border px-3 py-3 text-sm font-semibold',
+                'w-full flex items-center justify-between rounded-xl border px-3 py-3 text-sm font-semibold cursor-pointer transition-colors hover:bg-[rgb(var(--bg))] hover:border-[rgb(var(--primary))]',
                 opt.value === currentTheme ? 'border-[rgb(var(--primary))]' : 'border-[rgb(var(--border))]',
               ].join(' ')}
               onClick={() => updateMutation.mutate({ theme: opt.value, language: settingsQuery.data?.language })}

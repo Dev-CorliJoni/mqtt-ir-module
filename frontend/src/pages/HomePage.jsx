@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx
 import { Button } from '../components/ui/Button.jsx'
 import { listRemotes } from '../api/remotesApi.js'
 import { getHealth } from '../api/healthApi.js'
+import { getElectronicsStatus } from '../api/statusApi.js'
 import { readLocalStorage } from '../utils/storage.js'
 import { useNavigate } from 'react-router-dom'
 import { RemoteTile } from '../features/remotes/RemoteTile.jsx'
@@ -25,10 +26,11 @@ export function HomePage() {
   const errorMapper = new ApiErrorMapper(t)
 
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
+  const electronicsQuery = useQuery({ queryKey: ['status-electronics'], queryFn: getElectronicsStatus })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
 
-  const irRxDevice = healthQuery.data?.ir_rx_device
-  const irTxDevice = healthQuery.data?.ir_tx_device
+  const irRxDevice = electronicsQuery.data?.ir_rx_device
+  const irTxDevice = electronicsQuery.data?.ir_tx_device
   const deviceText = t('health.deviceLine', {
     rx: irRxDevice || t('common.notAvailable'),
     tx: irTxDevice || t('common.notAvailable'),
@@ -94,7 +96,7 @@ export function HomePage() {
             </div>
             <div>
               <div className="text-xs text-[rgb(var(--muted))]">{t('health.debug')}</div>
-              <div className="font-semibold">{String(Boolean(healthQuery.data?.debug))}</div>
+              <div className="font-semibold">{String(Boolean(electronicsQuery.data?.debug))}</div>
             </div>
           </div>
         </CardBody>

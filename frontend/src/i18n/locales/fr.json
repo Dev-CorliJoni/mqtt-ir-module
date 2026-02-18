@@ -26,7 +26,8 @@
     "icon": "Icône",
     "yes": "Oui",
     "no": "Non",
-    "notAvailable": "N/D"
+    "notAvailable": "N/D",
+    "loading": "Chargement..."
   },
   "health": {
     "title": "État du service",
@@ -119,7 +120,28 @@
     "helpApiKeyBody": "Si défini, une clé API est nécessaire pour effectuer des modifications dans l'UI.",
     "helpReverseProxyTitle": "Proxy inverse",
     "helpReverseProxyBody": "Recommandé : laissez le proxy ajouter la clé API pour l'UI. Voir reverse-proxy.md.",
-    "languageChangeFailed": "Impossible de changer la langue."
+    "languageChangeFailed": "Impossible de changer la langue.",
+    "mqttTitle": "Broker MQTT",
+    "mqttDescription": "Configurez le broker MQTT utilisé pour les agents externes.",
+    "mqttHostLabel": "Hôte du broker",
+    "mqttHostHint": "Nom d’hôte ou adresse IP. Laissez vide pour désactiver MQTT.",
+    "mqttPortLabel": "Port du broker",
+    "mqttPortHint": "Par défaut : 1883",
+    "mqttUsernameLabel": "Nom d’utilisateur",
+    "mqttUsernameHint": "Nom d’utilisateur MQTT facultatif.",
+    "mqttPasswordLabel": "Mot de passe",
+    "mqttPasswordHint": "Laissez vide pour conserver le mot de passe actuellement stocké.",
+    "mqttPasswordStoredHint": "Un mot de passe est actuellement stocké de manière chiffrée dans la base de données.",
+    "mqttBaseTopicLabel": "Instance",
+    "mqttBaseTopicHint": "Optionnel. À utiliser seulement si plusieurs services partagent le même broker. Autorisés : lettres, chiffres, _ et -.",
+    "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY est manquant. L’enregistrement des mots de passe MQTT est bloqué.",
+    "mqttSaved": "Paramètres MQTT enregistrés.",
+    "mqttSaveFailed": "Échec de l’enregistrement des paramètres MQTT.",
+    "registeredAgentsTitle": "Agents enregistrés",
+    "noAgentsRegistered": "Aucun agent n'est enregistré.",
+    "openAgentPage": "Ouvrir la page de l'agent",
+    "homeassistantEnabledLabel": "Home Assistant activé",
+    "homeassistantEnabledHint": "Active la publication MQTT Discovery pour Home Assistant (mode Hub uniquement)."
   },
   "wizard": {
     "title": "Assistant d'apprentissage",
@@ -196,7 +218,10 @@
     "offlineTitle": "Backend injoignable",
     "offlineBody": "Vérifiez le conteneur / réseau et réessayez.",
     "genericTitle": "Un problème est survenu",
-    "genericBody": "Veuillez réessayer dans un instant."
+    "genericBody": "Veuillez réessayer dans un instant.",
+    "settingsMasterKeyBody": "SETTINGS_MASTER_KEY est manquant. Configurez-le avant d’enregistrer un mot de passe.",
+    "mqttPasswordDecryptFailedBody": "Le mot de passe MQTT stocké ne peut pas être déchiffré avec le SETTINGS_MASTER_KEY actuel.",
+    "settingsCryptoMissingBody": "La dépendance de chiffrement est absente sur le backend. Installez le paquet cryptography."
   },
   "languages": {
     "en": "Anglais",
@@ -264,5 +289,15 @@
       "nextPage": "Suivant",
       "empty": "Aucune icône MDI ne correspond à votre recherche."
     }
+  },
+  "agents": {
+    "pageTitle": "Agent",
+    "agentIdLabel": "ID de l'agent",
+    "configurationUrlLabel": "URL de configuration",
+    "configurationUrlHint": "Lien facultatif affiché dans Home Assistant pour cet agent.",
+    "configurationUrlAuto": "Utiliser l'URL actuelle",
+    "configurationUrlSaved": "URL de configuration enregistrée.",
+    "assignedRemotesTitle": "Télécommandes assignées",
+    "assignedRemotesEmpty": "Aucune télécommande n'est assignée à cet agent."
   }
 }

@@ -18,8 +18,12 @@ class Environment:
 
         self.debug = self._read_bool("DEBUG", default=False)
 
+        # Master key for encrypting sensitive settings values at rest (e.g., MQTT password).
+        self.settings_master_key = os.getenv("SETTINGS_MASTER_KEY", "").strip()
+
         # Optional: force-enable/disable the local agent when running the hub.
         self.local_agent_enabled = self._read_optional_bool("LOCAL_AGENT_ENABLED")
+        self.agent_pairing_reset = self._read_bool("AGENT_PAIRING_RESET", default=False)
 
         # ir-ctl receiver options
         self.ir_wideband = self._read_bool("IR_WIDEBAND", default=False)

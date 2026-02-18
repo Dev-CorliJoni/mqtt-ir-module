@@ -1,6 +1,7 @@
 rpi5_ir_setup.md
 AGENTS.md
 tasks/
+brain/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

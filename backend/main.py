@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any
 
-import json
-
-from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,11 +15,16 @@ from agents.agent_id_store import get_or_create_agent_id
 from api_models import (
     RemoteCreate,
     RemoteUpdate,
+    AgentUpdate,
     LearnStart,
     LearnCapture,
     ButtonUpdate,
     SendRequest,
     SettingsUpdate,
+    AgentErrorResponse,
+    LearnStartResponse,
+    LearnCaptureResponse,
+    SendResponse,
 )
 from electronics import IrLearningService
 from electronics.ir_ctl_engine import IrCtlEngine
@@ -28,11 +32,14 @@ from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
 from electronics.status_communication import StatusCommunication
-from helper import Environment
+from connections import PairingManagerHub, RuntimeLoader
+from helper import Environment, SettingsCipher
 from database import Database
+from runtime_version import SOFTWARE_VERSION
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
+settings_cipher = SettingsCipher(env.settings_master_key)
 
 parser = IrSignalParser()
 aggregator = IrSignalAggregator()
@@ -47,6 +54,16 @@ agent_registry = AgentRegistry(database=database)
 local_transport = LocalTransport(engine=engine, parser=parser)
 local_agent_id = get_or_create_agent_id(data_dir=env.data_folder)
 local_agent = LocalAgent(transport=local_transport, agent_id=local_agent_id)
+runtime_loader = RuntimeLoader(
+    settings_store=database.settings,
+    settings_cipher=settings_cipher,
+    role="hub",
+)
+pairing_manager = PairingManagerHub(
+    runtime_loader=runtime_loader,
+    database=database,
+    sw_version=SOFTWARE_VERSION,
+)
 
 learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
@@ -70,13 +87,11 @@ def require_api_key(x_api_key: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-AgentActionResponse = Union[Dict[str, Any], JSONResponse]
-
-
 def agent_error_response(error: AgentRoutingError) -> JSONResponse:
+    payload = AgentErrorResponse(code=error.code, message=error.message)
     return JSONResponse(
         status_code=error.status_code,
-        content={"code": error.code, "message": error.message},
+        content=payload.model_dump(),
     )
 
 
@@ -97,6 +112,13 @@ def resolve_hub_agent_setting() -> bool:
     return bool(env.local_agent_enabled)
 
 
+def decorate_settings_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
+    payload = dict(settings or {})
+    payload["settings_master_key_configured"] = settings_cipher.is_configured
+    payload["mqtt_status"] = runtime_loader.status()
+    return payload
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
@@ -106,6 +128,8 @@ async def lifespan(app: FastAPI):
     status_comm.attach_loop(asyncio.get_running_loop())
 
     apply_hub_agent_setting(resolve_hub_agent_setting())
+    runtime_loader.start()
+    pairing_manager.start()
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
     if not env.debug:
@@ -114,17 +138,24 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        pairing_manager.stop()
+        runtime_loader.stop()
         learning.stop()
 
 
 app = FastAPI(
     title="mqtt-ir-module",
-    version="0.3.0",
+    version=SOFTWARE_VERSION,
     lifespan=lifespan,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
 )
+
+
+@app.exception_handler(AgentRoutingError)
+async def agent_routing_error_handler(request: Request, exc: AgentRoutingError) -> JSONResponse:
+    return agent_error_response(exc)
 
 app.add_middleware(
     CORSMiddleware,
@@ -142,21 +173,65 @@ api = APIRouter(prefix="/api")
 
 @api.get("/health")
 def health() -> Dict[str, Any]:
+    return {"ok": True}
+
+
+@api.get("/status/electronics")
+def status_electronics() -> Dict[str, Any]:
     return {
-        "ok": True,
         "ir_device": env.ir_rx_device,
         "ir_rx_device": env.ir_rx_device,
         "ir_tx_device": env.ir_tx_device,
         "debug": env.debug,
+    }
+
+
+@api.get("/status/learning")
+def status_learning() -> Dict[str, Any]:
+    return {
         "learn_enabled": learning.is_learning,
         "learn_remote_id": learning.remote_id,
         "learn_remote_name": learning.remote_name,
     }
 
 
+@api.get("/status/mqtt")
+def status_mqtt() -> Dict[str, Any]:
+    return runtime_loader.status()
+
+
 @api.get("/agents")
 def list_agents() -> List[Dict[str, Any]]:
     return agent_registry.list_agents()
+
+
+@api.get("/agents/{agent_id}")
+def get_agent(agent_id: str) -> Dict[str, Any]:
+    agent = agent_registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Unknown agent_id")
+    return agent
+
+
+@api.put("/agents/{agent_id}")
+def update_agent(
+    agent_id: str,
+    body: AgentUpdate,
+    x_api_key: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    try:
+        changes = body.model_dump(exclude_unset=True)
+        updated = agent_registry.update_agent(
+            agent_id=agent_id,
+            changes=changes,
+        )
+        return updated
+    except ValueError as e:
+        message = str(e)
+        if message == "Unknown agent_id":
+            raise HTTPException(status_code=404, detail=message)
+        raise HTTPException(status_code=400, detail=message)
 
 
 # -----------------
@@ -166,7 +241,7 @@ def list_agents() -> List[Dict[str, Any]]:
 
 @api.get("/settings")
 def get_settings() -> Dict[str, Any]:
-    return database.settings.get_ui_settings()
+    return decorate_settings_payload(database.settings.get_ui_settings())
 
 
 @api.put("/settings")
@@ -176,6 +251,12 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         body.theme is None
         and body.language is None
         and body.hub_is_agent is None
+        and body.homeassistant_enabled is None
+        and body.mqtt_host is None
+        and body.mqtt_port is None
+        and body.mqtt_username is None
+        and body.mqtt_password is None
+        and body.mqtt_instance is None
         and body.press_takes_default is None
         and body.capture_timeout_ms_default is None
         and body.hold_idle_timeout_ms is None
@@ -192,6 +273,13 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             theme=body.theme,
             language=body.language,
             hub_is_agent=hub_is_agent,
+            homeassistant_enabled=body.homeassistant_enabled,
+            mqtt_host=body.mqtt_host,
+            mqtt_port=body.mqtt_port,
+            mqtt_username=body.mqtt_username,
+            mqtt_password=body.mqtt_password,
+            mqtt_instance=body.mqtt_instance,
+            settings_cipher=settings_cipher,
             press_takes_default=body.press_takes_default,
             capture_timeout_ms_default=body.capture_timeout_ms_default,
             hold_idle_timeout_ms=body.hold_idle_timeout_ms,
@@ -201,9 +289,40 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         learning.apply_learning_settings(updated)
         if updated.get("hub_is_agent") != previous_settings.get("hub_is_agent"):
             apply_hub_agent_setting(bool(updated.get("hub_is_agent")))
-        return updated
+        runtime_loader.reload()
+        pairing_manager.stop()
+        pairing_manager.start()
+        return decorate_settings_payload(updated)
+    except ValueError as e:
+        message = str(e)
+        if message == "settings_master_key_missing":
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "settings_master_key_missing",
+                    "message": "SETTINGS_MASTER_KEY is required to store MQTT password.",
+                },
+            )
+        if message == "mqtt_password_decrypt_failed":
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "mqtt_password_decrypt_failed",
+                    "message": "Stored MQTT password cannot be decrypted with the current SETTINGS_MASTER_KEY.",
+                },
+            )
+        raise HTTPException(status_code=400, detail=message)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        message = str(e)
+        if "AES-GCM settings encryption" in message:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "settings_crypto_missing",
+                    "message": "The cryptography package is required to encrypt MQTT passwords.",
+                },
+            )
+        raise HTTPException(status_code=400, detail=message)
 
 
 # -----------------
@@ -295,13 +414,16 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 # -----------------
 
 
-@api.post("/learn/start")
-def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
+@api.post(
+    "/learn/start",
+    response_model=LearnStartResponse,
+    responses={400: {"model": AgentErrorResponse}, 503: {"model": AgentErrorResponse}},
+)
+def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> LearnStartResponse:
     require_api_key(x_api_key)
     try:
-        return learning.start(remote_id=body.remote_id, extend=body.extend)
-    except AgentRoutingError as e:
-        return agent_error_response(e)
+        result = learning.start(remote_id=body.remote_id, extend=body.extend)
+        return LearnStartResponse.model_validate(result)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -310,8 +432,12 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@api.post("/learn/capture")
-def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
+@api.post(
+    "/learn/capture",
+    response_model=LearnCaptureResponse,
+    responses={400: {"model": AgentErrorResponse}, 503: {"model": AgentErrorResponse}},
+)
+def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=None)) -> LearnCaptureResponse:
     require_api_key(x_api_key)
 
     learning_settings = database.settings.get_learning_settings()
@@ -320,7 +446,7 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
     timeout_ms = body.timeout_ms if body.timeout_ms is not None else learning_settings["capture_timeout_ms_default"]
 
     try:
-        return learning.capture(
+        result = learning.capture(
             remote_id=body.remote_id,
             mode=body.mode,
             takes=takes,
@@ -328,8 +454,7 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
             overwrite=body.overwrite,
             button_name=body.button_name,
         )
-    except AgentRoutingError as e:
-        return agent_error_response(e)
+        return LearnCaptureResponse.model_validate(result)
     except TimeoutError as e:
         raise HTTPException(status_code=408, detail=str(e))
     except RuntimeError as e:
@@ -365,8 +490,12 @@ async def learn_status_ws(websocket: WebSocket) -> None:
 # -----------------
 
 
-@api.post("/send")
-def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> AgentActionResponse:
+@api.post(
+    "/send",
+    response_model=SendResponse,
+    responses={400: {"model": AgentErrorResponse}, 503: {"model": AgentErrorResponse}},
+)
+def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> SendResponse:
     require_api_key(x_api_key)
 
     if learning.is_learning:
@@ -393,9 +522,9 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
             "duty_cycle": remote.get("duty_cycle"),
         }
 
-        return agent.send(payload)
-    except AgentRoutingError as e:
-        return agent_error_response(e)
+        result = agent.send(payload)
+        agent_registry.mark_agent_activity(agent.agent_id)
+        return SendResponse.model_validate(result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

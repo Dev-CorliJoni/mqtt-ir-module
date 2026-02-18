@@ -18,12 +18,16 @@ class AgentRegistry:
         with self._lock:
             self._agents[agent.agent_id] = agent
         status = agent.get_status()
+        capabilities = agent.capabilities or {}
         self._db.agents.upsert(
             agent_id=agent.agent_id,
             name=agent.name,
             transport=agent.transport,
             status=str(status.get("status") or "online"),
-            capabilities=agent.capabilities,
+            can_send=self._resolve_can_send(capabilities),
+            can_learn=self._resolve_can_learn(capabilities),
+            sw_version=self._resolve_sw_version(capabilities),
+            agent_topic=self._resolve_agent_topic(capabilities),
             last_seen=time.time(),
         )
 
@@ -38,6 +42,29 @@ class AgentRegistry:
         for agent in agents:
             agent["is_active"] = agent.get("agent_id") in active_ids
         return agents
+
+    def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
+            return None
+        agent = self._db.agents.get(normalized_agent_id)
+        if not agent:
+            return None
+        agent["is_active"] = normalized_agent_id in self._get_active_ids()
+        return agent
+
+    def update_agent(self, agent_id: str, changes: Dict[str, Any]) -> Dict[str, Any]:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
+            raise ValueError("agent_id must not be empty")
+        if not changes:
+            raise ValueError("at least one field must be provided")
+        updated = self._db.agents.update_agent(
+            agent_id=normalized_agent_id,
+            changes=changes,
+        )
+        updated["is_active"] = normalized_agent_id in self._get_active_ids()
+        return updated
 
     def resolve_agent_for_remote(self, remote_id: int, remote: Optional[Dict[str, Any]] = None) -> Agent:
         remote = remote or self._db.remotes.get(remote_id)
@@ -64,8 +91,43 @@ class AgentRegistry:
             agent = self._agents.get(agent_id)
         if not agent:
             raise AgentRoutingError(code="agent_offline", message="Assigned agent is offline or unavailable", status_code=503)
-        self._db.agents.touch(agent_id=agent_id, last_seen=time.time())
         return agent
+
+    def mark_agent_activity(self, agent_id: str) -> None:
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
+            return
+        self._db.agents.update_last_seen(agent_id=normalized_agent_id, last_seen=time.time())
+
+    def _resolve_can_send(self, capabilities: Dict[str, Any]) -> bool:
+        if "can_send" in capabilities:
+            return bool(capabilities.get("can_send"))
+        if "canSend" in capabilities:
+            return bool(capabilities.get("canSend"))
+        return True
+
+    def _resolve_can_learn(self, capabilities: Dict[str, Any]) -> bool:
+        if "can_learn" in capabilities:
+            return bool(capabilities.get("can_learn"))
+        if "canLearn" in capabilities:
+            return bool(capabilities.get("canLearn"))
+        return False
+
+    def _resolve_sw_version(self, capabilities: Dict[str, Any]) -> Optional[str]:
+        if "sw_version" not in capabilities:
+            return None
+        value = str(capabilities.get("sw_version") or "").strip()
+        if not value:
+            return None
+        return value
+
+    def _resolve_agent_topic(self, capabilities: Dict[str, Any]) -> Optional[str]:
+        if "agent_topic" not in capabilities:
+            return None
+        value = str(capabilities.get("agent_topic") or "").strip()
+        if not value:
+            return None
+        return value
 
     def _get_active_ids(self) -> set[str]:
         with self._lock:

@@ -69,7 +69,7 @@ export function LanguagePicker() {
               key={lang.code}
               type="button"
               className={[
-                'w-full flex items-center justify-between rounded-xl border px-3 py-3 text-sm font-semibold',
+                'w-full flex items-center justify-between rounded-xl border px-3 py-3 text-sm font-semibold cursor-pointer transition-colors hover:bg-[rgb(var(--bg))] hover:border-[rgb(var(--primary))]',
                 lang.code === current ? 'border-[rgb(var(--primary))]' : 'border-[rgb(var(--border))]',
               ].join(' ')}
               onClick={() => {

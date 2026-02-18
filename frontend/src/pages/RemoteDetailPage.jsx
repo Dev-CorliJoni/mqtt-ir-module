@@ -7,7 +7,7 @@ import { mdiTrashCanOutline, mdiPencilOutline, mdiMagicStaff } from '@mdi/js'
 
 import { listRemotes, updateRemote, deleteRemote } from '../api/remotesApi.js'
 import { listButtons, updateButton, deleteButton, sendPress, sendHold } from '../api/buttonsApi.js'
-import { getHealth } from '../api/healthApi.js'
+import { getLearningStatus } from '../api/statusApi.js'
 import { writeLocalStorage } from '../utils/storage.js'
 import { listAgents } from '../api/agentsApi.js'
 
@@ -38,7 +38,7 @@ export function RemoteDetailPage() {
 
   const numericRemoteId = Number(remoteId)
 
-  const healthQuery = useQuery({ queryKey: ['health'], queryFn: getHealth })
+  const learningStatusQuery = useQuery({ queryKey: ['status-learning'], queryFn: getLearningStatus })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
   const buttonsQuery = useQuery({ queryKey: ['buttons', numericRemoteId], queryFn: () => listButtons(numericRemoteId) })
   const agentsQuery = useQuery({ queryKey: ['agents'], queryFn: listAgents, staleTime: 30_000 })
@@ -53,8 +53,8 @@ export function RemoteDetailPage() {
     if (numericRemoteId) writeLocalStorage('lastOpenedRemoteId', numericRemoteId)
   }, [numericRemoteId])
 
-  const learningActive = Boolean(healthQuery.data?.learn_enabled)
-  const learningRemoteId = healthQuery.data?.learn_remote_id ?? null
+  const learningActive = Boolean(learningStatusQuery.data?.learn_enabled)
+  const learningRemoteId = learningStatusQuery.data?.learn_remote_id ?? null
   const sendingDisabled = learningActive
 
   const [editRemoteOpen, setEditRemoteOpen] = useState(false)
@@ -206,7 +206,7 @@ export function RemoteDetailPage() {
   const existingButtons = buttonsQuery.data || []
   const hasExistingButtons = existingButtons.length > 0
   const learningBlocked = learningActive && Number(learningRemoteId) !== Number(numericRemoteId)
-  const learningRemoteLabel = healthQuery.data?.learn_remote_name || (learningRemoteId ? `#${learningRemoteId}` : '')
+  const learningRemoteLabel = learningStatusQuery.data?.learn_remote_name || (learningRemoteId ? `#${learningRemoteId}` : '')
   const buttonsLoading = buttonsQuery.isLoading
   const wizardDisabled = learningBlocked || buttonsLoading
 

@@ -10,7 +10,7 @@ function Tab({ to, icon, label }) {
       to={to}
       className={({ isActive }) =>
         [
-          'flex flex-col items-center justify-center gap-1 flex-1 h-16',
+          'flex flex-col items-center justify-center gap-1 flex-1 h-16 cursor-pointer transition-colors hover:bg-[rgb(var(--bg))]',
           isActive ? 'text-[rgb(var(--primary))]' : 'text-[rgb(var(--muted))]',
         ].join(' ')
       }

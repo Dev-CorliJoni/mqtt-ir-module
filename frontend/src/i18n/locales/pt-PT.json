@@ -26,7 +26,8 @@
     "icon": "Ícone",
     "yes": "Sim",
     "no": "Não",
-    "notAvailable": "N/D"
+    "notAvailable": "N/D",
+    "loading": "A carregar..."
   },
   "health": {
     "title": "Estado do serviço",
@@ -119,7 +120,28 @@
     "helpApiKeyBody": "Se estiver definido, precisa de uma chave API para fazer alterações na UI.",
     "helpReverseProxyTitle": "Proxy reverso",
     "helpReverseProxyBody": "Recomendado: deixe o proxy adicionar a chave API para a UI. Ver reverse-proxy.md.",
-    "languageChangeFailed": "Não foi possível mudar o idioma."
+    "languageChangeFailed": "Não foi possível mudar o idioma.",
+    "mqttTitle": "Broker MQTT",
+    "mqttDescription": "Configure o broker MQTT usado para agentes externos.",
+    "mqttHostLabel": "Host do broker",
+    "mqttHostHint": "Nome do host ou endereço IP. Deixe vazio para desativar o MQTT.",
+    "mqttPortLabel": "Porta do broker",
+    "mqttPortHint": "Predefinição: 1883",
+    "mqttUsernameLabel": "Nome de utilizador",
+    "mqttUsernameHint": "Nome de utilizador MQTT opcional.",
+    "mqttPasswordLabel": "Palavra-passe",
+    "mqttPasswordHint": "Deixe vazio para manter a palavra-passe atualmente guardada.",
+    "mqttPasswordStoredHint": "Existe atualmente uma palavra-passe guardada cifrada na base de dados.",
+    "mqttBaseTopicLabel": "Instância",
+    "mqttBaseTopicHint": "Opcional. Use apenas quando vários serviços partilham o mesmo broker. Permitidos: letras, números, _ e -.",
+    "mqttMasterKeyMissing": "Falta SETTINGS_MASTER_KEY. O armazenamento de palavras-passe MQTT está bloqueado.",
+    "mqttSaved": "Definições MQTT guardadas.",
+    "mqttSaveFailed": "Não foi possível guardar as definições MQTT.",
+    "registeredAgentsTitle": "Agentes registados",
+    "noAgentsRegistered": "Não existem agentes registados.",
+    "openAgentPage": "Abrir página do agente",
+    "homeassistantEnabledLabel": "Home Assistant ativado",
+    "homeassistantEnabledHint": "Ativa a publicação MQTT Discovery para o Home Assistant (apenas modo Hub)."
   },
   "wizard": {
     "title": "Assistente de aprendizagem",
@@ -196,7 +218,10 @@
     "offlineTitle": "Backend indisponível",
     "offlineBody": "Verifique o contentor / rede e tente novamente.",
     "genericTitle": "Algo correu mal",
-    "genericBody": "Tente novamente daqui a pouco."
+    "genericBody": "Tente novamente daqui a pouco.",
+    "settingsMasterKeyBody": "Falta SETTINGS_MASTER_KEY. Configure-o antes de guardar uma palavra-passe.",
+    "mqttPasswordDecryptFailedBody": "A palavra-passe MQTT guardada não pode ser decifrada com o SETTINGS_MASTER_KEY atual.",
+    "settingsCryptoMissingBody": "Falta a dependência de cifra no backend. Instale o pacote cryptography."
   },
   "languages": {
     "en": "Inglês",
@@ -264,5 +289,15 @@
       "nextPage": "Seguinte",
       "empty": "Nenhum ícone MDI corresponde à sua pesquisa."
     }
+  },
+  "agents": {
+    "pageTitle": "Agente",
+    "agentIdLabel": "ID do agente",
+    "configurationUrlLabel": "URL de configuração",
+    "configurationUrlHint": "Ligação opcional apresentada no Home Assistant para este agente.",
+    "configurationUrlAuto": "Usar URL atual",
+    "configurationUrlSaved": "URL de configuração guardada.",
+    "assignedRemotesTitle": "Comandos atribuídos",
+    "assignedRemotesEmpty": "Não há comandos atribuídos a este agente."
   }
 }

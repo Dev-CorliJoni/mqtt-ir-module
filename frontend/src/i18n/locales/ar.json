@@ -26,7 +26,8 @@
     "icon": "أيقونة",
     "yes": "نعم",
     "no": "لا",
-    "notAvailable": "غير متاح"
+    "notAvailable": "غير متاح",
+    "loading": "جارٍ التحميل..."
   },
   "health": {
     "title": "حالة الخدمة",
@@ -119,7 +120,28 @@
     "helpApiKeyBody": "إذا تم تعيينه، تحتاج إلى مفتاح API لإجراء تغييرات في الواجهة.",
     "helpReverseProxyTitle": "الوكيل العكسي",
     "helpReverseProxyBody": "موصى به: اجعل الوكيل العكسي يضيف مفتاح API للواجهة. راجع reverse-proxy.md.",
-    "languageChangeFailed": "فشل تغيير اللغة."
+    "languageChangeFailed": "فشل تغيير اللغة.",
+    "mqttTitle": "وسيط MQTT",
+    "mqttDescription": "قم بتكوين وسيط MQTT المستخدم للوكلاء الخارجيين.",
+    "mqttHostLabel": "مضيف الوسيط",
+    "mqttHostHint": "اسم المضيف أو عنوان IP. اتركه فارغًا لتعطيل MQTT.",
+    "mqttPortLabel": "منفذ الوسيط",
+    "mqttPortHint": "الافتراضي: 1883",
+    "mqttUsernameLabel": "اسم المستخدم",
+    "mqttUsernameHint": "اسم مستخدم MQTT اختياري.",
+    "mqttPasswordLabel": "كلمة المرور",
+    "mqttPasswordHint": "اتركه فارغًا للاحتفاظ بكلمة المرور المخزنة الحالية.",
+    "mqttPasswordStoredHint": "توجد حاليًا كلمة مرور محفوظة بشكل مشفّر في قاعدة البيانات.",
+    "mqttBaseTopicLabel": "المثيل",
+    "mqttBaseTopicHint": "اختياري. استخدمه فقط عندما تشترك عدة خدمات في نفس الوسيط. المسموح: أحرف، أرقام، _ و -.",
+    "mqttMasterKeyMissing": "المتغير SETTINGS_MASTER_KEY مفقود. تم حظر حفظ كلمات مرور MQTT.",
+    "mqttSaved": "تم حفظ إعدادات MQTT.",
+    "mqttSaveFailed": "فشل حفظ إعدادات MQTT.",
+    "registeredAgentsTitle": "الوكلاء المسجّلون",
+    "noAgentsRegistered": "لا يوجد وكلاء مسجّلون.",
+    "openAgentPage": "فتح صفحة الوكيل",
+    "homeassistantEnabledLabel": "تفعيل Home Assistant",
+    "homeassistantEnabledHint": "تفعيل نشر MQTT Discovery لـ Home Assistant (في وضع Hub فقط)."
   },
   "wizard": {
     "title": "معالج التعلّم",
@@ -196,7 +218,10 @@
     "offlineTitle": "الخادم غير متاح",
     "offlineBody": "تحقق من الحاوية/الشبكة وحاول مرة أخرى.",
     "genericTitle": "حدث خطأ ما",
-    "genericBody": "يرجى المحاولة مرة أخرى بعد قليل."
+    "genericBody": "يرجى المحاولة مرة أخرى بعد قليل.",
+    "settingsMasterKeyBody": "المتغير SETTINGS_MASTER_KEY مفقود. قم بإعداده قبل حفظ كلمة المرور.",
+    "mqttPasswordDecryptFailedBody": "لا يمكن فك تشفير كلمة مرور MQTT المخزنة باستخدام SETTINGS_MASTER_KEY الحالي.",
+    "settingsCryptoMissingBody": "مكتبة التشفير غير موجودة في الواجهة الخلفية. ثبّت حزمة cryptography."
   },
   "languages": {
     "en": "الإنجليزية",
@@ -264,5 +289,15 @@
       "nextPage": "التالي",
       "empty": "لا توجد أيقونات MDI مطابقة لبحثك."
     }
+  },
+  "agents": {
+    "pageTitle": "الوكيل",
+    "agentIdLabel": "معرّف الوكيل",
+    "configurationUrlLabel": "رابط الإعداد",
+    "configurationUrlHint": "رابط اختياري يظهر في Home Assistant لهذا الوكيل.",
+    "configurationUrlAuto": "استخدام الرابط الحالي",
+    "configurationUrlSaved": "تم حفظ رابط الإعداد.",
+    "assignedRemotesTitle": "أجهزة التحكم المعيّنة",
+    "assignedRemotesEmpty": "لا توجد أجهزة تحكم معيّنة لهذا الوكيل."
   }
 }
