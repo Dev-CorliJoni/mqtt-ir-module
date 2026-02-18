@@ -6,11 +6,12 @@ from fastapi import FastAPI, APIRouter
 
 from agents import LocalAgent, LocalTransport
 from agents.agent_id_store import get_or_create_agent_id
+from connections import PairingManagerAgent, RuntimeLoader
 from electronics.ir_ctl_engine import IrCtlEngine
 from electronics.ir_signal_parser import IrSignalParser
 from helper import Environment, SettingsCipher
-from helper.hub_connections import HubConnections
 from database import Database
+from runtime_version import SOFTWARE_VERSION
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
@@ -25,26 +26,37 @@ engine = IrCtlEngine(
 local_transport = LocalTransport(engine=engine, parser=parser)
 local_agent_id = get_or_create_agent_id(data_dir=env.data_folder)
 local_agent = LocalAgent(transport=local_transport, agent_id=local_agent_id)
-hub_connections = HubConnections(
+runtime_loader = RuntimeLoader(
     settings_store=database.settings,
     settings_cipher=settings_cipher,
     role="agent",
-    enable_homeassistant=False,
+)
+pairing_manager = PairingManagerAgent(
+    runtime_loader=runtime_loader,
+    settings_store=database.settings,
+    agent_uid=local_agent.agent_id,
+    readable_name=local_agent.name,
+    sw_version=SOFTWARE_VERSION,
+    can_send=True,
+    can_learn=bool(local_agent.capabilities.get("canLearn")),
+    reset_binding=env.agent_pairing_reset,
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
-    hub_connections.start()
+    runtime_loader.start()
+    pairing_manager.start()
     try:
         yield
     finally:
-        hub_connections.stop()
+        pairing_manager.stop()
+        runtime_loader.stop()
 
 app = FastAPI(
     title="mqtt-ir-agent",
-    version="0.1.0",
+    version=SOFTWARE_VERSION,
     lifespan=lifespan,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -75,7 +87,12 @@ def agent_status() -> Dict[str, Any]:
 
 @api.get("/status/mqtt")
 def agent_mqtt_status() -> Dict[str, Any]:
-    return hub_connections.status()
+    return runtime_loader.status()
+
+
+@api.get("/status/pairing")
+def agent_pairing_status() -> Dict[str, Any]:
+    return pairing_manager.status()
 
 
 app.include_router(api)

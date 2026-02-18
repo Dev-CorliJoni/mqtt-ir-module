@@ -26,7 +26,8 @@
     "icon": "আইকন",
     "yes": "হ্যাঁ",
     "no": "না",
-    "notAvailable": "প্রযোজ্য নয়"
+    "notAvailable": "প্রযোজ্য নয়",
+    "loading": "লোড হচ্ছে..."
   },
   "health": {
     "title": "সার্ভিসের অবস্থা",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "বর্তমানে পাসওয়ার্ডটি ডাটাবেসে এনক্রিপ্টেড অবস্থায় সংরক্ষিত আছে।",
     "mqttBaseTopicLabel": "ইনস্ট্যান্স",
     "mqttBaseTopicHint": "ঐচ্ছিক। একাধিক সার্ভিস একই ব্রোকার শেয়ার করলে তবেই ব্যবহার করুন। অনুমোদিত: অক্ষর, সংখ্যা, _ এবং -।",
-    "mqttClientIdPrefixLabel": "ক্লায়েন্ট আইডি প্রিফিক্স",
-    "mqttClientIdPrefixHint": "jmqtt-এর app_name হিসেবে ব্যবহৃত হয় (অক্ষর, সংখ্যা, হাইফেন)।",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY অনুপস্থিত। MQTT পাসওয়ার্ড সংরক্ষণ ব্লক করা হয়েছে।",
     "mqttSaved": "MQTT সেটিংস সংরক্ষিত হয়েছে।",
-    "mqttSaveFailed": "MQTT সেটিংস সংরক্ষণ ব্যর্থ হয়েছে।"
+    "mqttSaveFailed": "MQTT সেটিংস সংরক্ষণ ব্যর্থ হয়েছে।",
+    "registeredAgentsTitle": "নিবন্ধিত এজেন্ট",
+    "noAgentsRegistered": "কোনও এজেন্ট নিবন্ধিত নেই।",
+    "openAgentPage": "এজেন্ট পেজ খুলুন",
+    "homeassistantEnabledLabel": "Home Assistant সক্রিয়",
+    "homeassistantEnabledHint": "Home Assistant-এর জন্য MQTT Discovery প্রকাশ সক্রিয় করুন (শুধু Hub মোডে)।"
   },
   "wizard": {
     "title": "শেখার উইজার্ড",
@@ -285,5 +289,15 @@
       "nextPage": "পরবর্তী",
       "empty": "আপনার অনুসন্ধানের সাথে মেলে এমন কোনো MDI আইকন নেই।"
     }
+  },
+  "agents": {
+    "pageTitle": "এজেন্ট",
+    "agentIdLabel": "এজেন্ট আইডি",
+    "configurationUrlLabel": "কনফিগারেশন URL",
+    "configurationUrlHint": "এই এজেন্টের জন্য Home Assistant-এ দেখানো ঐচ্ছিক লিংক।",
+    "configurationUrlAuto": "বর্তমান URL ব্যবহার করুন",
+    "configurationUrlSaved": "কনফিগারেশন URL সংরক্ষণ করা হয়েছে।",
+    "assignedRemotesTitle": "অ্যাসাইন করা রিমোট",
+    "assignedRemotesEmpty": "এই এজেন্টে কোনও রিমোট অ্যাসাইন করা নেই।"
   }
 }

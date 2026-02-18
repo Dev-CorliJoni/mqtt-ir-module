@@ -26,7 +26,8 @@
     "icon": "Icon",
     "yes": "Yes",
     "no": "No",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "loading": "Loading..."
   },
   "health": {
     "title": "Service status",
@@ -96,7 +97,15 @@
     "remoteLabel": "Assigned agent",
     "remoteHint": "Offline agents can be selected but cannot execute commands.",
     "unassigned": "Unassigned",
-    "unknownAgent": "Unknown agent ({{id}})"
+    "unknownAgent": "Unknown agent ({{id}})",
+    "pageTitle": "Agent",
+    "agentIdLabel": "Agent ID",
+    "configurationUrlLabel": "Configuration URL",
+    "configurationUrlHint": "Optional link shown in Home Assistant for this agent.",
+    "configurationUrlAuto": "Use current URL",
+    "configurationUrlSaved": "Configuration URL saved.",
+    "assignedRemotesTitle": "Assigned remotes",
+    "assignedRemotesEmpty": "No remotes are assigned to this agent."
   },
   "settings": {
     "theme": "Theme",
@@ -128,8 +137,6 @@
     "mqttPasswordStoredHint": "A password is currently stored encrypted in the database.",
     "mqttBaseTopicLabel": "Instance",
     "mqttBaseTopicHint": "Optional. Use only when multiple services share one broker. Allowed: letters, numbers, _ and -.",
-    "mqttClientIdPrefixLabel": "Client ID prefix",
-    "mqttClientIdPrefixHint": "Used as jmqtt app_name (letters, numbers, hyphen).",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY is missing. Storing MQTT passwords is blocked.",
     "mqttSaved": "MQTT settings saved.",
     "mqttSaveFailed": "Failed to save MQTT settings.",
@@ -154,7 +161,12 @@
     "helpApiKeyBody": "If set, you need an API key to make changes in the UI.",
     "helpReverseProxyTitle": "Reverse proxy",
     "helpReverseProxyBody": "Recommended: let your proxy add the API key for the UI. See reverse-proxy.md.",
-    "languageChangeFailed": "Failed to change language."
+    "languageChangeFailed": "Failed to change language.",
+    "registeredAgentsTitle": "Registered agents",
+    "noAgentsRegistered": "No agents are registered.",
+    "openAgentPage": "Open agent page",
+    "homeassistantEnabledLabel": "Home Assistant enabled",
+    "homeassistantEnabledHint": "Enable MQTT discovery publishing for Home Assistant (Hub mode only)."
   },
   "wizard": {
     "title": "Learning wizard",

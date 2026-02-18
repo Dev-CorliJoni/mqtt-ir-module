@@ -26,7 +26,8 @@
     "icon": "图标",
     "yes": "是",
     "no": "否",
-    "notAvailable": "—"
+    "notAvailable": "—",
+    "loading": "加载中..."
   },
   "health": {
     "title": "服务状态",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "当前已有密码以加密形式存储在数据库中。",
     "mqttBaseTopicLabel": "实例",
     "mqttBaseTopicHint": "可选。仅当多个服务共享同一个代理时使用。允许字符：字母、数字、_ 和 -。",
-    "mqttClientIdPrefixLabel": "Client ID 前缀",
-    "mqttClientIdPrefixHint": "作为 jmqtt 的 app_name 使用（字母、数字、连字符）。",
     "mqttMasterKeyMissing": "缺少 SETTINGS_MASTER_KEY。已禁止保存 MQTT 密码。",
     "mqttSaved": "MQTT 设置已保存。",
-    "mqttSaveFailed": "保存 MQTT 设置失败。"
+    "mqttSaveFailed": "保存 MQTT 设置失败。",
+    "registeredAgentsTitle": "已注册代理",
+    "noAgentsRegistered": "没有已注册的代理。",
+    "openAgentPage": "打开代理页面",
+    "homeassistantEnabledLabel": "启用 Home Assistant",
+    "homeassistantEnabledHint": "启用面向 Home Assistant 的 MQTT Discovery 发布（仅 Hub 模式）。"
   },
   "wizard": {
     "title": "学习向导",
@@ -285,5 +289,15 @@
       "nextPage": "下一页",
       "empty": "没有匹配的 MDI 图标。"
     }
+  },
+  "agents": {
+    "pageTitle": "代理",
+    "agentIdLabel": "代理 ID",
+    "configurationUrlLabel": "配置 URL",
+    "configurationUrlHint": "在 Home Assistant 中为该代理显示的可选链接。",
+    "configurationUrlAuto": "使用当前 URL",
+    "configurationUrlSaved": "配置 URL 已保存。",
+    "assignedRemotesTitle": "已分配遥控器",
+    "assignedRemotesEmpty": "此代理未分配任何遥控器。"
   }
 }

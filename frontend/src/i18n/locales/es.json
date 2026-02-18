@@ -26,7 +26,8 @@
     "icon": "Icono",
     "yes": "Sí",
     "no": "No",
-    "notAvailable": "N/D"
+    "notAvailable": "N/D",
+    "loading": "Cargando..."
   },
   "health": {
     "title": "Estado del servicio",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "Actualmente hay una contraseña almacenada cifrada en la base de datos.",
     "mqttBaseTopicLabel": "Instancia",
     "mqttBaseTopicHint": "Opcional. Úsalo solo cuando varios servicios compartan el mismo broker. Permitido: letras, números, _ y -.",
-    "mqttClientIdPrefixLabel": "Prefijo de Client ID",
-    "mqttClientIdPrefixHint": "Se usa como app_name de jmqtt (letras, números y guion).",
     "mqttMasterKeyMissing": "Falta SETTINGS_MASTER_KEY. Se bloquea el guardado de contraseñas MQTT.",
     "mqttSaved": "Configuración MQTT guardada.",
-    "mqttSaveFailed": "No se pudo guardar la configuración MQTT."
+    "mqttSaveFailed": "No se pudo guardar la configuración MQTT.",
+    "registeredAgentsTitle": "Agentes registrados",
+    "noAgentsRegistered": "No hay agentes registrados.",
+    "openAgentPage": "Abrir página del agente",
+    "homeassistantEnabledLabel": "Home Assistant habilitado",
+    "homeassistantEnabledHint": "Activa la publicación de descubrimiento MQTT para Home Assistant (solo modo Hub)."
   },
   "wizard": {
     "title": "Asistente de aprendizaje",
@@ -285,5 +289,15 @@
       "nextPage": "Siguiente",
       "empty": "No hay iconos MDI que coincidan con la búsqueda."
     }
+  },
+  "agents": {
+    "pageTitle": "Agente",
+    "agentIdLabel": "ID del agente",
+    "configurationUrlLabel": "URL de configuración",
+    "configurationUrlHint": "Enlace opcional que se muestra en Home Assistant para este agente.",
+    "configurationUrlAuto": "Usar URL actual",
+    "configurationUrlSaved": "URL de configuración guardada.",
+    "assignedRemotesTitle": "Mandos asignados",
+    "assignedRemotesEmpty": "No hay mandos asignados a este agente."
   }
 }

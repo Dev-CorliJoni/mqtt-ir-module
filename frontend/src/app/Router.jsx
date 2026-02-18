@@ -5,6 +5,7 @@ import { HomePage } from '../pages/HomePage.jsx'
 import { RemotesPage } from '../pages/RemotesPage.jsx'
 import { RemoteDetailPage } from '../pages/RemoteDetailPage.jsx'
 import { SettingsPage } from '../pages/SettingsPage.jsx'
+import { AgentPage } from '../pages/AgentPage.jsx'
 import { NotFoundPage } from '../pages/NotFoundPage.jsx'
 
 export function createAppRouter({ basename }) {
@@ -17,6 +18,7 @@ export function createAppRouter({ basename }) {
           { index: true, element: <HomePage /> },
           { path: 'remotes', element: <RemotesPage /> },
           { path: 'remotes/:remoteId', element: <RemoteDetailPage /> },
+          { path: 'agent/:agentId', element: <AgentPage /> },
           { path: 'settings', element: <SettingsPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],

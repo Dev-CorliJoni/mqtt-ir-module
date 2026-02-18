@@ -26,7 +26,8 @@
     "icon": "آئیکن",
     "yes": "ہاں",
     "no": "نہیں",
-    "notAvailable": "دستیاب نہیں"
+    "notAvailable": "دستیاب نہیں",
+    "loading": "لوڈ ہو رہا ہے..."
   },
   "health": {
     "title": "سروس کی حالت",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "فی الحال پاس ورڈ ڈیٹا بیس میں خفیہ شکل میں محفوظ ہے۔",
     "mqttBaseTopicLabel": "انسٹینس",
     "mqttBaseTopicHint": "اختیاری۔ اسے صرف تب استعمال کریں جب کئی سروسز ایک ہی بروکر شیئر کریں۔ اجازت یافتہ: حروف، اعداد، _ اور -۔",
-    "mqttClientIdPrefixLabel": "کلائنٹ آئی ڈی پریفکس",
-    "mqttClientIdPrefixHint": "jmqtt میں app_name کے طور پر استعمال ہوتا ہے (حروف، اعداد، ہائفن)۔",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY موجود نہیں۔ MQTT پاس ورڈ محفوظ کرنا بلاک ہے۔",
     "mqttSaved": "MQTT ترتیبات محفوظ ہو گئیں۔",
-    "mqttSaveFailed": "MQTT ترتیبات محفوظ نہ ہو سکیں۔"
+    "mqttSaveFailed": "MQTT ترتیبات محفوظ نہ ہو سکیں۔",
+    "registeredAgentsTitle": "رجسٹرڈ ایجنٹس",
+    "noAgentsRegistered": "کوئی ایجنٹ رجسٹر نہیں ہے۔",
+    "openAgentPage": "ایجنٹ صفحہ کھولیں",
+    "homeassistantEnabledLabel": "Home Assistant فعال",
+    "homeassistantEnabledHint": "Home Assistant کے لیے MQTT Discovery پبلشنگ فعال کریں (صرف Hub موڈ میں)।"
   },
   "wizard": {
     "title": "سیکھنے کا وزرڈ",
@@ -285,5 +289,15 @@
       "nextPage": "اگلا",
       "empty": "آپ کی تلاش سے کوئی MDI آئیکن نہیں ملا۔"
     }
+  },
+  "agents": {
+    "pageTitle": "ایجنٹ",
+    "agentIdLabel": "ایجنٹ آئی ڈی",
+    "configurationUrlLabel": "کنفیگریشن URL",
+    "configurationUrlHint": "اس ایجنٹ کے لیے Home Assistant میں دکھایا جانے والا اختیاری لنک۔",
+    "configurationUrlAuto": "موجودہ URL استعمال کریں",
+    "configurationUrlSaved": "کنفیگریشن URL محفوظ ہو گیا۔",
+    "assignedRemotesTitle": "مختص ریموٹس",
+    "assignedRemotesEmpty": "اس ایجنٹ کے لیے کوئی ریموٹ مختص نہیں ہے۔"
   }
 }

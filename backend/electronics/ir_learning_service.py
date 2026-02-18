@@ -87,6 +87,7 @@ class IrLearningService:
 
         try:
             agent.learn_start({"remote_id": remote_id, "remote_name": str(remote["name"])})
+            self._agent_registry.mark_agent_activity(agent.agent_id)
         except Exception:
             with self._lock:
                 self._session = None
@@ -106,6 +107,7 @@ class IrLearningService:
             try:
                 agent = self._agent_registry.get_agent_by_id(session.agent_id)
                 agent.learn_stop({"remote_id": session.remote_id, "remote_name": session.remote_name})
+                self._agent_registry.mark_agent_activity(session.agent_id)
             except Exception:
                 pass
             self._log(session, "info", "Learning session stopped")
@@ -200,6 +202,7 @@ class IrLearningService:
         for i in range(takes):
             self._log(session, "info", "Waiting for IR press", {"take": i + 1, "timeout_ms": timeout_ms})
             capture = agent.learn_capture({"timeout_ms": timeout_ms, "mode": "press"})
+            self._agent_registry.mark_agent_activity(session.agent_id)
             raw = str(capture.get("raw") or "")
             stdout = str(capture.get("stdout") or "")
             stderr = str(capture.get("stderr") or "")
@@ -290,6 +293,7 @@ class IrLearningService:
         # First message (initial)
         self._log(session, "info", "Waiting for IR hold (initial frame)", {"timeout_ms": timeout_ms})
         first_capture = agent.learn_capture({"timeout_ms": timeout_ms, "mode": "hold"})
+        self._agent_registry.mark_agent_activity(session.agent_id)
         first_raw = str(first_capture.get("raw") or "")
         stdout = str(first_capture.get("stdout") or "")
         stderr = str(first_capture.get("stderr") or "")
@@ -312,6 +316,7 @@ class IrLearningService:
 
             try:
                 capture = agent.learn_capture({"timeout_ms": per_call_timeout_ms, "mode": "hold"})
+                self._agent_registry.mark_agent_activity(session.agent_id)
                 raw = str(capture.get("raw") or "")
             except TimeoutError:
                 break

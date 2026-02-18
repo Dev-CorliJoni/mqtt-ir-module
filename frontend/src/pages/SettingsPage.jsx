@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
 import { getAppConfig } from '../utils/appConfig.js'
 import { getElectronicsStatus } from '../api/statusApi.js'
+import { listAgents } from '../api/agentsApi.js'
 import { getSettings, updateSettings } from '../api/settingsApi.js'
 import { Button } from '../components/ui/Button.jsx'
 import { Modal } from '../components/ui/Modal.jsx'
@@ -22,7 +24,9 @@ export function SettingsPage() {
   const errorMapper = new ApiErrorMapper(t)
   const config = useMemo(() => getAppConfig(), [])
   const electronicsQuery = useQuery({ queryKey: ['status-electronics'], queryFn: getElectronicsStatus })
+  const agentsQuery = useQuery({ queryKey: ['agents'], queryFn: listAgents, staleTime: 30_000 })
   const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings, staleTime: 60_000 })
+  const agents = agentsQuery.data || []
 
   const irRxDevice = electronicsQuery.data?.ir_rx_device
   const irTxDevice = electronicsQuery.data?.ir_tx_device
@@ -47,7 +51,7 @@ export function SettingsPage() {
   const [mqttUsername, setMqttUsername] = useState('')
   const [mqttPassword, setMqttPassword] = useState('')
   const [mqttInstance, setMqttInstance] = useState('')
-  const [mqttClientIdPrefix, setMqttClientIdPrefix] = useState('ir-hub')
+  const [homeassistantEnabled, setHomeassistantEnabled] = useState(false)
 
   useEffect(() => {
     if (!settingsQuery.data || learningDirty) return
@@ -71,8 +75,8 @@ export function SettingsPage() {
     setMqttPort(String(defaults.port))
     setMqttUsername(defaults.username)
     setMqttInstance(defaults.instance)
-    setMqttClientIdPrefix(defaults.clientIdPrefix)
     setMqttPassword('')
+    setHomeassistantEnabled(Boolean(settingsQuery.data.homeassistant_enabled ?? false))
   }, [settingsQuery.data, mqttDirty])
 
   const updateMutation = useMutation({
@@ -120,8 +124,8 @@ export function SettingsPage() {
   const mqttHostValue = normalizeText(mqttHost)
   const mqttUsernameValue = normalizeText(mqttUsername)
   const mqttInstanceValue = normalizeText(mqttInstance)
-  const mqttClientIdPrefixValue = normalizeText(mqttClientIdPrefix)
   const mqttPasswordValue = mqttPassword
+  const homeassistantEnabledValue = Boolean(homeassistantEnabled)
 
   const isPressTakesValid = isNumberInRange(pressTakesValue, 1, 50)
   const isCaptureTimeoutValid = isNumberInRange(captureTimeoutValue, 100, 60000)
@@ -130,10 +134,9 @@ export function SettingsPage() {
   const isMatchPercentValid = isNumberInRange(matchPercentValue, 10, 100)
   const isMqttPortValid = isNumberInRange(mqttPortValue, 1, 65535)
   const isMqttInstanceValid = /^[A-Za-z0-9_-]*$/.test(mqttInstanceValue)
-  const isMqttClientIdPrefixValid = /^[A-Za-z0-9-]*$/.test(mqttClientIdPrefixValue)
   const hasMqttPasswordInput = mqttPasswordValue.length > 0
   const hasMasterKey = Boolean(settingsQuery.data?.settings_master_key_configured)
-  const hasMqttInvalid = !isMqttPortValid || !isMqttInstanceValid || !isMqttClientIdPrefixValid || (hasMqttPasswordInput && !hasMasterKey)
+  const hasMqttInvalid = !isMqttPortValid || !isMqttInstanceValid || (hasMqttPasswordInput && !hasMasterKey)
 
   const hasInvalid =
     !isPressTakesValid ||
@@ -155,7 +158,7 @@ export function SettingsPage() {
     mqttPortValue !== mqttDefaults.port ||
     mqttUsernameValue !== mqttDefaults.username ||
     mqttInstanceValue !== mqttDefaults.instance ||
-    mqttClientIdPrefixValue !== mqttDefaults.clientIdPrefix ||
+    homeassistantEnabledValue !== mqttDefaults.homeassistantEnabled ||
     hasMqttPasswordInput
   )
 
@@ -194,7 +197,7 @@ export function SettingsPage() {
       mqtt_port: mqttPortValue,
       mqtt_username: mqttUsernameValue,
       mqtt_instance: mqttInstanceValue,
-      mqtt_client_id_prefix: mqttClientIdPrefixValue,
+      homeassistant_enabled: homeassistantEnabledValue,
     }
     if (hasMqttPasswordInput) {
       payload.mqtt_password = mqttPasswordValue
@@ -259,6 +262,32 @@ export function SettingsPage() {
               <option value="false">{t('common.no')}</option>
             </SelectField>
           </div>
+          <div className="mt-4">
+            <div className="mb-2 text-sm font-semibold">{t('settings.registeredAgentsTitle')}</div>
+            {agents.length === 0 ? (
+              <div className="text-sm text-[rgb(var(--muted))]">{t('settings.noAgentsRegistered')}</div>
+            ) : (
+              <div className="space-y-2">
+                {agents.map((agent) => (
+                  <div
+                    key={agent.agent_id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold">{agent.name || agent.agent_id}</div>
+                      <div className="truncate text-xs text-[rgb(var(--muted))]">{agent.agent_id}</div>
+                    </div>
+                    <Link
+                      to={`/agent/${agent.agent_id}`}
+                      className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-xs hover:bg-[rgb(var(--bg))]"
+                    >
+                      {t('settings.openAgentPage')}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardBody>
       </Card>
 
@@ -307,6 +336,19 @@ export function SettingsPage() {
               disabled={disableMqttForm}
               onChange={handleMqttChange(setMqttPassword)}
             />
+            <SelectField
+              label={t('settings.homeassistantEnabledLabel')}
+              hint={t('settings.homeassistantEnabledHint')}
+              value={homeassistantEnabled ? 'true' : 'false'}
+              disabled={disableMqttForm}
+              onChange={(event) => {
+                setMqttDirty(true)
+                setHomeassistantEnabled(event.target.value === 'true')
+              }}
+            >
+              <option value="true">{t('common.yes')}</option>
+              <option value="false">{t('common.no')}</option>
+            </SelectField>
             <TextField
               label={
                 <span className="inline-flex items-center gap-2">
@@ -327,14 +369,6 @@ export function SettingsPage() {
               disabled={disableMqttForm}
               aria-invalid={!isMqttInstanceValid}
               onChange={handleMqttChange(setMqttInstance)}
-            />
-            <TextField
-              label={t('settings.mqttClientIdPrefixLabel')}
-              hint={t('settings.mqttClientIdPrefixHint')}
-              value={mqttClientIdPrefix}
-              disabled={disableMqttForm}
-              aria-invalid={!isMqttClientIdPrefixValid}
-              onChange={handleMqttChange(setMqttClientIdPrefix)}
             />
           </div>
           <div className="mt-4 flex justify-end">
@@ -470,7 +504,7 @@ function getMqttDefaults(settings) {
     port: getSettingNumber(settings?.mqtt_port, 1883),
     username: normalizeText(settings?.mqtt_username),
     instance: normalizeText(settings?.mqtt_instance),
-    clientIdPrefix: normalizeText(settings?.mqtt_client_id_prefix) || 'ir-hub',
+    homeassistantEnabled: Boolean(settings?.homeassistant_enabled ?? false),
   }
 }
 

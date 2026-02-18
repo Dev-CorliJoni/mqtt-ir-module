@@ -15,6 +15,7 @@ from agents.agent_id_store import get_or_create_agent_id
 from api_models import (
     RemoteCreate,
     RemoteUpdate,
+    AgentUpdate,
     LearnStart,
     LearnCapture,
     ButtonUpdate,
@@ -31,9 +32,10 @@ from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
 from electronics.status_communication import StatusCommunication
+from connections import PairingManagerHub, RuntimeLoader
 from helper import Environment, SettingsCipher
-from helper.hub_connections import HubConnections
 from database import Database
+from runtime_version import SOFTWARE_VERSION
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
@@ -52,12 +54,15 @@ agent_registry = AgentRegistry(database=database)
 local_transport = LocalTransport(engine=engine, parser=parser)
 local_agent_id = get_or_create_agent_id(data_dir=env.data_folder)
 local_agent = LocalAgent(transport=local_transport, agent_id=local_agent_id)
-hub_connections = HubConnections(
+runtime_loader = RuntimeLoader(
     settings_store=database.settings,
     settings_cipher=settings_cipher,
     role="hub",
-    homeassistant_origin_name="IR Hub",
-    enable_homeassistant=True,
+)
+pairing_manager = PairingManagerHub(
+    runtime_loader=runtime_loader,
+    database=database,
+    sw_version=SOFTWARE_VERSION,
 )
 
 learning_defaults = database.settings.get_learning_defaults()
@@ -110,7 +115,7 @@ def resolve_hub_agent_setting() -> bool:
 def decorate_settings_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
     payload = dict(settings or {})
     payload["settings_master_key_configured"] = settings_cipher.is_configured
-    payload["mqtt_status"] = hub_connections.status()
+    payload["mqtt_status"] = runtime_loader.status()
     return payload
 
 
@@ -123,8 +128,8 @@ async def lifespan(app: FastAPI):
     status_comm.attach_loop(asyncio.get_running_loop())
 
     apply_hub_agent_setting(resolve_hub_agent_setting())
-    hub_connections.start()
-    hub_connections.start_homeassistant_thread(schedule_resolution=1.0, publish_timeout=5.0)
+    runtime_loader.start()
+    pairing_manager.start()
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
     if not env.debug:
@@ -133,13 +138,14 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        hub_connections.stop()
+        pairing_manager.stop()
+        runtime_loader.stop()
         learning.stop()
 
 
 app = FastAPI(
     title="mqtt-ir-module",
-    version="0.3.0",
+    version=SOFTWARE_VERSION,
     lifespan=lifespan,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -191,12 +197,41 @@ def status_learning() -> Dict[str, Any]:
 
 @api.get("/status/mqtt")
 def status_mqtt() -> Dict[str, Any]:
-    return hub_connections.status()
+    return runtime_loader.status()
 
 
 @api.get("/agents")
 def list_agents() -> List[Dict[str, Any]]:
     return agent_registry.list_agents()
+
+
+@api.get("/agents/{agent_id}")
+def get_agent(agent_id: str) -> Dict[str, Any]:
+    agent = agent_registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Unknown agent_id")
+    return agent
+
+
+@api.put("/agents/{agent_id}")
+def update_agent(
+    agent_id: str,
+    body: AgentUpdate,
+    x_api_key: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    try:
+        changes = body.model_dump(exclude_unset=True)
+        updated = agent_registry.update_agent(
+            agent_id=agent_id,
+            changes=changes,
+        )
+        return updated
+    except ValueError as e:
+        message = str(e)
+        if message == "Unknown agent_id":
+            raise HTTPException(status_code=404, detail=message)
+        raise HTTPException(status_code=400, detail=message)
 
 
 # -----------------
@@ -216,12 +251,12 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         body.theme is None
         and body.language is None
         and body.hub_is_agent is None
+        and body.homeassistant_enabled is None
         and body.mqtt_host is None
         and body.mqtt_port is None
         and body.mqtt_username is None
         and body.mqtt_password is None
         and body.mqtt_instance is None
-        and body.mqtt_client_id_prefix is None
         and body.press_takes_default is None
         and body.capture_timeout_ms_default is None
         and body.hold_idle_timeout_ms is None
@@ -238,12 +273,12 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             theme=body.theme,
             language=body.language,
             hub_is_agent=hub_is_agent,
+            homeassistant_enabled=body.homeassistant_enabled,
             mqtt_host=body.mqtt_host,
             mqtt_port=body.mqtt_port,
             mqtt_username=body.mqtt_username,
             mqtt_password=body.mqtt_password,
             mqtt_instance=body.mqtt_instance,
-            mqtt_client_id_prefix=body.mqtt_client_id_prefix,
             settings_cipher=settings_cipher,
             press_takes_default=body.press_takes_default,
             capture_timeout_ms_default=body.capture_timeout_ms_default,
@@ -254,8 +289,9 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         learning.apply_learning_settings(updated)
         if updated.get("hub_is_agent") != previous_settings.get("hub_is_agent"):
             apply_hub_agent_setting(bool(updated.get("hub_is_agent")))
-        hub_connections.reload()
-        hub_connections.start_homeassistant_thread(schedule_resolution=1.0, publish_timeout=5.0)
+        runtime_loader.reload()
+        pairing_manager.stop()
+        pairing_manager.start()
         return decorate_settings_payload(updated)
     except ValueError as e:
         message = str(e)
@@ -487,6 +523,7 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
         }
 
         result = agent.send(payload)
+        agent_registry.mark_agent_activity(agent.agent_id)
         return SendResponse.model_validate(result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

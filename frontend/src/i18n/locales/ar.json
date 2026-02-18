@@ -26,7 +26,8 @@
     "icon": "أيقونة",
     "yes": "نعم",
     "no": "لا",
-    "notAvailable": "غير متاح"
+    "notAvailable": "غير متاح",
+    "loading": "جارٍ التحميل..."
   },
   "health": {
     "title": "حالة الخدمة",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "توجد حاليًا كلمة مرور محفوظة بشكل مشفّر في قاعدة البيانات.",
     "mqttBaseTopicLabel": "المثيل",
     "mqttBaseTopicHint": "اختياري. استخدمه فقط عندما تشترك عدة خدمات في نفس الوسيط. المسموح: أحرف، أرقام، _ و -.",
-    "mqttClientIdPrefixLabel": "بادئة معرّف العميل",
-    "mqttClientIdPrefixHint": "يُستخدم كـ app_name في jmqtt (حروف وأرقام وشرطة).",
     "mqttMasterKeyMissing": "المتغير SETTINGS_MASTER_KEY مفقود. تم حظر حفظ كلمات مرور MQTT.",
     "mqttSaved": "تم حفظ إعدادات MQTT.",
-    "mqttSaveFailed": "فشل حفظ إعدادات MQTT."
+    "mqttSaveFailed": "فشل حفظ إعدادات MQTT.",
+    "registeredAgentsTitle": "الوكلاء المسجّلون",
+    "noAgentsRegistered": "لا يوجد وكلاء مسجّلون.",
+    "openAgentPage": "فتح صفحة الوكيل",
+    "homeassistantEnabledLabel": "تفعيل Home Assistant",
+    "homeassistantEnabledHint": "تفعيل نشر MQTT Discovery لـ Home Assistant (في وضع Hub فقط)."
   },
   "wizard": {
     "title": "معالج التعلّم",
@@ -285,5 +289,15 @@
       "nextPage": "التالي",
       "empty": "لا توجد أيقونات MDI مطابقة لبحثك."
     }
+  },
+  "agents": {
+    "pageTitle": "الوكيل",
+    "agentIdLabel": "معرّف الوكيل",
+    "configurationUrlLabel": "رابط الإعداد",
+    "configurationUrlHint": "رابط اختياري يظهر في Home Assistant لهذا الوكيل.",
+    "configurationUrlAuto": "استخدام الرابط الحالي",
+    "configurationUrlSaved": "تم حفظ رابط الإعداد.",
+    "assignedRemotesTitle": "أجهزة التحكم المعيّنة",
+    "assignedRemotesEmpty": "لا توجد أجهزة تحكم معيّنة لهذا الوكيل."
   }
 }

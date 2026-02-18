@@ -26,7 +26,8 @@
     "icon": "Иконка",
     "yes": "Да",
     "no": "Нет",
-    "notAvailable": "Н/Д"
+    "notAvailable": "Н/Д",
+    "loading": "Загрузка..."
   },
   "health": {
     "title": "Статус сервиса",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "Сейчас в базе данных сохранён зашифрованный пароль.",
     "mqttBaseTopicLabel": "Экземпляр",
     "mqttBaseTopicHint": "Необязательно. Используйте только если несколько сервисов работают через один брокер. Разрешено: буквы, цифры, _ и -.",
-    "mqttClientIdPrefixLabel": "Префикс Client ID",
-    "mqttClientIdPrefixHint": "Используется как app_name в jmqtt (буквы, цифры, дефис).",
     "mqttMasterKeyMissing": "Отсутствует SETTINGS_MASTER_KEY. Сохранение MQTT-паролей заблокировано.",
     "mqttSaved": "Настройки MQTT сохранены.",
-    "mqttSaveFailed": "Не удалось сохранить настройки MQTT."
+    "mqttSaveFailed": "Не удалось сохранить настройки MQTT.",
+    "registeredAgentsTitle": "Зарегистрированные агенты",
+    "noAgentsRegistered": "Нет зарегистрированных агентов.",
+    "openAgentPage": "Открыть страницу агента",
+    "homeassistantEnabledLabel": "Home Assistant включен",
+    "homeassistantEnabledHint": "Включает публикацию MQTT Discovery для Home Assistant (только режим Hub)."
   },
   "wizard": {
     "title": "Мастер обучения",
@@ -285,5 +289,15 @@
       "nextPage": "Вперёд",
       "empty": "Нет значков MDI по вашему запросу."
     }
+  },
+  "agents": {
+    "pageTitle": "Агент",
+    "agentIdLabel": "ID агента",
+    "configurationUrlLabel": "URL конфигурации",
+    "configurationUrlHint": "Необязательная ссылка, которая показывается в Home Assistant для этого агента.",
+    "configurationUrlAuto": "Использовать текущий URL",
+    "configurationUrlSaved": "URL конфигурации сохранен.",
+    "assignedRemotesTitle": "Назначенные пульты",
+    "assignedRemotesEmpty": "Этому агенту не назначены пульты."
   }
 }

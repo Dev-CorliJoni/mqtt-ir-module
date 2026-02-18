@@ -26,7 +26,8 @@
     "icon": "Ikon",
     "yes": "Ya",
     "no": "Tidak",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "loading": "Memuat..."
   },
   "health": {
     "title": "Status layanan",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "Saat ini kata sandi tersimpan dalam bentuk terenkripsi di database.",
     "mqttBaseTopicLabel": "Instance",
     "mqttBaseTopicHint": "Opsional. Gunakan hanya ketika beberapa layanan berbagi broker yang sama. Diizinkan: huruf, angka, _ dan -.",
-    "mqttClientIdPrefixLabel": "Prefiks Client ID",
-    "mqttClientIdPrefixHint": "Digunakan sebagai app_name jmqtt (huruf, angka, tanda hubung).",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY tidak ada. Penyimpanan kata sandi MQTT diblokir.",
     "mqttSaved": "Pengaturan MQTT disimpan.",
-    "mqttSaveFailed": "Gagal menyimpan pengaturan MQTT."
+    "mqttSaveFailed": "Gagal menyimpan pengaturan MQTT.",
+    "registeredAgentsTitle": "Agen terdaftar",
+    "noAgentsRegistered": "Belum ada agen yang terdaftar.",
+    "openAgentPage": "Buka halaman agen",
+    "homeassistantEnabledLabel": "Home Assistant aktif",
+    "homeassistantEnabledHint": "Aktifkan publikasi MQTT Discovery untuk Home Assistant (hanya mode Hub)."
   },
   "wizard": {
     "title": "Wizard pembelajaran",
@@ -285,5 +289,15 @@
       "nextPage": "Berikutnya",
       "empty": "Tidak ada ikon MDI yang cocok dengan pencarian Anda."
     }
+  },
+  "agents": {
+    "pageTitle": "Agen",
+    "agentIdLabel": "ID agen",
+    "configurationUrlLabel": "URL konfigurasi",
+    "configurationUrlHint": "Tautan opsional yang ditampilkan di Home Assistant untuk agen ini.",
+    "configurationUrlAuto": "Gunakan URL saat ini",
+    "configurationUrlSaved": "URL konfigurasi disimpan.",
+    "assignedRemotesTitle": "Remote yang ditetapkan",
+    "assignedRemotesEmpty": "Tidak ada remote yang ditetapkan ke agen ini."
   }
 }

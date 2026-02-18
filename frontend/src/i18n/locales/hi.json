@@ -26,7 +26,8 @@
     "icon": "आइकन",
     "yes": "हाँ",
     "no": "नहीं",
-    "notAvailable": "उपलब्ध नहीं"
+    "notAvailable": "उपलब्ध नहीं",
+    "loading": "लोड हो रहा है..."
   },
   "health": {
     "title": "सेवा स्थिति",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "वर्तमान में पासवर्ड डेटाबेस में एन्क्रिप्टेड रूप में संग्रहीत है।",
     "mqttBaseTopicLabel": "इंस्टेंस",
     "mqttBaseTopicHint": "वैकल्पिक। इसे केवल तब उपयोग करें जब कई सेवाएं एक ही ब्रोकर साझा करती हों। मान्य: अक्षर, अंक, _ और -।",
-    "mqttClientIdPrefixLabel": "क्लाइंट आईडी प्रीफ़िक्स",
-    "mqttClientIdPrefixHint": "jmqtt के app_name के रूप में उपयोग होता है (अक्षर, अंक, हाइफ़न)।",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY नहीं है। MQTT पासवर्ड सहेजना ब्लॉक किया गया है।",
     "mqttSaved": "MQTT सेटिंग्स सहेजी गईं।",
-    "mqttSaveFailed": "MQTT सेटिंग्स सहेजने में विफल।"
+    "mqttSaveFailed": "MQTT सेटिंग्स सहेजने में विफल।",
+    "registeredAgentsTitle": "पंजीकृत एजेंट",
+    "noAgentsRegistered": "कोई एजेंट पंजीकृत नहीं है।",
+    "openAgentPage": "एजेंट पेज खोलें",
+    "homeassistantEnabledLabel": "Home Assistant सक्षम",
+    "homeassistantEnabledHint": "Home Assistant के लिए MQTT Discovery प्रकाशन सक्षम करें (केवल Hub मोड)।"
   },
   "wizard": {
     "title": "लर्निंग विज़ार्ड",
@@ -285,5 +289,15 @@
       "nextPage": "अगला",
       "empty": "आपकी खोज से मेल खाने वाले कोई MDI आइकन नहीं हैं।"
     }
+  },
+  "agents": {
+    "pageTitle": "एजेंट",
+    "agentIdLabel": "एजेंट आईडी",
+    "configurationUrlLabel": "कॉन्फ़िगरेशन URL",
+    "configurationUrlHint": "इस एजेंट के लिए Home Assistant में दिखाया जाने वाला वैकल्पिक लिंक।",
+    "configurationUrlAuto": "वर्तमान URL उपयोग करें",
+    "configurationUrlSaved": "कॉन्फ़िगरेशन URL सहेजा गया।",
+    "assignedRemotesTitle": "असाइन किए गए रिमोट",
+    "assignedRemotesEmpty": "इस एजेंट को कोई रिमोट असाइन नहीं है।"
   }
 }

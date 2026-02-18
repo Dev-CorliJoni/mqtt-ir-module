@@ -26,7 +26,8 @@
     "icon": "アイコン",
     "yes": "はい",
     "no": "いいえ",
-    "notAvailable": "該当なし"
+    "notAvailable": "該当なし",
+    "loading": "読み込み中..."
   },
   "health": {
     "title": "サービス状況",
@@ -133,11 +134,14 @@
     "mqttPasswordStoredHint": "現在、パスワードはデータベースに暗号化して保存されています。",
     "mqttBaseTopicLabel": "インスタンス",
     "mqttBaseTopicHint": "任意。複数サービスが同じブローカーを共有する場合のみ使用します。使用可能: 英数字、_、-。",
-    "mqttClientIdPrefixLabel": "Client IDプレフィックス",
-    "mqttClientIdPrefixHint": "jmqttのapp_nameとして使用されます（英数字とハイフン）。",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY がありません。MQTTパスワードの保存はブロックされています。",
     "mqttSaved": "MQTT設定を保存しました。",
-    "mqttSaveFailed": "MQTT設定の保存に失敗しました。"
+    "mqttSaveFailed": "MQTT設定の保存に失敗しました。",
+    "registeredAgentsTitle": "登録済みエージェント",
+    "noAgentsRegistered": "登録されたエージェントはありません。",
+    "openAgentPage": "エージェントページを開く",
+    "homeassistantEnabledLabel": "Home Assistant 有効",
+    "homeassistantEnabledHint": "Home Assistant向けのMQTT Discovery公開を有効にします（Hubモードのみ）。"
   },
   "wizard": {
     "title": "学習ウィザード",
@@ -285,5 +289,15 @@
       "nextPage": "次へ",
       "empty": "検索に一致する MDI アイコンがありません。"
     }
+  },
+  "agents": {
+    "pageTitle": "エージェント",
+    "agentIdLabel": "エージェントID",
+    "configurationUrlLabel": "設定URL",
+    "configurationUrlHint": "このエージェント向けにHome Assistantへ表示する任意のリンクです。",
+    "configurationUrlAuto": "現在のURLを使用",
+    "configurationUrlSaved": "設定URLを保存しました。",
+    "assignedRemotesTitle": "割り当て済みリモコン",
+    "assignedRemotesEmpty": "このエージェントに割り当てられたリモコンはありません。"
   }
 }
