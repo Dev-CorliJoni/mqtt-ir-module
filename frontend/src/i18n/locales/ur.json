@@ -119,7 +119,25 @@
     "helpApiKeyBody": "اگر سیٹ ہو تو UI میں تبدیلی کے لیے API کلید چاہیے ہوگی۔",
     "helpReverseProxyTitle": "Reverse proxy",
     "helpReverseProxyBody": "تجویز: پراکسی کو UI کے لیے API کلید شامل کرنے دیں۔ reverse-proxy.md دیکھیں۔",
-    "languageChangeFailed": "زبان تبدیل نہیں ہو سکی۔"
+    "languageChangeFailed": "زبان تبدیل نہیں ہو سکی۔",
+    "mqttTitle": "MQTT بروکر",
+    "mqttDescription": "بیرونی ایجنٹس کے لیے استعمال ہونے والا MQTT بروکر ترتیب دیں۔",
+    "mqttHostLabel": "بروکر ہوسٹ",
+    "mqttHostHint": "ہوسٹ نیم یا IP ایڈریس۔ MQTT غیر فعال کرنے کے لیے خالی چھوڑیں۔",
+    "mqttPortLabel": "بروکر پورٹ",
+    "mqttPortHint": "ڈیفالٹ: 1883",
+    "mqttUsernameLabel": "صارف نام",
+    "mqttUsernameHint": "اختیاری MQTT صارف نام۔",
+    "mqttPasswordLabel": "پاس ورڈ",
+    "mqttPasswordHint": "موجودہ محفوظ شدہ پاس ورڈ برقرار رکھنے کے لیے خالی چھوڑیں۔",
+    "mqttPasswordStoredHint": "فی الحال پاس ورڈ ڈیٹا بیس میں خفیہ شکل میں محفوظ ہے۔",
+    "mqttBaseTopicLabel": "انسٹینس",
+    "mqttBaseTopicHint": "اختیاری۔ اسے صرف تب استعمال کریں جب کئی سروسز ایک ہی بروکر شیئر کریں۔ اجازت یافتہ: حروف، اعداد، _ اور -۔",
+    "mqttClientIdPrefixLabel": "کلائنٹ آئی ڈی پریفکس",
+    "mqttClientIdPrefixHint": "jmqtt میں app_name کے طور پر استعمال ہوتا ہے (حروف، اعداد، ہائفن)۔",
+    "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY موجود نہیں۔ MQTT پاس ورڈ محفوظ کرنا بلاک ہے۔",
+    "mqttSaved": "MQTT ترتیبات محفوظ ہو گئیں۔",
+    "mqttSaveFailed": "MQTT ترتیبات محفوظ نہ ہو سکیں۔"
   },
   "wizard": {
     "title": "سیکھنے کا وزرڈ",
@@ -196,7 +214,10 @@
     "offlineTitle": "بیک اینڈ دستیاب نہیں",
     "offlineBody": "کنٹینر/نیٹ ورک چیک کریں اور دوبارہ کوشش کریں۔",
     "genericTitle": "کچھ غلط ہو گیا",
-    "genericBody": "براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔"
+    "genericBody": "براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔",
+    "settingsMasterKeyBody": "SETTINGS_MASTER_KEY موجود نہیں۔ پاس ورڈ محفوظ کرنے سے پہلے اسے ترتیب دیں۔",
+    "mqttPasswordDecryptFailedBody": "محفوظ شدہ MQTT پاس ورڈ موجودہ SETTINGS_MASTER_KEY سے ڈی کرپٹ نہیں ہو سکا۔",
+    "settingsCryptoMissingBody": "بیک اینڈ میں انکرپشن انحصار موجود نہیں۔ cryptography پیکیج انسٹال کریں۔"
   },
   "languages": {
     "en": "انگریزی",

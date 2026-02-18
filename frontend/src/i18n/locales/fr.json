@@ -119,7 +119,25 @@
     "helpApiKeyBody": "Si défini, une clé API est nécessaire pour effectuer des modifications dans l'UI.",
     "helpReverseProxyTitle": "Proxy inverse",
     "helpReverseProxyBody": "Recommandé : laissez le proxy ajouter la clé API pour l'UI. Voir reverse-proxy.md.",
-    "languageChangeFailed": "Impossible de changer la langue."
+    "languageChangeFailed": "Impossible de changer la langue.",
+    "mqttTitle": "Broker MQTT",
+    "mqttDescription": "Configurez le broker MQTT utilisé pour les agents externes.",
+    "mqttHostLabel": "Hôte du broker",
+    "mqttHostHint": "Nom d’hôte ou adresse IP. Laissez vide pour désactiver MQTT.",
+    "mqttPortLabel": "Port du broker",
+    "mqttPortHint": "Par défaut : 1883",
+    "mqttUsernameLabel": "Nom d’utilisateur",
+    "mqttUsernameHint": "Nom d’utilisateur MQTT facultatif.",
+    "mqttPasswordLabel": "Mot de passe",
+    "mqttPasswordHint": "Laissez vide pour conserver le mot de passe actuellement stocké.",
+    "mqttPasswordStoredHint": "Un mot de passe est actuellement stocké de manière chiffrée dans la base de données.",
+    "mqttBaseTopicLabel": "Instance",
+    "mqttBaseTopicHint": "Optionnel. À utiliser seulement si plusieurs services partagent le même broker. Autorisés : lettres, chiffres, _ et -.",
+    "mqttClientIdPrefixLabel": "Préfixe de Client ID",
+    "mqttClientIdPrefixHint": "Utilisé comme app_name jmqtt (lettres, chiffres, tiret).",
+    "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY est manquant. L’enregistrement des mots de passe MQTT est bloqué.",
+    "mqttSaved": "Paramètres MQTT enregistrés.",
+    "mqttSaveFailed": "Échec de l’enregistrement des paramètres MQTT."
   },
   "wizard": {
     "title": "Assistant d'apprentissage",
@@ -196,7 +214,10 @@
     "offlineTitle": "Backend injoignable",
     "offlineBody": "Vérifiez le conteneur / réseau et réessayez.",
     "genericTitle": "Un problème est survenu",
-    "genericBody": "Veuillez réessayer dans un instant."
+    "genericBody": "Veuillez réessayer dans un instant.",
+    "settingsMasterKeyBody": "SETTINGS_MASTER_KEY est manquant. Configurez-le avant d’enregistrer un mot de passe.",
+    "mqttPasswordDecryptFailedBody": "Le mot de passe MQTT stocké ne peut pas être déchiffré avec le SETTINGS_MASTER_KEY actuel.",
+    "settingsCryptoMissingBody": "La dépendance de chiffrement est absente sur le backend. Installez le paquet cryptography."
   },
   "languages": {
     "en": "Anglais",

@@ -31,6 +31,21 @@ const CODE_MAP = {
     titleKey: 'errors.badRequestTitle',
     bodyKey: 'errors.settingsMissingBody',
   },
+  settings_master_key_missing: {
+    kind: 'badRequest',
+    titleKey: 'errors.badRequestTitle',
+    bodyKey: 'errors.settingsMasterKeyBody',
+  },
+  mqtt_password_decrypt_failed: {
+    kind: 'badRequest',
+    titleKey: 'errors.badRequestTitle',
+    bodyKey: 'errors.mqttPasswordDecryptFailedBody',
+  },
+  settings_crypto_missing: {
+    kind: 'badRequest',
+    titleKey: 'errors.badRequestTitle',
+    bodyKey: 'errors.settingsCryptoMissingBody',
+  },
   signal_missing: {
     kind: 'badRequest',
     titleKey: 'errors.badRequestTitle',

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-
-import json
 
 from fastapi import FastAPI, HTTPException, Header, APIRouter, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,11 +31,13 @@ from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
 from electronics.status_communication import StatusCommunication
-from helper import Environment
+from helper import Environment, SettingsCipher
+from helper.hub_connections import HubConnections
 from database import Database
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
+settings_cipher = SettingsCipher(env.settings_master_key)
 
 parser = IrSignalParser()
 aggregator = IrSignalAggregator()
@@ -51,6 +52,13 @@ agent_registry = AgentRegistry(database=database)
 local_transport = LocalTransport(engine=engine, parser=parser)
 local_agent_id = get_or_create_agent_id(data_dir=env.data_folder)
 local_agent = LocalAgent(transport=local_transport, agent_id=local_agent_id)
+hub_connections = HubConnections(
+    settings_store=database.settings,
+    settings_cipher=settings_cipher,
+    role="hub",
+    homeassistant_origin_name="IR Hub",
+    enable_homeassistant=True,
+)
 
 learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
@@ -99,6 +107,13 @@ def resolve_hub_agent_setting() -> bool:
     return bool(env.local_agent_enabled)
 
 
+def decorate_settings_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
+    payload = dict(settings or {})
+    payload["settings_master_key_configured"] = settings_cipher.is_configured
+    payload["mqtt_status"] = hub_connections.status()
+    return payload
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
@@ -108,6 +123,8 @@ async def lifespan(app: FastAPI):
     status_comm.attach_loop(asyncio.get_running_loop())
 
     apply_hub_agent_setting(resolve_hub_agent_setting())
+    hub_connections.start()
+    hub_connections.start_homeassistant_thread(schedule_resolution=1.0, publish_timeout=5.0)
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
     if not env.debug:
@@ -116,6 +133,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        hub_connections.stop()
         learning.stop()
 
 
@@ -149,16 +167,31 @@ api = APIRouter(prefix="/api")
 
 @api.get("/health")
 def health() -> Dict[str, Any]:
+    return {"ok": True}
+
+
+@api.get("/status/electronics")
+def status_electronics() -> Dict[str, Any]:
     return {
-        "ok": True,
         "ir_device": env.ir_rx_device,
         "ir_rx_device": env.ir_rx_device,
         "ir_tx_device": env.ir_tx_device,
         "debug": env.debug,
+    }
+
+
+@api.get("/status/learning")
+def status_learning() -> Dict[str, Any]:
+    return {
         "learn_enabled": learning.is_learning,
         "learn_remote_id": learning.remote_id,
         "learn_remote_name": learning.remote_name,
     }
+
+
+@api.get("/status/mqtt")
+def status_mqtt() -> Dict[str, Any]:
+    return hub_connections.status()
 
 
 @api.get("/agents")
@@ -173,7 +206,7 @@ def list_agents() -> List[Dict[str, Any]]:
 
 @api.get("/settings")
 def get_settings() -> Dict[str, Any]:
-    return database.settings.get_ui_settings()
+    return decorate_settings_payload(database.settings.get_ui_settings())
 
 
 @api.put("/settings")
@@ -183,6 +216,12 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         body.theme is None
         and body.language is None
         and body.hub_is_agent is None
+        and body.mqtt_host is None
+        and body.mqtt_port is None
+        and body.mqtt_username is None
+        and body.mqtt_password is None
+        and body.mqtt_instance is None
+        and body.mqtt_client_id_prefix is None
         and body.press_takes_default is None
         and body.capture_timeout_ms_default is None
         and body.hold_idle_timeout_ms is None
@@ -199,6 +238,13 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             theme=body.theme,
             language=body.language,
             hub_is_agent=hub_is_agent,
+            mqtt_host=body.mqtt_host,
+            mqtt_port=body.mqtt_port,
+            mqtt_username=body.mqtt_username,
+            mqtt_password=body.mqtt_password,
+            mqtt_instance=body.mqtt_instance,
+            mqtt_client_id_prefix=body.mqtt_client_id_prefix,
+            settings_cipher=settings_cipher,
             press_takes_default=body.press_takes_default,
             capture_timeout_ms_default=body.capture_timeout_ms_default,
             hold_idle_timeout_ms=body.hold_idle_timeout_ms,
@@ -208,9 +254,39 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         learning.apply_learning_settings(updated)
         if updated.get("hub_is_agent") != previous_settings.get("hub_is_agent"):
             apply_hub_agent_setting(bool(updated.get("hub_is_agent")))
-        return updated
+        hub_connections.reload()
+        hub_connections.start_homeassistant_thread(schedule_resolution=1.0, publish_timeout=5.0)
+        return decorate_settings_payload(updated)
+    except ValueError as e:
+        message = str(e)
+        if message == "settings_master_key_missing":
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "settings_master_key_missing",
+                    "message": "SETTINGS_MASTER_KEY is required to store MQTT password.",
+                },
+            )
+        if message == "mqtt_password_decrypt_failed":
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "mqtt_password_decrypt_failed",
+                    "message": "Stored MQTT password cannot be decrypted with the current SETTINGS_MASTER_KEY.",
+                },
+            )
+        raise HTTPException(status_code=400, detail=message)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        message = str(e)
+        if "AES-GCM settings encryption" in message:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "settings_crypto_missing",
+                    "message": "The cryptography package is required to encrypt MQTT passwords.",
+                },
+            )
+        raise HTTPException(status_code=400, detail=message)
 
 
 # -----------------

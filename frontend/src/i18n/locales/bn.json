@@ -119,7 +119,25 @@
     "helpApiKeyBody": "সেট থাকলে, UI-তে পরিবর্তনের জন্য API কী দরকার হবে।",
     "helpReverseProxyTitle": "রিভার্স প্রক্সি",
     "helpReverseProxyBody": "প্রস্তাবিত: প্রক্সিকে UI-এর জন্য API কী যোগ করতে দিন। দেখুন reverse-proxy.md.",
-    "languageChangeFailed": "ভাষা পরিবর্তন ব্যর্থ হয়েছে।"
+    "languageChangeFailed": "ভাষা পরিবর্তন ব্যর্থ হয়েছে।",
+    "mqttTitle": "MQTT ব্রোকার",
+    "mqttDescription": "বাহ্যিক এজেন্টদের জন্য ব্যবহৃত MQTT ব্রোকার কনফিগার করুন।",
+    "mqttHostLabel": "ব্রোকার হোস্ট",
+    "mqttHostHint": "হোস্টনেম বা IP ঠিকানা। MQTT নিষ্ক্রিয় করতে ফাঁকা রাখুন।",
+    "mqttPortLabel": "ব্রোকার পোর্ট",
+    "mqttPortHint": "ডিফল্ট: 1883",
+    "mqttUsernameLabel": "ব্যবহারকারীর নাম",
+    "mqttUsernameHint": "ঐচ্ছিক MQTT ব্যবহারকারীর নাম।",
+    "mqttPasswordLabel": "পাসওয়ার্ড",
+    "mqttPasswordHint": "বর্তমান সংরক্ষিত পাসওয়ার্ড রাখতে ফাঁকা রাখুন।",
+    "mqttPasswordStoredHint": "বর্তমানে পাসওয়ার্ডটি ডাটাবেসে এনক্রিপ্টেড অবস্থায় সংরক্ষিত আছে।",
+    "mqttBaseTopicLabel": "ইনস্ট্যান্স",
+    "mqttBaseTopicHint": "ঐচ্ছিক। একাধিক সার্ভিস একই ব্রোকার শেয়ার করলে তবেই ব্যবহার করুন। অনুমোদিত: অক্ষর, সংখ্যা, _ এবং -।",
+    "mqttClientIdPrefixLabel": "ক্লায়েন্ট আইডি প্রিফিক্স",
+    "mqttClientIdPrefixHint": "jmqtt-এর app_name হিসেবে ব্যবহৃত হয় (অক্ষর, সংখ্যা, হাইফেন)।",
+    "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY অনুপস্থিত। MQTT পাসওয়ার্ড সংরক্ষণ ব্লক করা হয়েছে।",
+    "mqttSaved": "MQTT সেটিংস সংরক্ষিত হয়েছে।",
+    "mqttSaveFailed": "MQTT সেটিংস সংরক্ষণ ব্যর্থ হয়েছে।"
   },
   "wizard": {
     "title": "শেখার উইজার্ড",
@@ -196,7 +214,10 @@
     "offlineTitle": "ব্যাকএন্ড পৌঁছানো যাচ্ছে না",
     "offlineBody": "কন্টেইনার/নেটওয়ার্ক পরীক্ষা করুন এবং আবার চেষ্টা করুন।",
     "genericTitle": "কিছু একটা ভুল হয়েছে",
-    "genericBody": "কিছুক্ষণ পরে আবার চেষ্টা করুন।"
+    "genericBody": "কিছুক্ষণ পরে আবার চেষ্টা করুন।",
+    "settingsMasterKeyBody": "SETTINGS_MASTER_KEY অনুপস্থিত। পাসওয়ার্ড সংরক্ষণের আগে এটি কনফিগার করুন।",
+    "mqttPasswordDecryptFailedBody": "সংরক্ষিত MQTT পাসওয়ার্ড বর্তমান SETTINGS_MASTER_KEY দিয়ে ডিক্রিপ্ট করা যায়নি।",
+    "settingsCryptoMissingBody": "ব্যাকএন্ডে এনক্রিপশন নির্ভরতা নেই। cryptography প্যাকেজ ইনস্টল করুন।"
   },
   "languages": {
     "en": "ইংরেজি",

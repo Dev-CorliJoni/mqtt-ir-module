@@ -119,7 +119,25 @@
     "helpApiKeyBody": "Se estiver definido, precisa de uma chave API para fazer alterações na UI.",
     "helpReverseProxyTitle": "Proxy reverso",
     "helpReverseProxyBody": "Recomendado: deixe o proxy adicionar a chave API para a UI. Ver reverse-proxy.md.",
-    "languageChangeFailed": "Não foi possível mudar o idioma."
+    "languageChangeFailed": "Não foi possível mudar o idioma.",
+    "mqttTitle": "Broker MQTT",
+    "mqttDescription": "Configure o broker MQTT usado para agentes externos.",
+    "mqttHostLabel": "Host do broker",
+    "mqttHostHint": "Nome do host ou endereço IP. Deixe vazio para desativar o MQTT.",
+    "mqttPortLabel": "Porta do broker",
+    "mqttPortHint": "Predefinição: 1883",
+    "mqttUsernameLabel": "Nome de utilizador",
+    "mqttUsernameHint": "Nome de utilizador MQTT opcional.",
+    "mqttPasswordLabel": "Palavra-passe",
+    "mqttPasswordHint": "Deixe vazio para manter a palavra-passe atualmente guardada.",
+    "mqttPasswordStoredHint": "Existe atualmente uma palavra-passe guardada cifrada na base de dados.",
+    "mqttBaseTopicLabel": "Instância",
+    "mqttBaseTopicHint": "Opcional. Use apenas quando vários serviços partilham o mesmo broker. Permitidos: letras, números, _ e -.",
+    "mqttClientIdPrefixLabel": "Prefixo do Client ID",
+    "mqttClientIdPrefixHint": "Usado como app_name do jmqtt (letras, números e hífen).",
+    "mqttMasterKeyMissing": "Falta SETTINGS_MASTER_KEY. O armazenamento de palavras-passe MQTT está bloqueado.",
+    "mqttSaved": "Definições MQTT guardadas.",
+    "mqttSaveFailed": "Não foi possível guardar as definições MQTT."
   },
   "wizard": {
     "title": "Assistente de aprendizagem",
@@ -196,7 +214,10 @@
     "offlineTitle": "Backend indisponível",
     "offlineBody": "Verifique o contentor / rede e tente novamente.",
     "genericTitle": "Algo correu mal",
-    "genericBody": "Tente novamente daqui a pouco."
+    "genericBody": "Tente novamente daqui a pouco.",
+    "settingsMasterKeyBody": "Falta SETTINGS_MASTER_KEY. Configure-o antes de guardar uma palavra-passe.",
+    "mqttPasswordDecryptFailedBody": "A palavra-passe MQTT guardada não pode ser decifrada com o SETTINGS_MASTER_KEY atual.",
+    "settingsCryptoMissingBody": "Falta a dependência de cifra no backend. Instale o pacote cryptography."
   },
   "languages": {
     "en": "Inglês",

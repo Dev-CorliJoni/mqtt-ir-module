@@ -119,7 +119,25 @@
     "helpApiKeyBody": "設定されている場合、UIで変更するにはAPIキーが必要です。",
     "helpReverseProxyTitle": "リバースプロキシ",
     "helpReverseProxyBody": "推奨: プロキシにUI用のAPIキーを追加させてください。reverse-proxy.md を参照。",
-    "languageChangeFailed": "言語の変更に失敗しました。"
+    "languageChangeFailed": "言語の変更に失敗しました。",
+    "mqttTitle": "MQTTブローカー",
+    "mqttDescription": "外部エージェントで使用するMQTTブローカーを設定します。",
+    "mqttHostLabel": "ブローカーホスト",
+    "mqttHostHint": "ホスト名またはIPアドレス。空欄でMQTTを無効化します。",
+    "mqttPortLabel": "ブローカーポート",
+    "mqttPortHint": "既定値: 1883",
+    "mqttUsernameLabel": "ユーザー名",
+    "mqttUsernameHint": "任意のMQTTユーザー名。",
+    "mqttPasswordLabel": "パスワード",
+    "mqttPasswordHint": "現在の保存済みパスワードを維持する場合は空欄のままにします。",
+    "mqttPasswordStoredHint": "現在、パスワードはデータベースに暗号化して保存されています。",
+    "mqttBaseTopicLabel": "インスタンス",
+    "mqttBaseTopicHint": "任意。複数サービスが同じブローカーを共有する場合のみ使用します。使用可能: 英数字、_、-。",
+    "mqttClientIdPrefixLabel": "Client IDプレフィックス",
+    "mqttClientIdPrefixHint": "jmqttのapp_nameとして使用されます（英数字とハイフン）。",
+    "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY がありません。MQTTパスワードの保存はブロックされています。",
+    "mqttSaved": "MQTT設定を保存しました。",
+    "mqttSaveFailed": "MQTT設定の保存に失敗しました。"
   },
   "wizard": {
     "title": "学習ウィザード",
@@ -196,7 +214,10 @@
     "offlineTitle": "バックエンドに接続できません",
     "offlineBody": "コンテナ/ネットワークを確認して再試行してください。",
     "genericTitle": "問題が発生しました",
-    "genericBody": "少し時間をおいて再試行してください。"
+    "genericBody": "少し時間をおいて再試行してください。",
+    "settingsMasterKeyBody": "SETTINGS_MASTER_KEY がありません。パスワードを保存する前に設定してください。",
+    "mqttPasswordDecryptFailedBody": "保存済みのMQTTパスワードを現在の SETTINGS_MASTER_KEY で復号できません。",
+    "settingsCryptoMissingBody": "バックエンドに暗号化依存関係がありません。cryptography パッケージをインストールしてください。"
   },
   "languages": {
     "en": "英語",

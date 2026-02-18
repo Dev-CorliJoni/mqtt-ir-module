@@ -119,7 +119,25 @@
     "helpApiKeyBody": "Если задано, нужен ключ API для изменений в UI.",
     "helpReverseProxyTitle": "Обратный прокси",
     "helpReverseProxyBody": "Рекомендуется: пусть прокси добавляет API-ключ для UI. См. reverse-proxy.md.",
-    "languageChangeFailed": "Не удалось изменить язык."
+    "languageChangeFailed": "Не удалось изменить язык.",
+    "mqttTitle": "MQTT-брокер",
+    "mqttDescription": "Настройте MQTT-брокер для внешних агентов.",
+    "mqttHostLabel": "Хост брокера",
+    "mqttHostHint": "Имя хоста или IP-адрес. Оставьте пустым, чтобы отключить MQTT.",
+    "mqttPortLabel": "Порт брокера",
+    "mqttPortHint": "По умолчанию: 1883",
+    "mqttUsernameLabel": "Имя пользователя",
+    "mqttUsernameHint": "Необязательное имя пользователя MQTT.",
+    "mqttPasswordLabel": "Пароль",
+    "mqttPasswordHint": "Оставьте пустым, чтобы сохранить текущий пароль.",
+    "mqttPasswordStoredHint": "Сейчас в базе данных сохранён зашифрованный пароль.",
+    "mqttBaseTopicLabel": "Экземпляр",
+    "mqttBaseTopicHint": "Необязательно. Используйте только если несколько сервисов работают через один брокер. Разрешено: буквы, цифры, _ и -.",
+    "mqttClientIdPrefixLabel": "Префикс Client ID",
+    "mqttClientIdPrefixHint": "Используется как app_name в jmqtt (буквы, цифры, дефис).",
+    "mqttMasterKeyMissing": "Отсутствует SETTINGS_MASTER_KEY. Сохранение MQTT-паролей заблокировано.",
+    "mqttSaved": "Настройки MQTT сохранены.",
+    "mqttSaveFailed": "Не удалось сохранить настройки MQTT."
   },
   "wizard": {
     "title": "Мастер обучения",
@@ -196,7 +214,10 @@
     "offlineTitle": "Бэкенд недоступен",
     "offlineBody": "Проверьте контейнер/сеть и попробуйте снова.",
     "genericTitle": "Что-то пошло не так",
-    "genericBody": "Повторите попытку чуть позже."
+    "genericBody": "Повторите попытку чуть позже.",
+    "settingsMasterKeyBody": "Отсутствует SETTINGS_MASTER_KEY. Настройте его перед сохранением пароля.",
+    "mqttPasswordDecryptFailedBody": "Сохранённый MQTT-пароль не может быть расшифрован с текущим SETTINGS_MASTER_KEY.",
+    "settingsCryptoMissingBody": "В backend отсутствует зависимость для шифрования. Установите пакет cryptography."
   },
   "languages": {
     "en": "Английский",

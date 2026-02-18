@@ -9,6 +9,22 @@ class SettingsUpdate(BaseModel):
     theme: Optional[Theme] = Field(default=None, description="UI theme")
     language: Optional[str] = Field(default=None, min_length=2, max_length=16, description="UI language code (e.g. en, de, pt-PT)")
     hub_is_agent: Optional[bool] = Field(default=None, description="Whether the Hub should register a local agent")
+    mqtt_host: Optional[str] = Field(default=None, max_length=255, description="MQTT broker host")
+    mqtt_port: Optional[int] = Field(default=None, ge=1, le=65535, description="MQTT broker port")
+    mqtt_username: Optional[str] = Field(default=None, max_length=255, description="MQTT broker username")
+    mqtt_password: Optional[str] = Field(default=None, max_length=4096, description="MQTT broker password (stored encrypted at rest)")
+    mqtt_instance: Optional[str] = Field(
+        default=None,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]*$",
+        description="Optional MQTT instance segment used in base topic ir-hub[/<instance>]",
+    )
+    mqtt_client_id_prefix: Optional[str] = Field(
+        default=None,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9-]*$",
+        description="MQTT client id app prefix (letters, numbers, hyphen)",
+    )
     press_takes_default: Optional[int] = Field(default=None, ge=1, le=50, description="Default number of press takes")
     capture_timeout_ms_default: Optional[int] = Field(default=None, ge=100, le=60000, description="Default capture timeout in ms")
     hold_idle_timeout_ms: Optional[int] = Field(default=None, ge=50, le=2000, description="Hold idle timeout in ms")

@@ -47,10 +47,10 @@ export function LearningWizard({
   const logContainerRef = useRef(null)
   const currentCaptureRef = useRef(null)
 
-  // Use cached health to avoid extra polling during learning.
-  const health = queryClient.getQueryData(['health'])
-  const learningActive = Boolean(health?.learn_enabled)
-  const learningRemoteId = health?.learn_remote_id ?? null
+  // Use cached learning status to avoid extra polling during learning.
+  const learningStatus = queryClient.getQueryData(['status-learning'])
+  const learningActive = Boolean(learningStatus?.learn_enabled)
+  const learningRemoteId = learningStatus?.learn_remote_id ?? null
 
   // Derive log list and key for scroll-to-latest behavior.
   const statusLogs = learnStatus.logs || []
@@ -77,7 +77,7 @@ export function LearningWizard({
   const startMutation = useMutation({
     mutationFn: async () => {
       if (learningActive && learningRemoteId && Number(learningRemoteId) !== Number(remoteId)) {
-        const remoteLabel = health?.learn_remote_name || learningRemoteId
+        const remoteLabel = learningStatus?.learn_remote_name || learningRemoteId
         throw new Error(t('wizard.errorLearningActiveOther', { remote: remoteLabel }))
       }
       if (learningActive && Number(learningRemoteId) === Number(remoteId)) {
@@ -86,7 +86,7 @@ export function LearningWizard({
       return startLearning({ remoteId, extend: Boolean(startExtend) })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['health'] })
+      queryClient.invalidateQueries({ queryKey: ['status-learning'] })
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
     },
     onError: (error) => {
@@ -103,7 +103,7 @@ export function LearningWizard({
   const stopMutation = useMutation({
     mutationFn: stopLearning,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['health'] })
+      queryClient.invalidateQueries({ queryKey: ['status-learning'] })
     },
     onError: (e) => toast.show({ title: t('wizard.title'), message: errorMapper.getMessage(e, 'wizard.errorStopFailed') }),
   })

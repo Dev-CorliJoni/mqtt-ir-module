@@ -119,7 +119,25 @@
     "helpApiKeyBody": "अगर सेट है, बदलाव करने के लिए API key चाहिए।",
     "helpReverseProxyTitle": "रिवर्स प्रॉक्सी",
     "helpReverseProxyBody": "सिफारिश: प्रॉक्सी से UI के लिए API key जोड़ें। reverse-proxy.md देखें।",
-    "languageChangeFailed": "भाषा बदलना विफल रहा।"
+    "languageChangeFailed": "भाषा बदलना विफल रहा।",
+    "mqttTitle": "MQTT ब्रोकर",
+    "mqttDescription": "बाहरी एजेंटों के लिए उपयोग होने वाला MQTT ब्रोकर कॉन्फ़िगर करें।",
+    "mqttHostLabel": "ब्रोकर होस्ट",
+    "mqttHostHint": "होस्टनेम या IP पता। MQTT बंद करने के लिए खाली छोड़ें।",
+    "mqttPortLabel": "ब्रोकर पोर्ट",
+    "mqttPortHint": "डिफ़ॉल्ट: 1883",
+    "mqttUsernameLabel": "यूज़रनेम",
+    "mqttUsernameHint": "वैकल्पिक MQTT यूज़रनेम।",
+    "mqttPasswordLabel": "पासवर्ड",
+    "mqttPasswordHint": "मौजूदा संग्रहीत पासवर्ड बनाए रखने के लिए खाली छोड़ें।",
+    "mqttPasswordStoredHint": "वर्तमान में पासवर्ड डेटाबेस में एन्क्रिप्टेड रूप में संग्रहीत है।",
+    "mqttBaseTopicLabel": "इंस्टेंस",
+    "mqttBaseTopicHint": "वैकल्पिक। इसे केवल तब उपयोग करें जब कई सेवाएं एक ही ब्रोकर साझा करती हों। मान्य: अक्षर, अंक, _ और -।",
+    "mqttClientIdPrefixLabel": "क्लाइंट आईडी प्रीफ़िक्स",
+    "mqttClientIdPrefixHint": "jmqtt के app_name के रूप में उपयोग होता है (अक्षर, अंक, हाइफ़न)।",
+    "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY नहीं है। MQTT पासवर्ड सहेजना ब्लॉक किया गया है।",
+    "mqttSaved": "MQTT सेटिंग्स सहेजी गईं।",
+    "mqttSaveFailed": "MQTT सेटिंग्स सहेजने में विफल।"
   },
   "wizard": {
     "title": "लर्निंग विज़ार्ड",
@@ -196,7 +214,10 @@
     "offlineTitle": "बैकएंड उपलब्ध नहीं",
     "offlineBody": "कंटेनर/नेटवर्क जांचें और फिर कोशिश करें।",
     "genericTitle": "कुछ गलत हो गया",
-    "genericBody": "कृपया थोड़ी देर बाद फिर से कोशिश करें।"
+    "genericBody": "कृपया थोड़ी देर बाद फिर से कोशिश करें।",
+    "settingsMasterKeyBody": "SETTINGS_MASTER_KEY नहीं है। पासवर्ड सहेजने से पहले इसे कॉन्फ़िगर करें।",
+    "mqttPasswordDecryptFailedBody": "संग्रहीत MQTT पासवर्ड को वर्तमान SETTINGS_MASTER_KEY से डिक्रिप्ट नहीं किया जा सका।",
+    "settingsCryptoMissingBody": "बैकएंड में एन्क्रिप्शन निर्भरता अनुपस्थित है। cryptography पैकेज इंस्टॉल करें।"
   },
   "languages": {
     "en": "अंग्रेज़ी",
