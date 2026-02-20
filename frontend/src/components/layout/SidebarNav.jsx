@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiHomeOutline, mdiRemoteTv, mdiCogOutline } from '@mdi/js'
+import { mdiHomeOutline, mdiRemoteTv, mdiCogOutline, mdiAccountGroupOutline } from '@mdi/js'
 import { getAppConfig } from '../../utils/appConfig.js'
 
 function Item({ to, icon, label }) {
@@ -46,6 +46,7 @@ export function SidebarNav() {
         <nav className="flex flex-col gap-2">
           <Item to="/" icon={mdiHomeOutline} label={t('nav.home')} />
           <Item to="/remotes" icon={mdiRemoteTv} label={t('nav.remotes')} />
+          <Item to="/agents" icon={mdiAccountGroupOutline} label={t('nav.agents')} />
           <Item to="/settings" icon={mdiCogOutline} label={t('nav.settings')} />
         </nav>
       </div>

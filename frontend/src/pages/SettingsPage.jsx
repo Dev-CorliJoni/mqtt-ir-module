@@ -1,18 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
 import { getAppConfig } from '../utils/appConfig.js'
-import { getElectronicsStatus } from '../api/statusApi.js'
-import { listAgents } from '../api/agentsApi.js'
+import { getElectronicsStatus, getMqttStatus } from '../api/statusApi.js'
 import { getSettings, updateSettings } from '../api/settingsApi.js'
 import { Button } from '../components/ui/Button.jsx'
 import { Modal } from '../components/ui/Modal.jsx'
 import { NumberField } from '../components/ui/NumberField.jsx'
 import { SelectField } from '../components/ui/SelectField.jsx'
 import { TextField } from '../components/ui/TextField.jsx'
-import { Tooltip } from '../components/ui/Tooltip.jsx'
 import { ErrorCallout } from '../components/ui/ErrorCallout.jsx'
 import { useToast } from '../components/ui/ToastProvider.jsx'
 import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
@@ -24,9 +21,8 @@ export function SettingsPage() {
   const errorMapper = new ApiErrorMapper(t)
   const config = useMemo(() => getAppConfig(), [])
   const electronicsQuery = useQuery({ queryKey: ['status-electronics'], queryFn: getElectronicsStatus })
-  const agentsQuery = useQuery({ queryKey: ['agents'], queryFn: listAgents, staleTime: 30_000 })
+  const mqttStatusQuery = useQuery({ queryKey: ['status-mqtt'], queryFn: getMqttStatus, refetchInterval: 5000 })
   const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings, staleTime: 60_000 })
-  const agents = agentsQuery.data || []
 
   const irRxDevice = electronicsQuery.data?.ir_rx_device
   const irTxDevice = electronicsQuery.data?.ir_tx_device
@@ -44,7 +40,6 @@ export function SettingsPage() {
   const [holdIdleTimeoutMs, setHoldIdleTimeoutMs] = useState('')
   const [aggregateRoundToUs, setAggregateRoundToUs] = useState('')
   const [aggregateMinMatchPercent, setAggregateMinMatchPercent] = useState('')
-  const [hubIsAgent, setHubIsAgent] = useState(true)
   const [mqttDirty, setMqttDirty] = useState(false)
   const [mqttHost, setMqttHost] = useState('')
   const [mqttPort, setMqttPort] = useState('1883')
@@ -62,11 +57,6 @@ export function SettingsPage() {
     setAggregateRoundToUs(String(defaults.aggregateRoundToUs))
     setAggregateMinMatchPercent(String(defaults.aggregateMinMatchPercent))
   }, [settingsQuery.data, learningDirty])
-
-  useEffect(() => {
-    if (!settingsQuery.data) return
-    setHubIsAgent(Boolean(settingsQuery.data.hub_is_agent ?? true))
-  }, [settingsQuery.data])
 
   useEffect(() => {
     if (!settingsQuery.data || mqttDirty) return
@@ -89,21 +79,11 @@ export function SettingsPage() {
     onError: (e) => toast.show({ title: t('settings.learningTitle'), message: errorMapper.getMessage(e, 'settings.learningSaveFailed') }),
   })
 
-  const hubAgentMutation = useMutation({
-    mutationFn: (value) => updateSettings({ hub_is_agent: value }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['settings'], data)
-      queryClient.invalidateQueries({ queryKey: ['agents'] })
-      setHubIsAgent(Boolean(data?.hub_is_agent ?? true))
-      toast.show({ title: t('settings.agentTitle'), message: t('common.saved') })
-    },
-    onError: (e) => toast.show({ title: t('settings.agentTitle'), message: errorMapper.getMessage(e, 'common.failed') }),
-  })
-
   const mqttMutation = useMutation({
     mutationFn: updateSettings,
     onSuccess: (data) => {
       queryClient.setQueryData(['settings'], data)
+      queryClient.invalidateQueries({ queryKey: ['status-mqtt'] })
       setMqttDirty(false)
       setMqttPassword('')
       toast.show({ title: t('settings.mqttTitle'), message: t('settings.mqttSaved') })
@@ -168,6 +148,10 @@ export function SettingsPage() {
   const disableMqttForm = !settingsQuery.data || isSavingMqtt
   const mqttPasswordStored = Boolean(settingsQuery.data?.mqtt_password_set)
   const showMasterKeyWarning = !hasMasterKey
+  const mqttConfigured = Boolean(mqttStatusQuery.data?.configured)
+  const mqttConnected = Boolean(mqttStatusQuery.data?.connected)
+  const mqttLastError = String(mqttStatusQuery.data?.last_error || '').trim()
+  const hubIsAgentReadonlyValue = Boolean(settingsQuery.data?.hub_is_agent ?? true)
 
   const handleLearningChange = (setter) => (event) => {
     setLearningDirty(true)
@@ -247,46 +231,12 @@ export function SettingsPage() {
         <CardBody>
           <div className="text-sm text-[rgb(var(--muted))]">{t('settings.agentDescription')}</div>
           <div className="mt-3 max-w-sm">
-            <SelectField
+            <TextField
               label={t('settings.hubIsAgentLabel')}
-              hint={t('settings.hubIsAgentHint')}
-              value={hubIsAgent ? 'true' : 'false'}
-              onChange={(event) => {
-                const nextValue = event.target.value === 'true'
-                setHubIsAgent(nextValue)
-                hubAgentMutation.mutate(nextValue)
-              }}
-              disabled={!settingsQuery.data || hubAgentMutation.isPending}
-            >
-              <option value="true">{t('common.yes')}</option>
-              <option value="false">{t('common.no')}</option>
-            </SelectField>
-          </div>
-          <div className="mt-4">
-            <div className="mb-2 text-sm font-semibold">{t('settings.registeredAgentsTitle')}</div>
-            {agents.length === 0 ? (
-              <div className="text-sm text-[rgb(var(--muted))]">{t('settings.noAgentsRegistered')}</div>
-            ) : (
-              <div className="space-y-2">
-                {agents.map((agent) => (
-                  <div
-                    key={agent.agent_id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold">{agent.name || agent.agent_id}</div>
-                      <div className="truncate text-xs text-[rgb(var(--muted))]">{agent.agent_id}</div>
-                    </div>
-                    <Link
-                      to={`/agent/${agent.agent_id}`}
-                      className="rounded-lg border border-[rgb(var(--border))] px-2 py-1 text-xs hover:bg-[rgb(var(--bg))]"
-                    >
-                      {t('settings.openAgentPage')}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )}
+              hint={t('settings.hubIsAgentReadonlyHint')}
+              value={hubIsAgentReadonlyValue ? t('common.yes') : t('common.no')}
+              disabled
+            />
           </div>
         </CardBody>
       </Card>
@@ -297,6 +247,23 @@ export function SettingsPage() {
         </CardHeader>
         <CardBody>
           <div className="text-sm text-[rgb(var(--muted))]">{t('settings.mqttDescription')}</div>
+          <div className="mt-3 text-sm">
+            <span className="font-semibold">{t('settings.mqttConnectionStatusLabel')}: </span>
+            {mqttConfigured ? (
+              mqttConnected ? (
+                <span className="text-green-600">{t('settings.mqttConnected')}</span>
+              ) : (
+                <span className="text-red-600">{t('settings.mqttDisconnected')}</span>
+              )
+            ) : (
+              <span className="text-[rgb(var(--muted))]">{t('settings.mqttNotConfigured')}</span>
+            )}
+          </div>
+          {mqttLastError ? (
+            <div className="mt-2 text-sm text-red-600">
+              {t('settings.mqttLastErrorLabel')}: {mqttLastError}
+            </div>
+          ) : null}
           {showMasterKeyWarning ? (
             <div className="mt-3 rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-700">
               {t('settings.mqttMasterKeyMissing')}
@@ -350,20 +317,7 @@ export function SettingsPage() {
               <option value="false">{t('common.no')}</option>
             </SelectField>
             <TextField
-              label={
-                <span className="inline-flex items-center gap-2">
-                  <span>{t('settings.mqttBaseTopicLabel')}</span>
-                  <Tooltip label={t('settings.mqttBaseTopicHint')}>
-                    <button
-                      type="button"
-                      aria-label={t('settings.help')}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[rgb(var(--border))] text-[10px] text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))]"
-                    >
-                      ?
-                    </button>
-                  </Tooltip>
-                </span>
-              }
+              label={t('settings.mqttBaseTopicLabel')}
               hint={t('settings.mqttBaseTopicHint')}
               value={mqttInstance}
               disabled={disableMqttForm}

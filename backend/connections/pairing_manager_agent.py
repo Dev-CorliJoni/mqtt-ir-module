@@ -14,12 +14,12 @@ class PairingManagerAgent:
     PAIRING_OPEN_TOPIC = "ir/pairing/open"
     PAIRING_OFFER_TOPIC_PREFIX = "ir/pairing/offer"
     PAIRING_ACCEPT_TOPIC_PREFIX = "ir/pairing/accept"
+    DEFAULT_LISTEN_WINDOW_SECONDS = 300
 
     def __init__(
         self,
         runtime_loader: RuntimeLoader,
         settings_store: Settings,
-        agent_uid: str,
         readable_name: str,
         sw_version: str,
         can_send: bool,
@@ -28,8 +28,7 @@ class PairingManagerAgent:
     ) -> None:
         self._runtime_loader = runtime_loader
         self._settings_store = settings_store
-        self._agent_uid = str(agent_uid or "").strip()
-        self._readable_name = str(readable_name or "").strip() or self._agent_uid
+        self._readable_name = str(readable_name or "").strip()
         self._sw_version = str(sw_version or "").strip()
         self._can_send = bool(can_send)
         self._can_learn = bool(can_learn)
@@ -40,6 +39,7 @@ class PairingManagerAgent:
         self._running = False
         self._subscribed_open = False
         self._subscribed_accept = False
+        self._listen_timer: Optional[threading.Timer] = None
 
     def start(self) -> None:
         connection = self._runtime_loader.mqtt_connection()
@@ -62,6 +62,12 @@ class PairingManagerAgent:
         with self._lock:
             self._subscribed_open = True
             self._subscribed_accept = True
+            if self._listen_timer is not None:
+                self._listen_timer.cancel()
+            timer = threading.Timer(self.DEFAULT_LISTEN_WINDOW_SECONDS, self._stop_listening_if_unbound)
+            timer.daemon = True
+            timer.start()
+            self._listen_timer = timer
 
     def stop(self) -> None:
         connection = self._runtime_loader.mqtt_connection()
@@ -71,6 +77,10 @@ class PairingManagerAgent:
             subscribed_accept = self._subscribed_accept
             self._subscribed_open = False
             self._subscribed_accept = False
+            timer = self._listen_timer
+            self._listen_timer = None
+        if timer is not None:
+            timer.cancel()
 
         if connection is None:
             return
@@ -117,19 +127,23 @@ class PairingManagerAgent:
         if not self._is_compatible(hub_sw_version):
             return
 
+        agent_uid = self._agent_uid()
+        if not agent_uid:
+            return
+
         runtime_status = self._runtime_loader.status()
         offer_payload = {
             "session_id": session_id,
             "nonce": nonce,
-            "agent_uid": self._agent_uid,
-            "readable_name": self._readable_name,
+            "agent_uid": agent_uid,
+            "readable_name": self._agent_name(agent_uid),
             "base_topic": runtime_status.get("base_topic"),
             "sw_version": self._sw_version,
             "can_send": self._can_send,
             "can_learn": self._can_learn,
             "offered_at": time.time(),
         }
-        offer_topic = f"{self.PAIRING_OFFER_TOPIC_PREFIX}/{session_id}/{self._agent_uid}"
+        offer_topic = f"{self.PAIRING_OFFER_TOPIC_PREFIX}/{session_id}/{agent_uid}"
         connection.publish(
             offer_topic,
             json.dumps(offer_payload, separators=(",", ":")),
@@ -141,8 +155,9 @@ class PairingManagerAgent:
         if self._is_bound():
             return
 
+        expected_agent_uid = self._agent_uid()
         session_id_from_topic, agent_uid_from_topic = self._parse_accept_topic(message.topic)
-        if not session_id_from_topic or agent_uid_from_topic != self._agent_uid:
+        if not session_id_from_topic or not expected_agent_uid or agent_uid_from_topic != expected_agent_uid:
             return
 
         payload = self._parse_payload(message)
@@ -171,6 +186,10 @@ class PairingManagerAgent:
             subscribed_accept = self._subscribed_accept
             self._subscribed_open = False
             self._subscribed_accept = False
+            timer = self._listen_timer
+            self._listen_timer = None
+        if timer is not None:
+            timer.cancel()
 
         try:
             if subscribed_open:
@@ -180,8 +199,23 @@ class PairingManagerAgent:
         except Exception as exc:
             self._logger.warning(f"Failed to stop pairing listeners: {exc}")
 
+    def _stop_listening_if_unbound(self) -> None:
+        if self._is_bound():
+            return
+        connection = self._runtime_loader.mqtt_connection()
+        if connection is None:
+            with self._lock:
+                self._subscribed_open = False
+                self._subscribed_accept = False
+                self._listen_timer = None
+            return
+        self._stop_listening(connection)
+
     def _accept_topic_wildcard(self) -> str:
-        return f"{self.PAIRING_ACCEPT_TOPIC_PREFIX}/+/{self._agent_uid}"
+        agent_uid = self._agent_uid()
+        if not agent_uid:
+            return f"{self.PAIRING_ACCEPT_TOPIC_PREFIX}/+/unknown"
+        return f"{self.PAIRING_ACCEPT_TOPIC_PREFIX}/+/{agent_uid}"
 
     def _parse_accept_topic(self, topic: str) -> tuple[str, str]:
         parts = str(topic or "").split("/")
@@ -239,3 +273,17 @@ class PairingManagerAgent:
         if not normalized:
             return ""
         return normalized.split(".", maxsplit=1)[0]
+
+    def _agent_uid(self) -> str:
+        client_id = str(self._runtime_loader.mqtt_client_id() or "").strip()
+        if client_id:
+            return client_id
+        runtime_status = self._runtime_loader.status()
+        fallback = str(runtime_status.get("client_id") or runtime_status.get("node_id") or "").strip()
+        return fallback
+
+    def _agent_name(self, agent_uid: str) -> str:
+        readable = str(self._readable_name or "").strip()
+        if readable:
+            return readable
+        return agent_uid

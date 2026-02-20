@@ -28,6 +28,33 @@ import { LearningWizard } from '../features/learning/LearningWizard.jsx'
 import { AgentPickerModal } from '../components/agents/AgentPickerModal.jsx'
 import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 
+function resolveLearningDisabledReason(remote, agents, t) {
+  const assignedId = String(remote?.assigned_agent_id || '').trim()
+  const onlineLearnCapable = (agents || []).filter(
+    (agent) => agent?.status === 'online' && Boolean(agent?.capabilities?.can_learn),
+  )
+
+  if (!assignedId) {
+    if (onlineLearnCapable.length === 0) {
+      return t('wizard.noLearnCapableAgent')
+    }
+    return t('wizard.assignAgentFirst')
+  }
+
+  const assigned = (agents || []).find((agent) => String(agent?.agent_id || '') === assignedId)
+  if (!assigned) {
+    return t('wizard.assignedAgentMissing')
+  }
+  if (assigned.status !== 'online') {
+    return t('wizard.assignedAgentOffline')
+  }
+  if (!assigned.capabilities?.can_learn) {
+    return t('wizard.assignedAgentCannotLearn')
+  }
+
+  return ''
+}
+
 export function RemoteDetailPage() {
   const { t } = useTranslation()
   const toast = useToast()
@@ -208,7 +235,11 @@ export function RemoteDetailPage() {
   const learningBlocked = learningActive && Number(learningRemoteId) !== Number(numericRemoteId)
   const learningRemoteLabel = learningStatusQuery.data?.learn_remote_name || (learningRemoteId ? `#${learningRemoteId}` : '')
   const buttonsLoading = buttonsQuery.isLoading
-  const wizardDisabled = learningBlocked || buttonsLoading
+  const learnDisabledReason = useMemo(() => {
+    if (!remote) return ''
+    return resolveLearningDisabledReason(remote, agents, t)
+  }, [remote, agents, t])
+  const wizardDisabled = learningBlocked || buttonsLoading || Boolean(learnDisabledReason)
 
   // Centralize wizard setup so every entry point uses the same state reset.
   const startWizard = (extend) => {
@@ -271,6 +302,7 @@ export function RemoteDetailPage() {
               variant="secondary"
               size="sm"
               onClick={handleWizardRequest}
+              title={learnDisabledReason || undefined}
               disabled={wizardDisabled}
             >
               <Icon path={mdiMagicStaff} size={1} />
@@ -282,6 +314,11 @@ export function RemoteDetailPage() {
           {learningBlocked ? (
             <div className="mb-3 text-sm text-[rgb(var(--muted))]">
               {t('wizard.learningActiveElsewhere', { remote: learningRemoteLabel })}
+            </div>
+          ) : null}
+          {learnDisabledReason ? (
+            <div className="mb-3 text-sm text-[rgb(var(--muted))]">
+              {learnDisabledReason}
             </div>
           ) : null}
           {/* Mobile-first grid: keep one column until the small breakpoint. */}

@@ -2,7 +2,8 @@
   "nav": {
     "home": "ہوم",
     "remotes": "ریموٹس",
-    "settings": "سیٹنگز"
+    "settings": "سیٹنگز",
+    "agents": "ایجنٹس"
   },
   "app": {
     "name": "Hub"
@@ -133,7 +134,7 @@
     "mqttPasswordHint": "موجودہ محفوظ شدہ پاس ورڈ برقرار رکھنے کے لیے خالی چھوڑیں۔",
     "mqttPasswordStoredHint": "فی الحال پاس ورڈ ڈیٹا بیس میں خفیہ شکل میں محفوظ ہے۔",
     "mqttBaseTopicLabel": "انسٹینس",
-    "mqttBaseTopicHint": "اختیاری۔ اسے صرف تب استعمال کریں جب کئی سروسز ایک ہی بروکر شیئر کریں۔ اجازت یافتہ: حروف، اعداد، _ اور -۔",
+    "mqttBaseTopicHint": "اختیاری۔ ایک ہی بروکر پر متعدد ہبز میں فرق کرنے کے لیے MQTT بروکر اسے استعمال کرتا ہے۔ اجازت یافتہ: حروف، اعداد، _ اور -۔",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY موجود نہیں۔ MQTT پاس ورڈ محفوظ کرنا بلاک ہے۔",
     "mqttSaved": "MQTT ترتیبات محفوظ ہو گئیں۔",
     "mqttSaveFailed": "MQTT ترتیبات محفوظ نہ ہو سکیں۔",
@@ -141,7 +142,13 @@
     "noAgentsRegistered": "کوئی ایجنٹ رجسٹر نہیں ہے۔",
     "openAgentPage": "ایجنٹ صفحہ کھولیں",
     "homeassistantEnabledLabel": "Home Assistant فعال",
-    "homeassistantEnabledHint": "Home Assistant کے لیے MQTT Discovery پبلشنگ فعال کریں (صرف Hub موڈ میں)।"
+    "homeassistantEnabledHint": "Home Assistant کے لیے MQTT Discovery پبلشنگ فعال کریں (صرف Hub موڈ میں)।",
+    "mqttConnectionStatusLabel": "MQTT کنکشن",
+    "mqttConnected": "کنیکٹڈ",
+    "mqttDisconnected": "منقطع",
+    "mqttNotConfigured": "کنفیگر نہیں",
+    "mqttLastErrorLabel": "آخری خرابی",
+    "hubIsAgentReadonlyHint": "صرف پڑھنے کے لیے۔ یہ LOCAL_AGENT_ENABLED ماحولاتی متغیر سے سیٹ ہوتا ہے۔"
   },
   "wizard": {
     "title": "سیکھنے کا وزرڈ",
@@ -188,7 +195,12 @@
     "summaryPress": "مختصر",
     "summaryHold": "طویل",
     "summaryOk": "ٹھیک",
-    "summaryMissing": "-"
+    "summaryMissing": "-",
+    "noLearnCapableAgent": "کوئی دستیاب ایجنٹ نہیں جو IR سگنلز سیکھ سکے۔",
+    "assignAgentFirst": "سیکھنے سے پہلے اس ریموٹ کے لیے ایک اسائن شدہ ایجنٹ منتخب کریں۔",
+    "assignedAgentMissing": "اسائن شدہ ایجنٹ رجسٹر نہیں ہے۔",
+    "assignedAgentOffline": "اسائن شدہ ایجنٹ آف لائن ہے۔",
+    "assignedAgentCannotLearn": "اسائن شدہ ایجنٹ IR سگنلز نہیں سیکھ سکتا۔"
   },
   "errors": {
     "unauthorizedTitle": "لکھنے کی رسائی کے لیے API کلید درکار ہے",
@@ -298,6 +310,21 @@
     "configurationUrlAuto": "موجودہ URL استعمال کریں",
     "configurationUrlSaved": "کنفیگریشن URL محفوظ ہو گیا۔",
     "assignedRemotesTitle": "مختص ریموٹس",
-    "assignedRemotesEmpty": "اس ایجنٹ کے لیے کوئی ریموٹ مختص نہیں ہے۔"
+    "assignedRemotesEmpty": "اس ایجنٹ کے لیے کوئی ریموٹ مختص نہیں ہے۔",
+    "registeredAgentsTitle": "رجسٹرڈ ایجنٹس",
+    "noAgentsRegistered": "کوئی ایجنٹ رجسٹر نہیں ہے۔",
+    "openAgentPage": "ایجنٹ صفحہ کھولیں",
+    "pairingTitle": "ایجنٹ جوڑی بنانا",
+    "pairingOpened": "جوڑی بنانے کا موڈ شروع ہوگیا۔",
+    "pairingClosed": "جوڑی بنانے کا موڈ بند ہوگیا۔",
+    "pairingRequiresMqtt": "MQTT کنفیگر ہونے تک جوڑی بنانا غیر فعال ہے۔",
+    "pairingMqttDisconnected": "MQTT کنیکٹ ہونے تک جوڑی بنانا غیر فعال ہے۔",
+    "pairingClosedState": "جوڑی بنانا اس وقت بند ہے۔",
+    "pairingOpenState": "جوڑی بنانا کھلا ہے۔",
+    "pairingOpenWithSeconds": "جوڑی بنانا کھلا ہے ({{seconds}} سیکنڈ باقی)۔",
+    "pairingDisabledHint": "جوڑی بنانا شروع کرنے سے پہلے Settings میں MQTT کنیکٹ کریں۔",
+    "openSettings": "سیٹنگز کھولیں",
+    "startPairing": "جوڑی بنانا شروع کریں",
+    "stopPairing": "جوڑی بنانا بند کریں"
   }
 }

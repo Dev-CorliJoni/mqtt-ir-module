@@ -2,7 +2,7 @@ import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiHomeOutline, mdiRemoteTv, mdiCogOutline } from '@mdi/js'
+import { mdiHomeOutline, mdiRemoteTv, mdiCogOutline, mdiAccountGroupOutline } from '@mdi/js'
 
 function Tab({ to, icon, label }) {
   return (
@@ -29,6 +29,7 @@ export function BottomNav() {
       <div className="flex">
         <Tab to="/" icon={mdiHomeOutline} label={t('nav.home')} />
         <Tab to="/remotes" icon={mdiRemoteTv} label={t('nav.remotes')} />
+        <Tab to="/agents" icon={mdiAccountGroupOutline} label={t('nav.agents')} />
         <Tab to="/settings" icon={mdiCogOutline} label={t('nav.settings')} />
       </div>
     </div>

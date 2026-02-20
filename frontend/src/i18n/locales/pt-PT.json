@@ -2,7 +2,8 @@
   "nav": {
     "home": "Início",
     "remotes": "Comandos",
-    "settings": "Definições"
+    "settings": "Definições",
+    "agents": "Agentes"
   },
   "app": {
     "name": "Hub"
@@ -133,7 +134,7 @@
     "mqttPasswordHint": "Deixe vazio para manter a palavra-passe atualmente guardada.",
     "mqttPasswordStoredHint": "Existe atualmente uma palavra-passe guardada cifrada na base de dados.",
     "mqttBaseTopicLabel": "Instância",
-    "mqttBaseTopicHint": "Opcional. Use apenas quando vários serviços partilham o mesmo broker. Permitidos: letras, números, _ e -.",
+    "mqttBaseTopicHint": "Opcional. Serve para o broker MQTT distinguir vários hubs que partilham o mesmo broker. Permitido: letras, números, _ e -.",
     "mqttMasterKeyMissing": "Falta SETTINGS_MASTER_KEY. O armazenamento de palavras-passe MQTT está bloqueado.",
     "mqttSaved": "Definições MQTT guardadas.",
     "mqttSaveFailed": "Não foi possível guardar as definições MQTT.",
@@ -141,7 +142,13 @@
     "noAgentsRegistered": "Não existem agentes registados.",
     "openAgentPage": "Abrir página do agente",
     "homeassistantEnabledLabel": "Home Assistant ativado",
-    "homeassistantEnabledHint": "Ativa a publicação MQTT Discovery para o Home Assistant (apenas modo Hub)."
+    "homeassistantEnabledHint": "Ativa a publicação MQTT Discovery para o Home Assistant (apenas modo Hub).",
+    "mqttConnectionStatusLabel": "Ligação MQTT",
+    "mqttConnected": "Ligado",
+    "mqttDisconnected": "Desligado",
+    "mqttNotConfigured": "Não configurado",
+    "mqttLastErrorLabel": "Último erro",
+    "hubIsAgentReadonlyHint": "Só leitura. Definido por LOCAL_AGENT_ENABLED nas variáveis de ambiente."
   },
   "wizard": {
     "title": "Assistente de aprendizagem",
@@ -188,7 +195,12 @@
     "summaryPress": "Curta",
     "summaryHold": "Longa",
     "summaryOk": "OK",
-    "summaryMissing": "-"
+    "summaryMissing": "-",
+    "noLearnCapableAgent": "Não existe nenhum agente disponível que consiga aprender sinais IR.",
+    "assignAgentFirst": "Selecione primeiro um agente atribuído para este comando antes de aprender.",
+    "assignedAgentMissing": "O agente atribuído não está registado.",
+    "assignedAgentOffline": "O agente atribuído está offline.",
+    "assignedAgentCannotLearn": "O agente atribuído não consegue aprender sinais IR."
   },
   "errors": {
     "unauthorizedTitle": "O acesso de escrita requer uma chave API",
@@ -298,6 +310,21 @@
     "configurationUrlAuto": "Usar URL atual",
     "configurationUrlSaved": "URL de configuração guardada.",
     "assignedRemotesTitle": "Comandos atribuídos",
-    "assignedRemotesEmpty": "Não há comandos atribuídos a este agente."
+    "assignedRemotesEmpty": "Não há comandos atribuídos a este agente.",
+    "registeredAgentsTitle": "Agentes registados",
+    "noAgentsRegistered": "Não existem agentes registados.",
+    "openAgentPage": "Abrir página do agente",
+    "pairingTitle": "Emparelhamento de agentes",
+    "pairingOpened": "Modo de emparelhamento iniciado.",
+    "pairingClosed": "Modo de emparelhamento parado.",
+    "pairingRequiresMqtt": "O emparelhamento está desativado até o MQTT estar configurado.",
+    "pairingMqttDisconnected": "O emparelhamento está desativado até o MQTT estar ligado.",
+    "pairingClosedState": "O emparelhamento está fechado.",
+    "pairingOpenState": "O emparelhamento está aberto.",
+    "pairingOpenWithSeconds": "Emparelhamento aberto (faltam {{seconds}} s).",
+    "pairingDisabledHint": "Ligue ao MQTT nas Definições antes de iniciar o emparelhamento.",
+    "openSettings": "Abrir definições",
+    "startPairing": "Iniciar emparelhamento",
+    "stopPairing": "Parar emparelhamento"
   }
 }

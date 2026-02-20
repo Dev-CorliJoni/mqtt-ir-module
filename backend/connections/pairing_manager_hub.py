@@ -22,7 +22,7 @@ class PairingManagerHub:
         runtime_loader: RuntimeLoader,
         database: Database,
         sw_version: str,
-        auto_open: bool = True,
+        auto_open: bool = False,
     ) -> None:
         self._runtime_loader = runtime_loader
         self._database = database
@@ -90,7 +90,7 @@ class PairingManagerHub:
 
         mqtt_status = self._runtime_loader.status()
         hub_topic = str(mqtt_status.get("base_topic") or "")
-        hub_id = hub_topic or self._runtime_loader.technical_name
+        hub_id = str(mqtt_status.get("node_id") or "").strip() or self._runtime_loader.technical_name
 
         payload = {
             "session_id": session_id,
@@ -216,7 +216,7 @@ class PairingManagerHub:
             "session_id": active_session,
             "nonce": active_nonce,
             "agent_uid": agent_uid,
-            "hub_id": hub_status.get("base_topic") or self._runtime_loader.technical_name,
+            "hub_id": hub_status.get("node_id") or self._runtime_loader.technical_name,
             "hub_name": self._runtime_loader.readable_name,
             "hub_topic": hub_status.get("base_topic"),
             "sw_version": self._sw_version,

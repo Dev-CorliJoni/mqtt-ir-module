@@ -11,11 +11,11 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from agents import AgentRegistry, AgentRoutingError, LocalAgent, LocalTransport
-from agents.agent_id_store import get_or_create_agent_id
 from api_models import (
     RemoteCreate,
     RemoteUpdate,
     AgentUpdate,
+    PairingOpenRequest,
     LearnStart,
     LearnCapture,
     ButtonUpdate,
@@ -52,17 +52,18 @@ engine = IrCtlEngine(
 status_comm = StatusCommunication()
 agent_registry = AgentRegistry(database=database)
 local_transport = LocalTransport(engine=engine, parser=parser)
-local_agent_id = get_or_create_agent_id(data_dir=env.data_folder)
-local_agent = LocalAgent(transport=local_transport, agent_id=local_agent_id)
+local_agent = LocalAgent(transport=local_transport, agent_id="local-hub-agent")
 runtime_loader = RuntimeLoader(
     settings_store=database.settings,
     settings_cipher=settings_cipher,
     role="hub",
+    environment=env,
 )
 pairing_manager = PairingManagerHub(
     runtime_loader=runtime_loader,
     database=database,
     sw_version=SOFTWARE_VERSION,
+    auto_open=False,
 )
 
 learning_defaults = database.settings.get_learning_defaults()
@@ -200,6 +201,11 @@ def status_mqtt() -> Dict[str, Any]:
     return runtime_loader.status()
 
 
+@api.get("/status/pairing")
+def status_pairing() -> Dict[str, Any]:
+    return pairing_manager.status()
+
+
 @api.get("/agents")
 def list_agents() -> List[Dict[str, Any]]:
     return agent_registry.list_agents()
@@ -234,6 +240,30 @@ def update_agent(
         raise HTTPException(status_code=400, detail=message)
 
 
+@api.post("/pairing/open")
+def pairing_open(
+    body: PairingOpenRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    try:
+        duration = int(body.duration_seconds or pairing_manager.DEFAULT_WINDOW_SECONDS)
+        return pairing_manager.open_pairing(duration_seconds=duration)
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api.post("/pairing/close")
+def pairing_close(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    try:
+        return pairing_manager.close_pairing()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # -----------------
 # Settings (UI)
 # -----------------
@@ -247,10 +277,14 @@ def get_settings() -> Dict[str, Any]:
 @api.put("/settings")
 def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
+    if body.hub_is_agent is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="hub_is_agent is managed via LOCAL_AGENT_ENABLED and is read-only in settings.",
+        )
     if (
         body.theme is None
         and body.language is None
-        and body.hub_is_agent is None
         and body.homeassistant_enabled is None
         and body.mqtt_host is None
         and body.mqtt_port is None
@@ -265,14 +299,20 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
     ):
         raise HTTPException(status_code=400, detail="at least one setting must be provided")
     try:
-        previous_settings = database.settings.get_ui_settings()
-        hub_is_agent = body.hub_is_agent
-        if env.local_agent_enabled is not None:
-            hub_is_agent = env.local_agent_enabled
+        mqtt_runtime_changed = any(
+            value is not None
+            for value in (
+                body.homeassistant_enabled,
+                body.mqtt_host,
+                body.mqtt_port,
+                body.mqtt_username,
+                body.mqtt_password,
+                body.mqtt_instance,
+            )
+        )
         updated = database.settings.update_ui_settings(
             theme=body.theme,
             language=body.language,
-            hub_is_agent=hub_is_agent,
             homeassistant_enabled=body.homeassistant_enabled,
             mqtt_host=body.mqtt_host,
             mqtt_port=body.mqtt_port,
@@ -287,11 +327,10 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             aggregate_min_match_ratio=body.aggregate_min_match_ratio,
         )
         learning.apply_learning_settings(updated)
-        if updated.get("hub_is_agent") != previous_settings.get("hub_is_agent"):
-            apply_hub_agent_setting(bool(updated.get("hub_is_agent")))
-        runtime_loader.reload()
-        pairing_manager.stop()
-        pairing_manager.start()
+        if mqtt_runtime_changed:
+            runtime_loader.reload()
+            pairing_manager.stop()
+            pairing_manager.start()
         return decorate_settings_payload(updated)
     except ValueError as e:
         message = str(e)

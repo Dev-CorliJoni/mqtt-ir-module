@@ -2,6 +2,7 @@
   "nav": {
     "home": "Home",
     "remotes": "Remotes",
+    "agents": "Agents",
     "settings": "Settings"
   },
   "app": {
@@ -105,7 +106,22 @@
     "configurationUrlAuto": "Use current URL",
     "configurationUrlSaved": "Configuration URL saved.",
     "assignedRemotesTitle": "Assigned remotes",
-    "assignedRemotesEmpty": "No remotes are assigned to this agent."
+    "assignedRemotesEmpty": "No remotes are assigned to this agent.",
+    "registeredAgentsTitle": "Registered agents",
+    "noAgentsRegistered": "No agents are registered.",
+    "openAgentPage": "Open agent page",
+    "pairingTitle": "Agent pairing",
+    "pairingOpened": "Pairing mode started.",
+    "pairingClosed": "Pairing mode stopped.",
+    "pairingRequiresMqtt": "Pairing is disabled until MQTT is configured.",
+    "pairingMqttDisconnected": "Pairing is disabled until MQTT is connected.",
+    "pairingClosedState": "Pairing is currently closed.",
+    "pairingOpenState": "Pairing is open.",
+    "pairingOpenWithSeconds": "Pairing is open ({{seconds}}s remaining).",
+    "pairingDisabledHint": "Connect to MQTT in Settings before starting pairing.",
+    "openSettings": "Open settings",
+    "startPairing": "Start pairing",
+    "stopPairing": "Stop pairing"
   },
   "settings": {
     "theme": "Theme",
@@ -136,7 +152,12 @@
     "mqttPasswordHint": "Leave empty to keep current stored password.",
     "mqttPasswordStoredHint": "A password is currently stored encrypted in the database.",
     "mqttBaseTopicLabel": "Instance",
-    "mqttBaseTopicHint": "Optional. Use only when multiple services share one broker. Allowed: letters, numbers, _ and -.",
+    "mqttBaseTopicHint": "Optional. Used by the MQTT broker to distinguish multiple hubs sharing one broker. Allowed: letters, numbers, _ and -.",
+    "mqttConnectionStatusLabel": "MQTT connection",
+    "mqttConnected": "Connected",
+    "mqttDisconnected": "Disconnected",
+    "mqttNotConfigured": "Not configured",
+    "mqttLastErrorLabel": "Last error",
     "mqttMasterKeyMissing": "SETTINGS_MASTER_KEY is missing. Storing MQTT passwords is blocked.",
     "mqttSaved": "MQTT settings saved.",
     "mqttSaveFailed": "Failed to save MQTT settings.",
@@ -166,7 +187,8 @@
     "noAgentsRegistered": "No agents are registered.",
     "openAgentPage": "Open agent page",
     "homeassistantEnabledLabel": "Home Assistant enabled",
-    "homeassistantEnabledHint": "Enable MQTT discovery publishing for Home Assistant (Hub mode only)."
+    "homeassistantEnabledHint": "Enable MQTT discovery publishing for Home Assistant (Hub mode only).",
+    "hubIsAgentReadonlyHint": "Read-only. Set via LOCAL_AGENT_ENABLED in environment variables."
   },
   "wizard": {
     "title": "Learning wizard",
@@ -208,6 +230,11 @@
     "errorStartFailed": "Failed to start learning.",
     "errorStopFailed": "Failed to stop learning.",
     "errorNoActiveButton": "No active button to capture.",
+    "noLearnCapableAgent": "No agent is available that can learn IR signals.",
+    "assignAgentFirst": "Select an assigned agent for this remote before learning.",
+    "assignedAgentMissing": "The assigned agent is not registered.",
+    "assignedAgentOffline": "The assigned agent is offline.",
+    "assignedAgentCannotLearn": "The assigned agent cannot learn IR signals.",
     "defaultButtonName": "Button",
     "defaultButtonPrefix": "BTN",
     "summaryPress": "Press",

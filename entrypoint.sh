@@ -7,7 +7,7 @@ start_mode="${start_mode,,}"
 
 case "${start_mode}" in
     agent)
-        exec uvicorn agent_main:app --host 0.0.0.0 --port 80
+        exec python3 agent_main.py
         ;;
     hub|"")
         exec uvicorn main:app --host 0.0.0.0 --port 80
