@@ -164,7 +164,7 @@ export function AgentPage() {
               {assignedRemotes.map((remote) => (
                 <div
                   key={remote.id}
-                  className="group aspect-square rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left shadow-[var(--shadow)] hover:shadow-[0_14px_30px_rgba(2,6,23,0.12)] cursor-pointer flex flex-col gap-3 transition-shadow"
+                  className="group rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left shadow-[var(--shadow)] hover:shadow-[0_14px_30px_rgba(2,6,23,0.12)] cursor-pointer flex flex-col gap-2 transition-shadow"
                   onClick={() => navigate(`/remotes/${remote.id}`)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -176,8 +176,8 @@ export function AgentPage() {
                   tabIndex={0}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="h-12 w-12 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] flex items-center justify-center">
-                      <Icon path={findIconPath(remote.icon || DEFAULT_REMOTE_ICON)} size={1.2} />
+                    <div className="h-14 w-14 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] flex items-center justify-center">
+                      <Icon path={findIconPath(remote.icon || DEFAULT_REMOTE_ICON)} size={1.4} />
                     </div>
                     <div onClick={(event) => event.stopPropagation()}>
                       <IconButton label={t('common.menu')} onClick={() => setMenuRemote(remote)} className="h-9 w-9 opacity-80 group-hover:opacity-100">
@@ -185,9 +185,8 @@ export function AgentPage() {
                       </IconButton>
                     </div>
                   </div>
-                  <div className="mt-auto min-w-0">
-                    <div className="font-semibold truncate">{remote.name}</div>
-                    <div className="text-xs text-[rgb(var(--muted))]">#{remote.id}</div>
+                  <div className="min-w-0">
+                    <div className="font-semibold truncate px-2">{remote.name}</div>
                   </div>
                 </div>
               ))}
