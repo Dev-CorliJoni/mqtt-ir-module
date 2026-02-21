@@ -111,17 +111,21 @@ export function AgentsPage() {
     })
   }, [agentsQuery.data])
 
-  const pairingStateText = useMemo(() => {
-    if (!mqttConfigured) return t('agents.pairingRequiresMqtt')
-    if (!mqttConnected) return t('agents.pairingMqttDisconnected')
-    if (!pairingOpen) return t('agents.pairingClosedState')
-    if (!pairingExpiresAt) return t('agents.pairingOpenState')
+  const pairingCountdown = useMemo(() => {
+    if (!pairingOpen || !pairingExpiresAt) return ''
     const secondsLeft = Math.max(0, Math.ceil((pairingExpiresAt * 1000 - nowMs) / 1000))
     const minutes = Math.floor(secondsLeft / 60)
     const seconds = secondsLeft % 60
-    const countdown = `${minutes}:${String(seconds).padStart(2, '0')}`
-    return t('agents.pairingOpenWithSeconds', { seconds: countdown })
-  }, [mqttConfigured, mqttConnected, pairingOpen, pairingExpiresAt, nowMs, t])
+    return `${minutes}:${String(seconds).padStart(2, '0')}`
+  }, [pairingOpen, pairingExpiresAt, nowMs])
+
+  const pairingHeaderText = useMemo(() => {
+    if (!mqttConfigured) return t('settings.mqttNotConfigured')
+    if (!mqttConnected) return t('settings.mqttDisconnected')
+    if (pairingOpen && pairingCountdown) return pairingCountdown
+    return pairingOpen ? t('agents.pairingStatusOpen') : t('agents.pairingStatusClosed')
+  }, [mqttConfigured, mqttConnected, pairingOpen, pairingCountdown, t])
+  const pairingHeaderIsCountdown = mqttConfigured && mqttConnected && pairingOpen && Boolean(pairingCountdown)
 
   const pairingDisabled = !mqttConfigured || !mqttConnected
   const actionPending =
@@ -135,9 +139,10 @@ export function AgentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>{t('agents.pairingTitle')}</CardTitle>
+          <div className={`text-sm text-[rgb(var(--muted))]${pairingHeaderIsCountdown ? ' font-mono tabular-nums' : ''}`}>{pairingHeaderText}</div>
         </CardHeader>
         <CardBody className="space-y-3">
-          <div className="text-sm text-[rgb(var(--muted))]">{pairingStateText}</div>
+          <div className="text-sm text-[rgb(var(--muted))]">{t('agents.pairingMqttHelp')}</div>
           {mqttQuery.data?.last_error ? (
             <div className="text-sm text-red-600">{mqttQuery.data.last_error}</div>
           ) : null}
@@ -149,21 +154,22 @@ export function AgentsPage() {
               </div>
             </div>
           ) : null}
-          <div className="flex gap-2">
-            <Button
-              onClick={() => openPairingMutation.mutate()}
-              disabled={pairingDisabled || pairingOpen || actionPending}
-            >
-              {t('agents.startPairing')}
-            </Button>
+          {pairingOpen ? (
             <Button
               variant="secondary"
               onClick={() => closePairingMutation.mutate()}
-              disabled={pairingDisabled || !pairingOpen || actionPending}
+              disabled={pairingDisabled || actionPending}
             >
               {t('agents.stopPairing')}
             </Button>
-          </div>
+          ) : (
+            <Button
+              onClick={() => openPairingMutation.mutate()}
+              disabled={pairingDisabled || actionPending}
+            >
+              {t('agents.startPairing')}
+            </Button>
+          )}
         </CardBody>
       </Card>
 
