@@ -36,12 +36,16 @@ export function AgentsPage() {
   const pairingQuery = useQuery({
     queryKey: ['status-pairing'],
     queryFn: getPairingStatus,
-    refetchInterval: 1000,
+    refetchInterval: (query) => {
+      const isOpen = Boolean(query.state.data?.open)
+      return isOpen ? 1000 : 5000
+    },
   })
+  const pairingOpenLive = Boolean(pairingQuery.data?.open)
   const agentsQuery = useQuery({
     queryKey: ['agents'],
     queryFn: listAgents,
-    refetchInterval: 1000,
+    refetchInterval: pairingOpenLive ? 1000 : false,
   })
 
   const openPairingMutation = useMutation({
