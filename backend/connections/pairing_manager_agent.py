@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
-from database.schemas.settings import Settings
+from .agent_binding_store import AgentBindingStore
 from .runtime_loader import RuntimeLoader
 
 
@@ -20,7 +20,7 @@ class PairingManagerAgent:
     def __init__(
         self,
         runtime_loader: RuntimeLoader,
-        settings_store: Settings,
+        binding_store: AgentBindingStore,
         readable_name: str,
         sw_version: str,
         can_send: bool,
@@ -28,7 +28,7 @@ class PairingManagerAgent:
         reset_binding: bool = False,
     ) -> None:
         self._runtime_loader = runtime_loader
-        self._settings_store = settings_store
+        self._binding_store = binding_store
         self._readable_name = str(readable_name or "").strip()
         self._sw_version = str(sw_version or "").strip()
         self._can_send = bool(can_send)
@@ -187,12 +187,14 @@ class PairingManagerAgent:
         if active_expires_at > 0 and time.time() >= active_expires_at:
             return
 
-        self._settings_store.set("pairing_hub_id", str(payload.get("hub_id") or ""))
-        self._settings_store.set("pairing_hub_topic", str(payload.get("hub_topic") or ""))
-        self._settings_store.set("pairing_hub_name", str(payload.get("hub_name") or ""))
-        self._settings_store.set("pairing_session_id", session_id_from_topic)
-        self._settings_store.set("pairing_nonce", payload_nonce)
-        self._settings_store.set("pairing_accepted_at", str(payload.get("accepted_at") or ""))
+        self._binding_store.set_binding(
+            hub_id=str(payload.get("hub_id") or ""),
+            hub_topic=str(payload.get("hub_topic") or ""),
+            hub_name=str(payload.get("hub_name") or ""),
+            session_id=session_id_from_topic,
+            nonce=payload_nonce,
+            accepted_at=payload.get("accepted_at"),
+        )
 
         self._stop_pairing_listeners(connection)
 
@@ -297,16 +299,10 @@ class PairingManagerAgent:
         return parts[3].strip()
 
     def _is_bound(self) -> bool:
-        hub_id = self._settings_store.get("pairing_hub_id", default="") or ""
-        return bool(str(hub_id).strip())
+        return self._binding_store.is_bound()
 
     def _clear_binding(self) -> None:
-        self._settings_store.set("pairing_hub_id", "")
-        self._settings_store.set("pairing_hub_topic", "")
-        self._settings_store.set("pairing_hub_name", "")
-        self._settings_store.set("pairing_session_id", "")
-        self._settings_store.set("pairing_nonce", "")
-        self._settings_store.set("pairing_accepted_at", "")
+        self._binding_store.clear_binding()
 
     def _clear_open_context_locked(self) -> None:
         self._active_session_id = ""
@@ -314,14 +310,7 @@ class PairingManagerAgent:
         self._active_expires_at = 0.0
 
     def _binding_data(self) -> Dict[str, Any]:
-        return {
-            "pairing_hub_id": self._settings_store.get("pairing_hub_id", default=""),
-            "pairing_hub_topic": self._settings_store.get("pairing_hub_topic", default=""),
-            "pairing_hub_name": self._settings_store.get("pairing_hub_name", default=""),
-            "pairing_session_id": self._settings_store.get("pairing_session_id", default=""),
-            "pairing_nonce": self._settings_store.get("pairing_nonce", default=""),
-            "pairing_accepted_at": self._settings_store.get("pairing_accepted_at", default=""),
-        }
+        return self._binding_store.binding_data()
 
     def _parse_payload(self, message: MQTTMessage) -> Optional[Dict[str, Any]]:
         value = message.json_value

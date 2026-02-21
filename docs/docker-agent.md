@@ -53,6 +53,13 @@ docker run --rm \
 - When unbound, agent keeps listening on `ir/pairing/open` until it is accepted by a Hub.
 - Accepted hub binding is persisted in app settings storage.
 - Agent always listens for `ir/pairing/unpair/<agent_id>`. On unpair command, it clears binding, publishes an ack, and returns to pairable mode.
+- While bound, agent executes Hub commands received on:
+  - `ir/agents/<agent_id>/cmd/send`
+  - `ir/agents/<agent_id>/cmd/learn/start`
+  - `ir/agents/<agent_id>/cmd/learn/capture`
+  - `ir/agents/<agent_id>/cmd/learn/stop`
+- Command results are published back to Hub on:
+  - `ir/hubs/<hub_id>/agents/<agent_id>/resp/<request_id>`
 
 ## Notes
 

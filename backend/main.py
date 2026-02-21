@@ -10,7 +10,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from agents import AgentRegistry, AgentRoutingError, LocalAgent, LocalTransport
+from agents import (
+    AgentRegistry,
+    AgentRoutingError,
+    LocalAgent,
+    LocalTransport,
+    MqttAgent,
+    MqttTransport,
+)
 from api_models import (
     RemoteCreate,
     RemoteUpdate,
@@ -32,7 +39,7 @@ from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
 from electronics.status_communication import StatusCommunication
-from connections import PairingManagerHub, RuntimeLoader
+from connections import AgentCommandClientHub, PairingManagerHub, RuntimeLoader
 from helper import Environment, SettingsCipher
 from database import Database
 from runtime_version import SOFTWARE_VERSION
@@ -65,6 +72,7 @@ pairing_manager = PairingManagerHub(
     sw_version=SOFTWARE_VERSION,
     auto_open=False,
 )
+command_client = AgentCommandClientHub(runtime_loader=runtime_loader)
 
 learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
@@ -103,6 +111,42 @@ def apply_hub_agent_setting(enabled: bool) -> None:
         agent_registry.unregister_agent(local_agent.agent_id)
 
 
+def register_external_mqtt_agent(agent_data: Dict[str, Any]) -> None:
+    agent_id = str(agent_data.get("agent_id") or "").strip()
+    if not agent_id:
+        return
+
+    agent_name = str(agent_data.get("name") or "").strip() or agent_id
+    capabilities: Dict[str, Any] = {
+        "can_send": bool(agent_data.get("can_send")),
+        "can_learn": bool(agent_data.get("can_learn")),
+    }
+    sw_version = str(agent_data.get("sw_version") or "").strip()
+    if sw_version:
+        capabilities["sw_version"] = sw_version
+    agent_topic = str(agent_data.get("agent_topic") or "").strip()
+    if agent_topic:
+        capabilities["agent_topic"] = agent_topic
+
+    transport = MqttTransport(command_client=command_client, agent_id=agent_id)
+    agent = MqttAgent(
+        transport=transport,
+        agent_id=agent_id,
+        name=agent_name,
+        capabilities=capabilities,
+    )
+    agent_registry.register_agent(agent)
+
+
+def register_external_mqtt_agents_from_db() -> None:
+    for agent_data in database.agents.list():
+        transport = str(agent_data.get("transport") or "").strip()
+        pending = bool(agent_data.get("pending"))
+        if transport != "mqtt" or pending:
+            continue
+        register_external_mqtt_agent(agent_data)
+
+
 def resolve_hub_agent_setting() -> bool:
     settings = database.settings.get_ui_settings()
     hub_is_agent = bool(settings.get("hub_is_agent", True))
@@ -130,6 +174,8 @@ async def lifespan(app: FastAPI):
 
     apply_hub_agent_setting(resolve_hub_agent_setting())
     runtime_loader.start()
+    command_client.start()
+    register_external_mqtt_agents_from_db()
     pairing_manager.start()
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
@@ -140,6 +186,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         pairing_manager.stop()
+        command_client.stop()
         runtime_loader.stop()
         learning.stop()
 
@@ -244,7 +291,9 @@ def update_agent(
 def delete_agent(agent_id: str, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return pairing_manager.unpair_and_delete_agent(agent_id)
+        result = pairing_manager.unpair_and_delete_agent(agent_id)
+        agent_registry.unregister_agent(agent_id)
+        return result
     except ValueError as e:
         message = str(e)
         if message == "Unknown agent_id":
@@ -282,7 +331,9 @@ def pairing_close(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, 
 def pairing_accept(agent_id: str, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return pairing_manager.accept_offer(agent_id=agent_id)
+        accepted = pairing_manager.accept_offer(agent_id=agent_id)
+        register_external_mqtt_agent(accepted)
+        return accepted
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -355,8 +406,10 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         )
         learning.apply_learning_settings(updated)
         if mqtt_runtime_changed:
-            runtime_loader.reload()
+            command_client.stop()
             pairing_manager.stop()
+            runtime_loader.reload()
+            command_client.start()
             pairing_manager.start()
         return decorate_settings_payload(updated)
     except ValueError as e:
@@ -490,6 +543,8 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
     try:
         result = learning.start(remote_id=body.remote_id, extend=body.extend)
         return LearnStartResponse.model_validate(result)
+    except AgentRoutingError:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -521,6 +576,8 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
             button_name=body.button_name,
         )
         return LearnCaptureResponse.model_validate(result)
+    except AgentRoutingError:
+        raise
     except TimeoutError as e:
         raise HTTPException(status_code=408, detail=str(e))
     except RuntimeError as e:
@@ -591,6 +648,8 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
         result = agent.send(payload)
         agent_registry.mark_agent_activity(agent.agent_id)
         return SendResponse.model_validate(result)
+    except AgentRoutingError:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

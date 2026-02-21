@@ -68,5 +68,6 @@ MQTT settings for Hub are configured in UI and stored in DB:
 - This image can run with or without MQTT configured.
 - Pairing for external agents is manual from the Agents page (fixed 5-minute window).
 - Agent offers are shown as pending and must be explicitly accepted from the UI.
+- Accepted external MQTT agents can execute `send` and `learn` commands via MQTT command/response topics.
 - Home Assistant integration is available only in hub role and only when enabled in settings.
 - If you do not mount a volume for `DATA_DIR`, settings/database are lost when the container is recreated.

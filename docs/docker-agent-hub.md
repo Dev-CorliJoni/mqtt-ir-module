@@ -66,6 +66,7 @@ MQTT settings for Hub are configured in UI and stored in DB (same as `ir-hub`).
 
 - Internal local agent does not require MQTT to execute IR.
 - External MQTT agents can still be paired and used in parallel.
+- Accepted external MQTT agents execute `send` and `learn` via MQTT command/response topics.
 - External agent pairing uses a fixed 5-minute pairing window with explicit accept in the Hub UI.
 - `hub_is_agent` is treated as read-only in UI/API and controlled by `LOCAL_AGENT_ENABLED`.
 - If you do not mount a volume for `DATA_DIR`, settings/database are lost when the container is recreated.
