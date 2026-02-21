@@ -4,15 +4,22 @@ export function getPairingStatus() {
   return requestJson('/status/pairing')
 }
 
-export function openPairing(durationSeconds = 300) {
+export function openPairing() {
   return requestJson('/pairing/open', {
     method: 'POST',
-    body: { duration_seconds: durationSeconds },
+    body: {},
   })
 }
 
 export function closePairing() {
   return requestJson('/pairing/close', {
+    method: 'POST',
+    body: {},
+  })
+}
+
+export function acceptPairing(agentId) {
+  return requestJson(`/pairing/accept/${encodeURIComponent(agentId)}`, {
     method: 'POST',
     body: {},
   })

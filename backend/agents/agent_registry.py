@@ -22,6 +22,7 @@ class AgentRegistry:
         self._db.agents.upsert(
             agent_id=agent.agent_id,
             name=agent.name,
+            icon=None,
             transport=agent.transport,
             status=str(status.get("status") or "online"),
             can_send=self._resolve_can_send(capabilities),
@@ -29,6 +30,8 @@ class AgentRegistry:
             sw_version=self._resolve_sw_version(capabilities),
             agent_topic=self._resolve_agent_topic(capabilities),
             last_seen=time.time(),
+            pending=False,
+            pairing_session_id=None,
         )
 
     def unregister_agent(self, agent_id: str) -> None:

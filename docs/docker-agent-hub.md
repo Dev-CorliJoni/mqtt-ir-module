@@ -20,20 +20,38 @@ docker run --rm -p 8080:80 \
   mqtt-ir-agent-hub:latest
 ```
 
-## Required
+## Environment reference
 
-- IR devices mapped into container (`IR_RX_DEVICE`, `IR_TX_DEVICE` defaults are `/dev/lirc0`, `/dev/lirc1`)
-- `DATA_DIR` (recommended persistent volume)
-- `SETTINGS_MASTER_KEY` when MQTT password should be stored from UI
+- `IR_RX_DEVICE` / `IR_TX_DEVICE` (optional, defaults: `/dev/lirc0` and `/dev/lirc1`)
+  Use these when your host exposes different device paths. Values must match the mapped container device paths.
+- `IR_WIDEBAND` (optional, default: `false`)
+  Enable only if your receiver requires wideband mode.
+- `DATA_DIR` (optional, default: `/data`)
+  Use only if you want a different internal path. For persistence, mount a volume to this path.
+- `SETTINGS_MASTER_KEY` (required only for storing MQTT password from UI)
+  Without this key, host/port/username can still be saved, but password save is blocked.
+- `API_KEY` (optional)
+  Protects write endpoints. Set this if the Hub UI/API should require authentication for changes.
+- `PUBLIC_BASE_URL` (optional)
+  Use when served behind reverse proxy sub-path (for example `/mqtt-ir-module/`).
+- `PUBLIC_API_KEY` (optional, not recommended for public deployments)
+  Exposes a write key to the browser. Prefer reverse-proxy header injection instead.
+- `DEBUG` (optional, default: `false`)
+  Enables debug behavior and additional diagnostics.
 
-## Optional
+## Generate SETTINGS_MASTER_KEY
 
-- `IR_RX_DEVICE`, `IR_TX_DEVICE`
-- `IR_WIDEBAND`
-- `API_KEY`
-- `PUBLIC_BASE_URL`
-- `PUBLIC_API_KEY`
-- `DEBUG`
+Use one of these commands to generate a strong random key:
+
+```bash
+openssl rand -base64 32
+```
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Store it as an environment variable and keep it stable. Changing it later prevents decrypting already stored MQTT passwords.
 
 MQTT settings for Hub are configured in UI and stored in DB (same as `ir-hub`).
 
@@ -48,4 +66,6 @@ MQTT settings for Hub are configured in UI and stored in DB (same as `ir-hub`).
 
 - Internal local agent does not require MQTT to execute IR.
 - External MQTT agents can still be paired and used in parallel.
+- External agent pairing uses a fixed 5-minute pairing window with explicit accept in the Hub UI.
 - `hub_is_agent` is treated as read-only in UI/API and controlled by `LOCAL_AGENT_ENABLED`.
+- If you do not mount a volume for `DATA_DIR`, settings/database are lost when the container is recreated.

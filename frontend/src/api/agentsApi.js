@@ -14,3 +14,9 @@ export function updateAgent(agentId, payload) {
     body: payload,
   })
 }
+
+export function deleteAgent(agentId) {
+  return requestJson(`/agents/${agentId}`, {
+    method: 'DELETE',
+  })
+}

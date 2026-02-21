@@ -14,7 +14,8 @@ class PairingManagerAgent:
     PAIRING_OPEN_TOPIC = "ir/pairing/open"
     PAIRING_OFFER_TOPIC_PREFIX = "ir/pairing/offer"
     PAIRING_ACCEPT_TOPIC_PREFIX = "ir/pairing/accept"
-    DEFAULT_LISTEN_WINDOW_SECONDS = 300
+    PAIRING_UNPAIR_TOPIC_PREFIX = "ir/pairing/unpair"
+    PAIRING_UNPAIR_ACK_TOPIC_PREFIX = "ir/pairing/unpair_ack"
 
     def __init__(
         self,
@@ -39,7 +40,10 @@ class PairingManagerAgent:
         self._running = False
         self._subscribed_open = False
         self._subscribed_accept = False
-        self._listen_timer: Optional[threading.Timer] = None
+        self._subscribed_unpair = False
+        self._active_session_id = ""
+        self._active_nonce = ""
+        self._active_expires_at = 0.0
 
     def start(self) -> None:
         connection = self._runtime_loader.mqtt_connection()
@@ -54,20 +58,14 @@ class PairingManagerAgent:
                 return
             self._running = True
 
+        connection.subscribe(self._unpair_topic_wildcard(), self._on_unpair_command, qos=QoS.AtLeastOnce)
+        with self._lock:
+            self._subscribed_unpair = True
+
         if self._is_bound():
             return
 
-        connection.subscribe(self.PAIRING_OPEN_TOPIC, self._on_pairing_open, qos=QoS.AtLeastOnce)
-        connection.subscribe(self._accept_topic_wildcard(), self._on_pairing_accept, qos=QoS.AtLeastOnce)
-        with self._lock:
-            self._subscribed_open = True
-            self._subscribed_accept = True
-            if self._listen_timer is not None:
-                self._listen_timer.cancel()
-            timer = threading.Timer(self.DEFAULT_LISTEN_WINDOW_SECONDS, self._stop_listening_if_unbound)
-            timer.daemon = True
-            timer.start()
-            self._listen_timer = timer
+        self._start_pairing_listeners(connection)
 
     def stop(self) -> None:
         connection = self._runtime_loader.mqtt_connection()
@@ -75,12 +73,11 @@ class PairingManagerAgent:
             self._running = False
             subscribed_open = self._subscribed_open
             subscribed_accept = self._subscribed_accept
+            subscribed_unpair = self._subscribed_unpair
             self._subscribed_open = False
             self._subscribed_accept = False
-            timer = self._listen_timer
-            self._listen_timer = None
-        if timer is not None:
-            timer.cancel()
+            self._subscribed_unpair = False
+            self._clear_open_context_locked()
 
         if connection is None:
             return
@@ -90,6 +87,8 @@ class PairingManagerAgent:
                 connection.unsubscribe(self.PAIRING_OPEN_TOPIC)
             if subscribed_accept:
                 connection.unsubscribe(self._accept_topic_wildcard())
+            if subscribed_unpair:
+                connection.unsubscribe(self._unpair_topic_wildcard())
         except Exception as exc:
             self._logger.warning(f"Failed to unsubscribe agent pairing topics: {exc}")
 
@@ -131,6 +130,11 @@ class PairingManagerAgent:
         if not agent_uid:
             return
 
+        with self._lock:
+            self._active_session_id = session_id
+            self._active_nonce = nonce
+            self._active_expires_at = expires_at
+
         runtime_status = self._runtime_loader.status()
         offer_payload = {
             "session_id": session_id,
@@ -171,6 +175,18 @@ class PairingManagerAgent:
         if not payload_nonce:
             return
 
+        with self._lock:
+            active_session_id = self._active_session_id
+            active_nonce = self._active_nonce
+            active_expires_at = self._active_expires_at
+
+        if not active_session_id or active_session_id != session_id_from_topic:
+            return
+        if not active_nonce or payload_nonce != active_nonce:
+            return
+        if active_expires_at > 0 and time.time() >= active_expires_at:
+            return
+
         self._settings_store.set("pairing_hub_id", str(payload.get("hub_id") or ""))
         self._settings_store.set("pairing_hub_topic", str(payload.get("hub_topic") or ""))
         self._settings_store.set("pairing_hub_name", str(payload.get("hub_name") or ""))
@@ -178,18 +194,74 @@ class PairingManagerAgent:
         self._settings_store.set("pairing_nonce", payload_nonce)
         self._settings_store.set("pairing_accepted_at", str(payload.get("accepted_at") or ""))
 
-        self._stop_listening(connection)
+        self._stop_pairing_listeners(connection)
 
-    def _stop_listening(self, connection: Any) -> None:
+    def _on_unpair_command(self, connection: Any, client: Any, userdata: Any, message: MQTTMessage) -> None:
+        expected_agent_uid = self._agent_uid()
+        agent_uid_from_topic = self._parse_unpair_topic(message.topic)
+        if not expected_agent_uid or not agent_uid_from_topic or agent_uid_from_topic != expected_agent_uid:
+            return
+
+        payload = self._parse_payload(message)
+        if payload is None:
+            return
+        command_id = str(payload.get("command_id") or "").strip()
+        if not command_id:
+            return
+
+        self._clear_binding()
+        with self._lock:
+            self._clear_open_context_locked()
+            running = self._running
+
+        if running:
+            self._start_pairing_listeners(connection)
+
+        ack_payload = {
+            "agent_uid": expected_agent_uid,
+            "command_id": command_id,
+            "acked_at": time.time(),
+        }
+        ack_topic = f"{self.PAIRING_UNPAIR_ACK_TOPIC_PREFIX}/{expected_agent_uid}"
+        command_topic = f"{self.PAIRING_UNPAIR_TOPIC_PREFIX}/{expected_agent_uid}"
+
+        try:
+            connection.publish(
+                ack_topic,
+                json.dumps(ack_payload, separators=(",", ":")),
+                qos=QoS.AtLeastOnce,
+                retain=False,
+            )
+            # Clear retained unpair command after ack to avoid stale replay.
+            connection.publish(command_topic, "", qos=QoS.AtLeastOnce, retain=True)
+        except Exception as exc:
+            self._logger.warning(f"Failed to acknowledge unpair command: {exc}")
+
+    def _start_pairing_listeners(self, connection: Any) -> None:
+        with self._lock:
+            if self._subscribed_open and self._subscribed_accept:
+                return
+            subscribed_open = self._subscribed_open
+            subscribed_accept = self._subscribed_accept
+
+        try:
+            if not subscribed_open:
+                connection.subscribe(self.PAIRING_OPEN_TOPIC, self._on_pairing_open, qos=QoS.AtLeastOnce)
+            if not subscribed_accept:
+                connection.subscribe(self._accept_topic_wildcard(), self._on_pairing_accept, qos=QoS.AtLeastOnce)
+            with self._lock:
+                self._subscribed_open = True
+                self._subscribed_accept = True
+        except Exception as exc:
+            self._logger.warning(f"Failed to subscribe to pairing listeners: {exc}")
+
+    def _stop_pairing_listeners(self, connection: Any) -> None:
         with self._lock:
             subscribed_open = self._subscribed_open
             subscribed_accept = self._subscribed_accept
             self._subscribed_open = False
             self._subscribed_accept = False
-            timer = self._listen_timer
-            self._listen_timer = None
-        if timer is not None:
-            timer.cancel()
+            self._clear_open_context_locked()
 
         try:
             if subscribed_open:
@@ -199,23 +271,14 @@ class PairingManagerAgent:
         except Exception as exc:
             self._logger.warning(f"Failed to stop pairing listeners: {exc}")
 
-    def _stop_listening_if_unbound(self) -> None:
-        if self._is_bound():
-            return
-        connection = self._runtime_loader.mqtt_connection()
-        if connection is None:
-            with self._lock:
-                self._subscribed_open = False
-                self._subscribed_accept = False
-                self._listen_timer = None
-            return
-        self._stop_listening(connection)
-
     def _accept_topic_wildcard(self) -> str:
         agent_uid = self._agent_uid()
         if not agent_uid:
             return f"{self.PAIRING_ACCEPT_TOPIC_PREFIX}/+/unknown"
         return f"{self.PAIRING_ACCEPT_TOPIC_PREFIX}/+/{agent_uid}"
+
+    def _unpair_topic_wildcard(self) -> str:
+        return f"{self.PAIRING_UNPAIR_TOPIC_PREFIX}/+"
 
     def _parse_accept_topic(self, topic: str) -> tuple[str, str]:
         parts = str(topic or "").split("/")
@@ -224,6 +287,14 @@ class PairingManagerAgent:
         if parts[0] != "ir" or parts[1] != "pairing" or parts[2] != "accept":
             return "", ""
         return parts[3].strip(), parts[4].strip()
+
+    def _parse_unpair_topic(self, topic: str) -> str:
+        parts = str(topic or "").split("/")
+        if len(parts) != 4:
+            return ""
+        if parts[0] != "ir" or parts[1] != "pairing" or parts[2] != "unpair":
+            return ""
+        return parts[3].strip()
 
     def _is_bound(self) -> bool:
         hub_id = self._settings_store.get("pairing_hub_id", default="") or ""
@@ -236,6 +307,11 @@ class PairingManagerAgent:
         self._settings_store.set("pairing_session_id", "")
         self._settings_store.set("pairing_nonce", "")
         self._settings_store.set("pairing_accepted_at", "")
+
+    def _clear_open_context_locked(self) -> None:
+        self._active_session_id = ""
+        self._active_nonce = ""
+        self._active_expires_at = 0.0
 
     def _binding_data(self) -> Dict[str, Any]:
         return {

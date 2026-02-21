@@ -23,20 +23,25 @@ docker run --rm \
   mqtt-ir-agent:latest
 ```
 
-## Required
+## Environment reference
 
-- `MQTT_HOST` (agent needs broker access for pairing/transport)
-- IR devices mapped into container (for send/learn)
-
-## Optional
-
-- `MQTT_PORT`
-- `MQTT_USERNAME`
-- `MQTT_PASSWORD`
-- `AGENT_PAIRING_RESET` (clear stored pairing binding on startup)
-- `IR_RX_DEVICE`, `IR_TX_DEVICE`
-- `IR_WIDEBAND`
-- `DEBUG`
+- `MQTT_HOST` (required)
+  Broker hostname or IP reachable from inside the container (example: `192.168.215.2`).
+  Do not wrap values with extra quotes in Compose list-style env lines.
+- `MQTT_PORT` (optional, default: `1883`)
+  Broker port. Set this only when broker does not use `1883`.
+- `MQTT_USERNAME` / `MQTT_PASSWORD` (optional)
+  Set when broker requires authentication.
+- `AGENT_PAIRING_RESET` (optional, default: `false`)
+  Set `true` to clear stored pairing binding on startup.
+- `IR_RX_DEVICE` / `IR_TX_DEVICE` (optional, defaults: `/dev/lirc0` and `/dev/lirc1`)
+  Use when your host exposes different device paths. Values must match mapped container device paths.
+- `IR_WIDEBAND` (optional, default: `false`)
+  Enable only if your receiver requires wideband mode.
+- `DATA_DIR` (optional, default: `/data`)
+  Use only if you want a different internal path. For persistence, mount a volume to this path.
+- `DEBUG` (optional, default: `false`)
+  Enables debug behavior and additional diagnostics.
 
 ## Defaults in image
 
@@ -45,11 +50,22 @@ docker run --rm \
 ## Runtime behavior
 
 - Agent MQTT identity is derived from jmqtt client identity (stable deterministic client id generation).
-- Pairing listens on `ir/pairing/open` for 5 minutes after startup when agent is unbound.
+- When unbound, agent keeps listening on `ir/pairing/open` until it is accepted by a Hub.
 - Accepted hub binding is persisted in app settings storage.
+- Agent always listens for `ir/pairing/unpair/<agent_id>`. On unpair command, it clears binding, publishes an ack, and returns to pairable mode.
 
 ## Notes
 
 - This image does not host the Hub UI.
 - This image does not expose an HTTP API.
 - Hub pairing is initiated from Hub side (Agents page).
+- If you do not mount a volume for `DATA_DIR`, pairing binding and local state are lost when the container is recreated.
+
+## Troubleshooting
+
+- `MQTT start failed: [Errno -2] Name or service not known`
+  - `MQTT_HOST` is invalid or not resolvable from the container.
+  - In Compose, prefer map-style env definitions:
+    - `MQTT_HOST: 192.168.215.2`
+  - If list-style is used, avoid embedded quotes:
+    - `- MQTT_HOST=192.168.215.2`

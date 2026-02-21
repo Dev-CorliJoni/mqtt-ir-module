@@ -240,6 +240,20 @@ def update_agent(
         raise HTTPException(status_code=400, detail=message)
 
 
+@api.delete("/agents/{agent_id}")
+def delete_agent(agent_id: str, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    try:
+        return pairing_manager.unpair_and_delete_agent(agent_id)
+    except ValueError as e:
+        message = str(e)
+        if message == "Unknown agent_id":
+            raise HTTPException(status_code=404, detail=message)
+        raise HTTPException(status_code=400, detail=message)
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
 @api.post("/pairing/open")
 def pairing_open(
     body: PairingOpenRequest,
@@ -247,7 +261,7 @@ def pairing_open(
 ) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        duration = int(body.duration_seconds or pairing_manager.DEFAULT_WINDOW_SECONDS)
+        duration = pairing_manager.DEFAULT_WINDOW_SECONDS
         return pairing_manager.open_pairing(duration_seconds=duration)
     except RuntimeError as e:
         raise HTTPException(status_code=409, detail=str(e))
@@ -260,6 +274,19 @@ def pairing_close(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, 
     require_api_key(x_api_key)
     try:
         return pairing_manager.close_pairing()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api.post("/pairing/accept/{agent_id}")
+def pairing_accept(agent_id: str, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    try:
+        return pairing_manager.accept_offer(agent_id=agent_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
