@@ -167,28 +167,23 @@ export function AgentsPage() {
         </CardBody>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('agents.registeredAgentsTitle')}</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {agents.length === 0 ? (
-            <div className="text-sm text-[rgb(var(--muted))]">{t('agents.noAgentsRegistered')}</div>
-          ) : (
-            <div className="space-y-2">
-              {agents.map((agent) => (
-                <AgentTile
-                  key={agent.agent_id}
-                  agent={agent}
-                  onAccept={(target) => acceptPairingMutation.mutate(target.agent_id)}
-                  onEdit={(target) => setEditTarget(target)}
-                  onDelete={(target) => setDeleteTarget(target)}
-                />
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
+      <section className="space-y-2">
+        {agents.length === 0 ? (
+          <div className="text-sm text-[rgb(var(--muted))]">{t('agents.noAgentsRegistered')}</div>
+        ) : (
+          <div className="space-y-2">
+            {agents.map((agent) => (
+              <AgentTile
+                key={agent.agent_id}
+                agent={agent}
+                onAccept={(target) => acceptPairingMutation.mutate(target.agent_id)}
+                onEdit={(target) => setEditTarget(target)}
+                onDelete={(target) => setDeleteTarget(target)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       {editTarget ? <AgentEditorDrawer key={editTarget.agent_id} agent={editTarget} onClose={() => setEditTarget(null)} /> : null}
 

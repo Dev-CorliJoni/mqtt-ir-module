@@ -1,16 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import Icon from '@mdi/react'
+import { mdiPencilOutline, mdiTrashCanOutline } from '@mdi/js'
 
-import { getAgent, updateAgent } from '../api/agentsApi.js'
+import { deleteAgent, getAgent } from '../api/agentsApi.js'
 import { listRemotes } from '../api/remotesApi.js'
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
-import { TextField } from '../components/ui/TextField.jsx'
 import { Button } from '../components/ui/Button.jsx'
+import { IconButton } from '../components/ui/IconButton.jsx'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx'
 import { useToast } from '../components/ui/ToastProvider.jsx'
 import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
-import { getAppConfig } from '../utils/appConfig.js'
+import { AgentEditorDrawer } from '../features/agents/AgentEditorDrawer.jsx'
 
 export function AgentPage() {
   const { t } = useTranslation()
@@ -20,33 +23,25 @@ export function AgentPage() {
   const errorMapper = new ApiErrorMapper(t)
   const { agentId = '' } = useParams()
 
-  const appConfig = useMemo(() => getAppConfig(), [])
-
   const agentQuery = useQuery({
     queryKey: ['agent', agentId],
     queryFn: () => getAgent(agentId),
     enabled: Boolean(agentId),
   })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
-  const [agentName, setAgentName] = useState('')
-  const [configurationUrl, setConfigurationUrl] = useState('')
-
-  useEffect(() => {
-    if (!agentQuery.data) return
-    setAgentName(typeof agentQuery.data.name === 'string' ? agentQuery.data.name : '')
-    setConfigurationUrl(typeof agentQuery.data.configuration_url === 'string' ? agentQuery.data.configuration_url : '')
-  }, [agentQuery.data])
-
-  const saveMutation = useMutation({
-    mutationFn: () => updateAgent(agentId, { name: agentName.trim() || null, configuration_url: configurationUrl.trim() || null }),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(['agent', agentId], updated)
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteAgent(agentId),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] })
-      toast.show({ title: t('agents.pageTitle'), message: t('common.saved') })
+      queryClient.invalidateQueries({ queryKey: ['remotes'] })
+      toast.show({ title: t('common.delete'), message: t('common.deleted') })
+      navigate('/agents')
     },
     onError: (error) => {
-      toast.show({ title: t('agents.pageTitle'), message: errorMapper.getMessage(error, 'common.failed') })
+      toast.show({ title: t('common.delete'), message: errorMapper.getMessage(error, 'common.failed') })
     },
   })
 
@@ -57,17 +52,6 @@ export function AgentPage() {
 
   const isLoading = agentQuery.isLoading
   const hasAgent = Boolean(agentQuery.data)
-  const initialName = typeof agentQuery.data?.name === 'string' ? agentQuery.data.name : ''
-  const initialValue = typeof agentQuery.data?.configuration_url === 'string' ? agentQuery.data.configuration_url : ''
-  const hasChanges = configurationUrl.trim() !== initialValue || agentName.trim() !== initialName
-
-  const fillCurrentUrl = () => {
-    if (typeof window === 'undefined') return
-    const baseUrl = appConfig.publicBaseUrl.endsWith('/') ? appConfig.publicBaseUrl : `${appConfig.publicBaseUrl}/`
-    const path = `${baseUrl}agent/${encodeURIComponent(agentId)}`
-    const absoluteUrl = `${window.location.origin}${path}`
-    setConfigurationUrl(absoluteUrl)
-  }
 
   if (isLoading) {
     return (
@@ -101,37 +85,21 @@ export function AgentPage() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>{t('agents.pageTitle')}</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            <span className="truncate">{agentLabel}</span>
+          </CardTitle>
+          <div className="flex gap-2">
+            <IconButton label={t('common.edit')} onClick={() => setEditOpen(true)}>
+              <Icon path={mdiPencilOutline} size={1} />
+            </IconButton>
+            <IconButton label={t('common.delete')} onClick={() => setDeleteOpen(true)}>
+              <Icon path={mdiTrashCanOutline} size={1} />
+            </IconButton>
+          </div>
         </CardHeader>
-        <CardBody className="space-y-3">
-          <div className="text-sm font-semibold">{agentLabel}</div>
+        <CardBody>
           <div className="text-xs text-[rgb(var(--muted))]">
             {t('agents.agentIdLabel')}: {agent.agent_id}
-          </div>
-          <div className="flex flex-col gap-2 md:flex-row md:items-end">
-            <div className="flex-1">
-              <TextField
-                label={t('remotes.name')}
-                value={agentName}
-                onChange={(event) => setAgentName(event.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 md:flex-row md:items-end">
-            <div className="flex-1">
-              <TextField
-                label={t('agents.configurationUrlLabel')}
-                hint={t('agents.configurationUrlHint')}
-                value={configurationUrl}
-                onChange={(event) => setConfigurationUrl(event.target.value)}
-              />
-            </div>
-            <Button variant="secondary" onClick={fillCurrentUrl}>
-              {t('agents.configurationUrlAuto')}
-            </Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!hasChanges || saveMutation.isPending}>
-              {t('common.save')}
-            </Button>
           </div>
         </CardBody>
       </Card>
@@ -160,6 +128,17 @@ export function AgentPage() {
           )}
         </CardBody>
       </Card>
+
+      {editOpen ? <AgentEditorDrawer key={agent.agent_id} agent={agent} onClose={() => setEditOpen(false)} /> : null}
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t('common.delete')}
+        body={`${agentLabel} (${agent.agent_id})`}
+        confirmText={t('common.delete')}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => deleteMutation.mutate()}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import Icon from '@mdi/react'
-import { mdiImageEditOutline } from '@mdi/js'
+import { mdiAutorenew, mdiImageEditOutline } from '@mdi/js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
@@ -13,6 +13,7 @@ import { updateAgent } from '../../api/agentsApi.js'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
 import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
 import { DEFAULT_AGENT_ICON } from '../../icons/iconRegistry.js'
+import { getAppConfig } from '../../utils/appConfig.js'
 
 export function AgentEditorDrawer({ agent, onClose }) {
   const { t } = useTranslation()
@@ -24,6 +25,15 @@ export function AgentEditorDrawer({ agent, onClose }) {
   const [icon, setIcon] = useState(agent.icon ?? null)
   const [configurationUrl, setConfigurationUrl] = useState(typeof agent.configuration_url === 'string' ? agent.configuration_url : '')
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
+  const appConfig = getAppConfig()
+
+  const fillCurrentUrl = () => {
+    if (typeof window === 'undefined') return
+    const baseUrl = appConfig.publicBaseUrl.endsWith('/') ? appConfig.publicBaseUrl : `${appConfig.publicBaseUrl}/`
+    const path = `${baseUrl}agent/${encodeURIComponent(agent.agent_id)}`
+    const absoluteUrl = `${window.location.origin}${path}`
+    setConfigurationUrl(absoluteUrl)
+  }
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -76,12 +86,26 @@ export function AgentEditorDrawer({ agent, onClose }) {
             onChange={(event) => setName(event.target.value)}
           />
 
-          <TextField
-            label={t('agents.configurationUrlLabel')}
-            hint={t('agents.configurationUrlHint')}
-            value={configurationUrl}
-            onChange={(event) => setConfigurationUrl(event.target.value)}
-          />
+          <label className="block">
+            <div className="mb-1 text-sm font-medium">{t('agents.configurationUrlLabel')}</div>
+            <div className="relative">
+              <input
+                className="h-11 w-full rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] px-3 pr-12 text-sm text-[rgb(var(--fg))] outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]"
+                value={configurationUrl}
+                onChange={(event) => setConfigurationUrl(event.target.value)}
+              />
+              <button
+                type="button"
+                aria-label={t('agents.configurationUrlAuto')}
+                title={t('agents.configurationUrlAuto')}
+                onClick={fillCurrentUrl}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] focus:ring-offset-2 focus:ring-offset-[rgb(var(--bg))]"
+              >
+                <Icon path={mdiAutorenew} size={0.8} />
+              </button>
+            </div>
+            <div className="mt-1 text-xs text-[rgb(var(--muted))]">{t('agents.configurationUrlHint')}</div>
+          </label>
         </div>
       </Drawer>
 
