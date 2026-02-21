@@ -1,5 +1,7 @@
 from typing import Any, Dict
 
+from .errors import AgentRoutingError
+
 
 class MqttTransport:
     def __init__(self, command_client: Any, agent_id: str) -> None:
@@ -14,11 +16,16 @@ class MqttTransport:
                 timeout_seconds = max(5.0, (timeout_ms / 1000.0) + 5.0)
         except Exception:
             timeout_seconds = 20.0
-        return self._command_client.learn_capture(
-            agent_id=self._agent_id,
-            payload=payload,
-            timeout_seconds=timeout_seconds,
-        )
+        try:
+            return self._command_client.learn_capture(
+                agent_id=self._agent_id,
+                payload=payload,
+                timeout_seconds=timeout_seconds,
+            )
+        except AgentRoutingError as exc:
+            if str(exc.code or "").strip() == "timeout":
+                raise TimeoutError(exc.message) from exc
+            raise
 
     def learn_start(self, session: Dict[str, Any]) -> Dict[str, Any]:
         return self._command_client.learn_start(agent_id=self._agent_id, session=session)
