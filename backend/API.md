@@ -39,6 +39,7 @@ Response fields include:
 - `learn_enabled`
 - `learn_remote_id`
 - `learn_remote_name`
+- `learn_agent_id`
 
 ### Remotes CRUD
 
@@ -148,6 +149,13 @@ Errors:
 
 `POST /api/learn/stop`
 
+#### Learning status snapshot (HTTP)
+
+`GET /api/learn/status`
+
+- Returns the current full learning status payload (same shape as WebSocket messages), including logs.
+- Useful as a polling fallback when WebSocket delivery is unavailable.
+
 #### Learning status (WebSocket)
 
 `WS /api/learn/status/ws`
@@ -171,7 +179,7 @@ Body (hold):
 ```
 
 Notes:
-- Sending is disabled while a learning session is active.
+- Sending is disabled only for the agent that currently has an active learning session.
 - `hold` uses the captured `hold_initial`, repeated `hold_repeat`, and the captured `hold_gap_us` timing.
 
 ### Hub runtime-control endpoints for MQTT agents

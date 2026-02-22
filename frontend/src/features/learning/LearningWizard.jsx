@@ -9,7 +9,7 @@ import { Collapse } from '../../components/ui/Collapse.jsx'
 import { Badge } from '../../components/ui/Badge.jsx'
 import { ErrorCallout } from '../../components/ui/ErrorCallout.jsx'
 import { useToast } from '../../components/ui/ToastProvider.jsx'
-import { startLearning, stopLearning, capturePress, captureHold } from '../../api/learningApi.js'
+import { startLearning, stopLearning, capturePress, captureHold, getLearningSessionStatus } from '../../api/learningApi.js'
 import { createLearningStatusSocket } from '../../api/learningStatusSocket.js'
 import { getLearningStatus } from '../../api/statusApi.js'
 import { ApiErrorMapper } from '../../utils/apiErrorMapper.js'
@@ -57,17 +57,30 @@ export function LearningWizard({
     enabled: open,
     refetchInterval: open ? 2000 : false,
   })
+  const learningSessionStatusQuery = useQuery({
+    queryKey: ['learn-status'],
+    queryFn: getLearningSessionStatus,
+    enabled: open,
+    refetchInterval: open ? 2000 : false,
+  })
   const learningStatus = learningStatusQuery.data || null
+  const learningSessionStatus = learningSessionStatusQuery.data || null
   const liveLearningActive = Boolean(learnStatus?.learn_enabled)
   const liveLearningRemoteId = learnStatus?.remote_id ?? null
+  const polledSessionActive = Boolean(learningSessionStatus?.learn_enabled)
+  const polledSessionRemoteId = learningSessionStatus?.remote_id ?? null
   const fallbackLearningActive = Boolean(learningStatus?.learn_enabled)
   const fallbackLearningRemoteId = learningStatus?.learn_remote_id ?? null
-  const learningActive = liveLearningActive || fallbackLearningActive
-  const learningRemoteId = liveLearningRemoteId ?? fallbackLearningRemoteId
+  const learningActive = liveLearningActive || polledSessionActive || fallbackLearningActive
+  const learningRemoteId = liveLearningRemoteId ?? polledSessionRemoteId ?? fallbackLearningRemoteId
   const isCurrentRemoteLearning = learningActive && isSameRemote(learningRemoteId, remoteId)
 
   // Derive log list and key for scroll-to-latest behavior.
-  const statusLogs = useMemo(() => (Array.isArray(learnStatus.logs) ? learnStatus.logs : []), [learnStatus.logs])
+  const statusLogs = useMemo(() => {
+    const liveLogs = Array.isArray(learnStatus.logs) ? learnStatus.logs : []
+    const polledLogs = Array.isArray(learningSessionStatus?.logs) ? learningSessionStatus.logs : []
+    return polledLogs.length > liveLogs.length ? polledLogs : liveLogs
+  }, [learnStatus.logs, learningSessionStatus?.logs])
   const latestLogKey = statusLogs.length
     ? `${statusLogs[statusLogs.length - 1].timestamp}_${statusLogs[statusLogs.length - 1].level}_${statusLogs[statusLogs.length - 1].message}`
     : ''
@@ -115,6 +128,7 @@ export function LearningWizard({
           learn_enabled: true,
           remote_id: latestLearningRemoteId ?? toNumber(remoteId),
           remote_name: latestLearningRemoteName || remoteName || null,
+          agent_id: latestLearningStatus?.learn_agent_id ?? latestLearningStatus?.agent_id ?? null,
           logs: Array.isArray(learnStatus?.logs) ? learnStatus.logs : [],
         }
       }
@@ -125,8 +139,10 @@ export function LearningWizard({
       if (normalized.learn_enabled) {
         setLearnStatus(normalized)
       }
+      queryClient.setQueryData(['learn-status'], normalized)
       queryClient.setQueryData(['status-learning'], toLearningStatusSummary(normalized))
       queryClient.invalidateQueries({ queryKey: ['status-learning'] })
+      queryClient.invalidateQueries({ queryKey: ['learn-status'] })
       queryClient.invalidateQueries({ queryKey: ['remotes'] })
     },
     onError: (error) => {
@@ -144,8 +160,21 @@ export function LearningWizard({
     mutationFn: stopLearning,
     onSuccess: () => {
       setLearnStatus({ learn_enabled: false, logs: [] })
-      queryClient.setQueryData(['status-learning'], { learn_enabled: false, learn_remote_id: null, learn_remote_name: null })
+      queryClient.setQueryData(['learn-status'], {
+        learn_enabled: false,
+        remote_id: null,
+        remote_name: null,
+        agent_id: null,
+        logs: [],
+      })
+      queryClient.setQueryData(['status-learning'], {
+        learn_enabled: false,
+        learn_remote_id: null,
+        learn_remote_name: null,
+        learn_agent_id: null,
+      })
       queryClient.invalidateQueries({ queryKey: ['status-learning'] })
+      queryClient.invalidateQueries({ queryKey: ['learn-status'] })
     },
     onError: (e) => toast.show({ title: t('wizard.title'), message: errorMapper.getMessage(e, 'wizard.errorStopFailed') }),
   })
@@ -267,6 +296,7 @@ export function LearningWizard({
     setTakes(defaultTakes)
     setTimeoutMs(defaultTimeoutMs)
     void learningStatusQuery.refetch()
+    void learningSessionStatusQuery.refetch()
     startMutation.mutate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -314,6 +344,7 @@ export function LearningWizard({
           if (!isActive) return
           const normalized = normalizeLearningStatusPayload(payload)
           setLearnStatus(normalized)
+          queryClient.setQueryData(['learn-status'], normalized)
           queryClient.setQueryData(['status-learning'], toLearningStatusSummary(normalized))
         },
         onClose: () => scheduleReconnect(),
@@ -807,11 +838,13 @@ function normalizeLearningStatusPayload(payload, fallbackRemoteId = null, fallba
   const logs = Array.isArray(payload.logs) ? payload.logs : []
   const remoteId = payload.remote_id ?? payload.learn_remote_id ?? fallbackRemoteId
   const remoteName = payload.remote_name ?? payload.learn_remote_name ?? fallbackRemoteName
+  const agentId = payload.agent_id ?? payload.learn_agent_id ?? null
   return {
     ...payload,
     learn_enabled: Boolean(payload.learn_enabled),
     remote_id: remoteId ?? null,
     remote_name: remoteName ?? null,
+    agent_id: agentId ?? null,
     logs,
   }
 }
@@ -819,12 +852,13 @@ function normalizeLearningStatusPayload(payload, fallbackRemoteId = null, fallba
 function toLearningStatusSummary(payload) {
   const normalized = normalizeLearningStatusPayload(payload)
   if (!normalized.learn_enabled) {
-    return { learn_enabled: false, learn_remote_id: null, learn_remote_name: null }
+    return { learn_enabled: false, learn_remote_id: null, learn_remote_name: null, learn_agent_id: null }
   }
   return {
     learn_enabled: true,
     learn_remote_id: normalized.remote_id ?? null,
     learn_remote_name: normalized.remote_name ?? null,
+    learn_agent_id: normalized.agent_id ?? null,
   }
 }
 

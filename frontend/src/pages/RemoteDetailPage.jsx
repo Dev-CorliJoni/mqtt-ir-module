@@ -83,7 +83,13 @@ export function RemoteDetailPage() {
 
   const learningActive = Boolean(learningStatusQuery.data?.learn_enabled)
   const learningRemoteId = learningStatusQuery.data?.learn_remote_id ?? null
-  const sendingDisabled = learningActive
+  const learningAgentId = String(learningStatusQuery.data?.learn_agent_id || '').trim()
+  const assignedAgentId = String(remote?.assigned_agent_id || '').trim()
+  const learningOnCurrentRemote = learningActive && Number(learningRemoteId) === Number(numericRemoteId)
+  const learningOnAssignedAgent = Boolean(
+    learningActive && learningAgentId && assignedAgentId && learningAgentId === assignedAgentId,
+  )
+  const sendingDisabled = learningOnCurrentRemote || learningOnAssignedAgent
 
   const [editRemoteOpen, setEditRemoteOpen] = useState(false)
   const [deleteRemoteOpen, setDeleteRemoteOpen] = useState(false)

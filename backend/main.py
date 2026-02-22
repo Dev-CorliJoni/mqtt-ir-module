@@ -359,6 +359,7 @@ def status_learning() -> Dict[str, Any]:
         "learn_enabled": learning.is_learning,
         "learn_remote_id": learning.remote_id,
         "learn_remote_name": learning.remote_name,
+        "learn_agent_id": learning.agent_id,
     }
 
 
@@ -906,6 +907,11 @@ def learn_stop(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any
     return learning.stop()
 
 
+@api.get("/learn/status", response_model=LearnStartResponse)
+def learn_status() -> LearnStartResponse:
+    return LearnStartResponse.model_validate(learning.status())
+
+
 @api.websocket("/learn/status/ws")
 async def learn_status_ws(websocket: WebSocket) -> None:
     # Stream status updates over a single WebSocket to avoid frequent polling.
@@ -933,9 +939,6 @@ async def learn_status_ws(websocket: WebSocket) -> None:
 def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) -> SendResponse:
     require_api_key(x_api_key)
 
-    if learning.is_learning:
-        raise HTTPException(status_code=409, detail="Cannot send while learning is active")
-
     try:
         button = database.buttons.get(body.button_id)
         signals = database.signals.list_by_button(body.button_id)
@@ -944,6 +947,8 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
 
         remote = database.remotes.get(int(button["remote_id"]))
         agent = agent_registry.resolve_agent_for_remote(remote_id=int(remote["id"]), remote=remote)
+        if learning.is_learning_for_agent(agent.agent_id):
+            raise HTTPException(status_code=409, detail="Cannot send while learning is active on this agent")
 
         payload = {
             "button_id": body.button_id,
@@ -961,6 +966,8 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
         agent_registry.mark_agent_activity(agent.agent_id)
         return SendResponse.model_validate(result)
     except AgentRoutingError:
+        raise
+    except HTTPException:
         raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
