@@ -7,6 +7,36 @@
 
 namespace agent {
 
+namespace {
+
+constexpr uint8_t kSetupButtonPin = 0;
+constexpr unsigned long kSetupButtonHoldMs = 5000;
+
+bool isSetupButtonPressed() {
+  return digitalRead(kSetupButtonPin) == LOW;
+}
+
+bool shouldForceConfigPortal() {
+  pinMode(kSetupButtonPin, INPUT_PULLUP);
+  if (!isSetupButtonPressed()) {
+    return false;
+  }
+
+  const unsigned long holdStart = millis();
+  while (millis() - holdStart < kSetupButtonHoldMs) {
+    if (!isSetupButtonPressed()) {
+      Serial.println("Setup trigger canceled (BOOT released before 5s).");
+      return false;
+    }
+    delay(20);
+  }
+
+  Serial.println("Setup trigger accepted (BOOT held for 5s).");
+  return true;
+}
+
+}  // namespace
+
 void configureWifiAndRuntime() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(WIFI_PS_NONE);
@@ -31,7 +61,8 @@ void configureWifiAndRuntime() {
 
   const unsigned int idSuffixStart = (gAgentId.length() > 4U) ? (gAgentId.length() - 4U) : 0U;
   const String apSsid = String("ESP32-IR-Setup-") + gAgentId.substring(idSuffixStart);
-  const bool wifiOk = wm.autoConnect(apSsid.c_str());
+  const bool forceConfigPortal = shouldForceConfigPortal();
+  const bool wifiOk = forceConfigPortal ? wm.startConfigPortal(apSsid.c_str()) : wm.autoConnect(apSsid.c_str());
   if (!wifiOk) {
     delay(1000);
     ESP.restart();
