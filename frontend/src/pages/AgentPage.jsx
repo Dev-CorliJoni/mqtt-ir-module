@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiChevronLeft, mdiDotsHorizontal, mdiPencilOutline, mdiPlus, mdiRestart, mdiTextBoxSearchOutline, mdiTrashCanOutline } from '@mdi/js'
+import { mdiChevronLeft, mdiDotsHorizontal, mdiLinkPlus, mdiPencilOutline, mdiPlus, mdiRestart, mdiTextBoxSearchOutline, mdiTrashCanOutline } from '@mdi/js'
 
 import { deleteAgent, getAgent, rebootAgent } from '../api/agentsApi.js'
 import { createRemote, deleteRemote, listRemotes, updateRemote } from '../api/remotesApi.js'
@@ -29,6 +29,7 @@ export function AgentPage() {
   const location = useLocation()
   const errorMapper = new ApiErrorMapper(t)
   const { agentId = '' } = useParams()
+  const normalizedAgentId = String(agentId || '').trim()
 
   const agentQuery = useQuery({
     queryKey: ['agent', agentId],
@@ -40,10 +41,12 @@ export function AgentPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [createRemoteOpen, setCreateRemoteOpen] = useState(false)
+  const [assignRemoteOpen, setAssignRemoteOpen] = useState(false)
   const [newRemoteName, setNewRemoteName] = useState('')
   const [menuRemote, setMenuRemote] = useState(null)
   const [editRemote, setEditRemote] = useState(null)
   const [deleteRemoteTarget, setDeleteRemoteTarget] = useState(null)
+  const [assigningRemoteId, setAssigningRemoteId] = useState(null)
 
   const handleCreateRemoteClose = () => {
     setCreateRemoteOpen(false)
@@ -107,8 +110,71 @@ export function AgentPage() {
 
   const assignedRemotes = useMemo(() => {
     const remotes = remotesQuery.data || []
-    return remotes.filter((remote) => String(remote.assigned_agent_id || '') === agentId)
-  }, [remotesQuery.data, agentId])
+    return remotes.filter((remote) => String(remote.assigned_agent_id || '').trim() === normalizedAgentId)
+  }, [remotesQuery.data, normalizedAgentId])
+
+  const assignableRemotes = useMemo(() => {
+    const remotes = remotesQuery.data || []
+    return remotes
+      .map((remote) => {
+        const assignedAgentId = String(remote.assigned_agent_id || '').trim()
+        return {
+          remote,
+          assignedAgentId,
+          isUnassigned: !assignedAgentId,
+        }
+      })
+      .filter(({ assignedAgentId }) => assignedAgentId !== normalizedAgentId)
+      .sort((a, b) => {
+        if (a.isUnassigned !== b.isUnassigned) {
+          return a.isUnassigned ? -1 : 1
+        }
+        const nameCompare = String(a.remote.name || '').localeCompare(String(b.remote.name || ''), undefined, {
+          sensitivity: 'base',
+          numeric: true,
+        })
+        if (nameCompare !== 0) return nameCompare
+        return Number(a.remote.id) - Number(b.remote.id)
+      })
+  }, [remotesQuery.data, normalizedAgentId])
+
+  const assignableRemoteGroups = useMemo(
+    () =>
+      [
+        {
+          key: 'unassigned',
+          title: t('agents.assignExistingRemoteSuggestedTitle'),
+          items: assignableRemotes.filter((candidate) => candidate.isUnassigned),
+        },
+        {
+          key: 'assigned',
+          title: t('agents.assignExistingRemoteOtherTitle'),
+          items: assignableRemotes.filter((candidate) => !candidate.isUnassigned),
+        },
+      ].filter((group) => group.items.length > 0),
+    [assignableRemotes, t],
+  )
+
+  const assignRemoteMutation = useMutation({
+    mutationFn: (remote) =>
+      updateRemote(remote.id, {
+        ...remote,
+        assigned_agent_id: normalizedAgentId || null,
+      }),
+    onMutate: (remote) => {
+      setAssigningRemoteId(Number(remote.id))
+    },
+    onSuccess: (_, remote) => {
+      queryClient.invalidateQueries({ queryKey: ['remotes'] })
+      toast.show({ title: t('agents.assignExistingRemoteAction'), message: t('agents.assignExistingRemoteSuccess', { name: remote.name }) })
+    },
+    onError: (error) => {
+      toast.show({ title: t('agents.assignExistingRemoteAction'), message: errorMapper.getMessage(error, 'common.failed') })
+    },
+    onSettled: () => {
+      setAssigningRemoteId(null)
+    },
+  })
 
   const isLoading = agentQuery.isLoading
   const hasAgent = Boolean(agentQuery.data)
@@ -215,9 +281,14 @@ export function AgentPage() {
       <Card>
         <CardHeader>
           <CardTitle>{t('agents.assignedRemotesTitle')}</CardTitle>
-          <IconButton label={t('remotes.create')} onClick={() => setCreateRemoteOpen(true)}>
-            <Icon path={mdiPlus} size={1} />
-          </IconButton>
+          <div className="flex items-center gap-2">
+            <IconButton label={t('agents.assignExistingRemoteAction')} onClick={() => setAssignRemoteOpen(true)}>
+              <Icon path={mdiLinkPlus} size={1} />
+            </IconButton>
+            <IconButton label={t('remotes.create')} onClick={() => setCreateRemoteOpen(true)}>
+              <Icon path={mdiPlus} size={1} />
+            </IconButton>
+          </div>
         </CardHeader>
         <CardBody>
           {assignedRemotes.length === 0 ? (
@@ -308,6 +379,63 @@ export function AgentPage() {
           </Button>
         </div>
       </Drawer>
+
+      <Modal
+        open={assignRemoteOpen}
+        title={t('agents.assignExistingRemoteTitle')}
+        onClose={() => setAssignRemoteOpen(false)}
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="secondary" onClick={() => setAssignRemoteOpen(false)}>
+              {t('common.close')}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div className="text-sm text-[rgb(var(--muted))]">{t('agents.assignExistingRemoteDescription')}</div>
+          {assignableRemotes.length === 0 ? (
+            <div className="text-sm text-[rgb(var(--muted))]">{t('agents.assignExistingRemoteEmpty')}</div>
+          ) : (
+            <div className="space-y-3">
+              {assignableRemoteGroups.map((group) => (
+                <div key={group.key} className="space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-[rgb(var(--muted))]">{group.title}</div>
+                  <div className="space-y-2">
+                    {group.items.map((candidate) => {
+                      const remote = candidate.remote
+                      const remoteId = Number(remote.id)
+                      return (
+                        <div
+                          key={remote.id}
+                          className="rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{remote.name}</div>
+                            <div className="text-xs text-[rgb(var(--muted))] truncate">
+                              #{remote.id}
+                              {candidate.isUnassigned
+                                ? ` · ${t('agents.unassigned')}`
+                                : ` · ${t('agents.assignExistingRemoteAssignedTo', { id: candidate.assignedAgentId })}`}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => assignRemoteMutation.mutate(remote)}
+                            disabled={assignRemoteMutation.isPending}
+                          >
+                            {assigningRemoteId === remoteId ? t('common.loading') : t('agents.assignExistingRemoteAssignButton')}
+                          </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <Modal
         open={createRemoteOpen}
