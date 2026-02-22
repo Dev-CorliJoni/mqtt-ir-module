@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiTrashCanOutline, mdiPencilOutline, mdiMagicStaff } from '@mdi/js'
+import { mdiChevronLeft, mdiTrashCanOutline, mdiPencilOutline, mdiMagicStaff } from '@mdi/js'
 
 import { listRemotes, updateRemote, deleteRemote } from '../api/remotesApi.js'
 import { listButtons, updateButton, deleteButton, sendPress, sendHold } from '../api/buttonsApi.js'
@@ -59,6 +59,7 @@ export function RemoteDetailPage() {
   const { t } = useTranslation()
   const toast = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const { remoteId } = useParams()
   const errorMapper = new ApiErrorMapper(t)
@@ -240,6 +241,11 @@ export function RemoteDetailPage() {
     return resolveLearningDisabledReason(remote, agents, t)
   }, [remote, agents, t])
   const wizardDisabled = learningBlocked || buttonsLoading || Boolean(learnDisabledReason)
+  const backTarget = useMemo(() => {
+    const fromState = location.state?.from
+    if (typeof fromState === 'string' && fromState.trim()) return fromState
+    return '/remotes'
+  }, [location.state])
 
   // Centralize wizard setup so every entry point uses the same state reset.
   const startWizard = (extend) => {
@@ -275,6 +281,13 @@ export function RemoteDetailPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center">
+        <Button variant="ghost" size="sm" onClick={() => navigate(backTarget)}>
+          <Icon path={mdiChevronLeft} size={0.9} />
+          Back
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-3">

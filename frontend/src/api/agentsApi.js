@@ -8,6 +8,10 @@ export function getAgent(agentId) {
   return requestJson(`/agents/${agentId}`)
 }
 
+export function getAgentLogs(agentId, limit = 100) {
+  return requestJson(`/agents/${encodeURIComponent(agentId)}/logs?limit=${encodeURIComponent(String(limit))}`)
+}
+
 export function updateAgent(agentId, payload) {
   return requestJson(`/agents/${agentId}`, {
     method: 'PUT',

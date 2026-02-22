@@ -39,10 +39,12 @@ from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
 from electronics.status_communication import StatusCommunication
-from connections import AgentCommandClientHub, PairingManagerHub, RuntimeLoader
+from connections import AgentCommandClientHub, AgentLogHub, AgentLogReporter, PairingManagerHub, RuntimeLoader
 from helper import Environment, SettingsCipher
 from database import Database
 from runtime_version import SOFTWARE_VERSION
+
+LOCAL_AGENT_LOG_STREAM_LEVEL = "info"
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
@@ -66,6 +68,14 @@ runtime_loader = RuntimeLoader(
     role="hub",
     environment=env,
 )
+agent_log_hub = AgentLogHub(runtime_loader=runtime_loader, database=database, local_agent_id=local_agent.agent_id)
+local_agent_log_reporter = AgentLogReporter(
+    agent_id_resolver=lambda: local_agent.agent_id,
+    logger_name="local_hub_agent_events",
+    dispatch=lambda agent_id, event: agent_log_hub.record_local(agent_id, event),
+    min_dispatch_level=LOCAL_AGENT_LOG_STREAM_LEVEL,
+)
+local_agent.set_log_reporter(local_agent_log_reporter)
 pairing_manager = PairingManagerHub(
     runtime_loader=runtime_loader,
     database=database,
@@ -109,6 +119,7 @@ def apply_hub_agent_setting(enabled: bool) -> None:
         agent_registry.register_agent(local_agent)
     else:
         agent_registry.unregister_agent(local_agent.agent_id)
+        agent_log_hub.clear_agent_logs(local_agent.agent_id)
 
 
 def register_external_mqtt_agent(agent_data: Dict[str, Any]) -> None:
@@ -170,10 +181,13 @@ async def lifespan(app: FastAPI):
     # Load persisted learning defaults after the settings table exists.
     learning.apply_learning_settings(database.settings.get_learning_settings())
     # Store the running loop so sync code can broadcast status updates.
-    status_comm.attach_loop(asyncio.get_running_loop())
+    loop = asyncio.get_running_loop()
+    status_comm.attach_loop(loop)
+    agent_log_hub.attach_loop(loop)
 
     apply_hub_agent_setting(resolve_hub_agent_setting())
     runtime_loader.start()
+    agent_log_hub.start()
     command_client.start()
     register_external_mqtt_agents_from_db()
     pairing_manager.start()
@@ -187,6 +201,7 @@ async def lifespan(app: FastAPI):
     finally:
         pairing_manager.stop()
         command_client.stop()
+        agent_log_hub.stop()
         runtime_loader.stop()
         learning.stop()
 
@@ -266,6 +281,36 @@ def get_agent(agent_id: str) -> Dict[str, Any]:
     return agent
 
 
+@api.get("/agents/{agent_id}/logs")
+def get_agent_logs(agent_id: str, limit: int = 100) -> Dict[str, Any]:
+    agent = agent_registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Unknown agent_id")
+    if not agent_log_hub.can_stream_agent(agent_id):
+        raise HTTPException(status_code=404, detail="Logs are not available for this agent")
+    bounded_limit = max(1, min(int(limit or 0), agent_log_hub.MAX_LOGS_PER_AGENT))
+    return {
+        "agent_id": str(agent.get("agent_id") or agent_id),
+        "items": agent_log_hub.snapshot(agent_id=agent_id, limit=bounded_limit),
+    }
+
+
+@api.websocket("/agents/{agent_id}/logs/ws")
+async def agent_logs_ws(agent_id: str, websocket: WebSocket) -> None:
+    agent = agent_registry.get_agent(agent_id)
+    if not agent or not agent_log_hub.can_stream_agent(agent_id):
+        await websocket.close(code=1008)
+        return
+    await agent_log_hub.connect(agent_id, websocket)
+    try:
+        while True:
+            await websocket.receive()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await agent_log_hub.disconnect(agent_id, websocket)
+
+
 @api.put("/agents/{agent_id}")
 def update_agent(
     agent_id: str,
@@ -293,6 +338,7 @@ def delete_agent(agent_id: str, x_api_key: Optional[str] = Header(default=None))
     try:
         result = pairing_manager.unpair_and_delete_agent(agent_id)
         agent_registry.unregister_agent(agent_id)
+        agent_log_hub.clear_agent_logs(agent_id)
         return result
     except ValueError as e:
         message = str(e)
@@ -408,7 +454,9 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         if mqtt_runtime_changed:
             command_client.stop()
             pairing_manager.stop()
+            agent_log_hub.stop()
             runtime_loader.reload()
+            agent_log_hub.start()
             command_client.start()
             pairing_manager.start()
         return decorate_settings_payload(updated)

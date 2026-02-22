@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
+import json
 import signal
 import threading
 from typing import Optional
+
+from jmqtt import QualityOfService as QoS
 
 from agents import LocalAgent, LocalTransport
 from connections import (
     AgentBindingStore,
     AgentCommandHandler,
+    AgentLogReporter,
     PairingManagerAgent,
     RuntimeLoader,
 )
@@ -15,6 +19,8 @@ from electronics.ir_signal_parser import IrSignalParser
 from helper import Environment, SettingsCipher
 from database import Database
 from runtime_version import SOFTWARE_VERSION
+
+AGENT_LOG_STREAM_LEVEL = "info"
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
@@ -35,6 +41,13 @@ runtime_loader = RuntimeLoader(
     role="agent",
     environment=env,
 )
+agent_log_reporter = AgentLogReporter(
+    agent_id_resolver=lambda: _resolve_runtime_agent_uid(),
+    logger_name="agent_runtime_events",
+    dispatch=lambda agent_id, event: _dispatch_runtime_log(agent_id, event),
+    min_dispatch_level=AGENT_LOG_STREAM_LEVEL,
+)
+local_agent.set_log_reporter(agent_log_reporter)
 pairing_manager = PairingManagerAgent(
     runtime_loader=runtime_loader,
     binding_store=binding_store,
@@ -43,17 +56,48 @@ pairing_manager = PairingManagerAgent(
     can_send=True,
     can_learn=True,
     reset_binding=env.agent_pairing_reset,
+    log_reporter=agent_log_reporter,
 )
 command_handler = AgentCommandHandler(
     runtime_loader=runtime_loader,
     binding_store=binding_store,
     local_agent=local_agent,
+    log_reporter=agent_log_reporter,
 )
 _shutdown_event = threading.Event()
 
 
 def _handle_shutdown_signal(signum: int, frame: Optional[object]) -> None:
     _shutdown_event.set()
+
+
+def _resolve_runtime_agent_uid() -> str:
+    client_id = str(runtime_loader.mqtt_client_id() or "").strip()
+    if client_id:
+        return client_id
+    runtime_status = runtime_loader.status()
+    fallback = str(runtime_status.get("client_id") or runtime_status.get("node_id") or "").strip()
+    return fallback
+
+
+def _dispatch_runtime_log(agent_id: str, event: dict) -> None:
+    normalized_agent_id = str(agent_id or "").strip()
+    if not normalized_agent_id:
+        return
+    connection = runtime_loader.mqtt_connection()
+    if connection is None:
+        return
+    topic = f"ir/agents/{normalized_agent_id}/logs"
+    try:
+        connection.publish(
+            topic,
+            json.dumps(event, separators=(",", ":")),
+            qos=QoS.AtMostOnce,
+            retain=False,
+        )
+    except Exception:
+        # Do not fail agent runtime on non-critical log publishing errors.
+        pass
 
 
 def run() -> int:

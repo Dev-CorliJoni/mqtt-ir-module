@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiDotsHorizontal, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from '@mdi/js'
+import { mdiChevronLeft, mdiDotsHorizontal, mdiPencilOutline, mdiPlus, mdiTextBoxSearchOutline, mdiTrashCanOutline } from '@mdi/js'
 
 import { deleteAgent, getAgent } from '../api/agentsApi.js'
 import { createRemote, deleteRemote, listRemotes, updateRemote } from '../api/remotesApi.js'
@@ -25,6 +25,7 @@ export function AgentPage() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const location = useLocation()
   const errorMapper = new ApiErrorMapper(t)
   const { agentId = '' } = useParams()
 
@@ -97,6 +98,11 @@ export function AgentPage() {
 
   const isLoading = agentQuery.isLoading
   const hasAgent = Boolean(agentQuery.data)
+  const backTarget = useMemo(() => {
+    const fromState = location.state?.from
+    if (typeof fromState === 'string' && fromState.trim()) return fromState
+    return '/agents'
+  }, [location.state])
 
   if (isLoading) {
     return (
@@ -128,12 +134,25 @@ export function AgentPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center">
+        <Button variant="ghost" size="sm" onClick={() => navigate(backTarget)}>
+          <Icon path={mdiChevronLeft} size={0.9} />
+          Back
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <span className="truncate">{agentLabel}</span>
           </CardTitle>
           <div className="flex gap-2">
+            <IconButton
+              label="Logs"
+              onClick={() => navigate(`/agent/${agent.agent_id}/logs`, { state: { from: location.pathname } })}
+            >
+              <Icon path={mdiTextBoxSearchOutline} size={1} />
+            </IconButton>
             <IconButton label={t('common.edit')} onClick={() => setEditOpen(true)}>
               <Icon path={mdiPencilOutline} size={1} />
             </IconButton>
@@ -165,11 +184,11 @@ export function AgentPage() {
                 <div
                   key={remote.id}
                   className="group rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-3 text-left shadow-[var(--shadow)] hover:shadow-[0_14px_30px_rgba(2,6,23,0.12)] cursor-pointer flex flex-col gap-2 transition-shadow"
-                  onClick={() => navigate(`/remotes/${remote.id}`)}
+                  onClick={() => navigate(`/remotes/${remote.id}`, { state: { from: location.pathname } })}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault()
-                      navigate(`/remotes/${remote.id}`)
+                      navigate(`/remotes/${remote.id}`, { state: { from: location.pathname } })
                     }
                   }}
                   role="button"

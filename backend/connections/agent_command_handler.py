@@ -8,6 +8,7 @@ from jmqtt import MQTTMessage, QualityOfService as QoS
 
 from agents.local_agent import LocalAgent
 from .agent_binding_store import AgentBindingStore
+from .agent_log_reporter import AgentLogReporter
 from .runtime_loader import RuntimeLoader
 
 
@@ -20,11 +21,18 @@ class AgentCommandHandler:
         runtime_loader: RuntimeLoader,
         binding_store: AgentBindingStore,
         local_agent: LocalAgent,
+        log_reporter: Optional[AgentLogReporter] = None,
     ) -> None:
         self._runtime_loader = runtime_loader
         self._binding_store = binding_store
         self._local_agent = local_agent
         self._logger = logging.getLogger("agent_command_handler")
+        self._log_reporter = log_reporter or AgentLogReporter(
+            agent_id_resolver=self._agent_uid,
+            logger_name="agent_command_events",
+            dispatch=None,
+            min_dispatch_level="info",
+        )
         self._lock = threading.Lock()
         self._running = False
         self._subscribed_topic = ""
@@ -81,9 +89,29 @@ class AgentCommandHandler:
             return
 
         response_topic = f"{self.RESPONSE_TOPIC_PREFIX}/{request_hub_id}/agents/{expected_agent_uid}/resp/{request_id}"
+        command_category = self._command_category(command)
+        started_at = time.time()
+        self._log_reporter.debug(
+            category=command_category,
+            message="Agent command received",
+            meta={"command": command},
+        )
+        self._log_reporter.info(
+            category=command_category,
+            message="Agent command started",
+            request_id=request_id,
+            meta={"command": command},
+        )
 
         try:
             result = self._execute_command(command=command, payload=payload)
+            duration_ms = int((time.time() - started_at) * 1000)
+            self._log_reporter.info(
+                category=command_category,
+                message="Agent command finished",
+                request_id=request_id,
+                meta={"command": command, "duration_ms": duration_ms},
+            )
             response = {
                 "request_id": request_id,
                 "ok": True,
@@ -91,6 +119,14 @@ class AgentCommandHandler:
                 "responded_at": time.time(),
             }
         except TimeoutError as exc:
+            duration_ms = int((time.time() - started_at) * 1000)
+            self._log_reporter.warn(
+                category=command_category,
+                message=f"Agent command timed out: {exc}",
+                request_id=request_id,
+                error_code="timeout",
+                meta={"command": command, "duration_ms": duration_ms},
+            )
             response = self._error_response(
                 request_id=request_id,
                 code="timeout",
@@ -98,6 +134,14 @@ class AgentCommandHandler:
                 status_code=408,
             )
         except ValueError as exc:
+            duration_ms = int((time.time() - started_at) * 1000)
+            self._log_reporter.warn(
+                category=command_category,
+                message=f"Agent command validation failed: {exc}",
+                request_id=request_id,
+                error_code="validation_error",
+                meta={"command": command, "duration_ms": duration_ms},
+            )
             response = self._error_response(
                 request_id=request_id,
                 code="validation_error",
@@ -105,6 +149,14 @@ class AgentCommandHandler:
                 status_code=400,
             )
         except RuntimeError as exc:
+            duration_ms = int((time.time() - started_at) * 1000)
+            self._log_reporter.warn(
+                category=command_category,
+                message=f"Agent command rejected: {exc}",
+                request_id=request_id,
+                error_code="runtime_error",
+                meta={"command": command, "duration_ms": duration_ms},
+            )
             response = self._error_response(
                 request_id=request_id,
                 code="runtime_error",
@@ -112,6 +164,14 @@ class AgentCommandHandler:
                 status_code=409,
             )
         except Exception as exc:
+            duration_ms = int((time.time() - started_at) * 1000)
+            self._log_reporter.error(
+                category=command_category,
+                message=f"Agent command failed: {exc}",
+                request_id=request_id,
+                error_code="internal_error",
+                meta={"command": command, "duration_ms": duration_ms},
+            )
             response = self._error_response(
                 request_id=request_id,
                 code="internal_error",
@@ -127,6 +187,13 @@ class AgentCommandHandler:
                 retain=False,
             )
         except Exception as exc:
+            self._log_reporter.warn(
+                category=command_category,
+                message=f"Failed to publish command response: {exc}",
+                request_id=request_id,
+                error_code="response_publish_failed",
+                meta={"command": command},
+            )
             self._logger.warning(f"Failed to publish command response topic={response_topic}: {exc}")
 
     def _execute_command(self, command: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -197,3 +264,11 @@ class AgentCommandHandler:
             },
             "responded_at": time.time(),
         }
+
+    def _command_category(self, command: str) -> str:
+        normalized = str(command or "").strip().lower()
+        if normalized.startswith("learn/"):
+            return "learn"
+        if normalized == "send":
+            return "send"
+        return "runtime"

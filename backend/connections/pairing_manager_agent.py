@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
 from .agent_binding_store import AgentBindingStore
+from .agent_log_reporter import AgentLogReporter
 from .runtime_loader import RuntimeLoader
 
 
@@ -26,6 +27,7 @@ class PairingManagerAgent:
         can_send: bool,
         can_learn: bool,
         reset_binding: bool = False,
+        log_reporter: Optional[AgentLogReporter] = None,
     ) -> None:
         self._runtime_loader = runtime_loader
         self._binding_store = binding_store
@@ -36,6 +38,12 @@ class PairingManagerAgent:
         self._reset_binding = bool(reset_binding)
 
         self._logger = logging.getLogger("pairing_manager_agent")
+        self._log_reporter = log_reporter or AgentLogReporter(
+            agent_id_resolver=self._agent_uid,
+            logger_name="pairing_manager_agent_events",
+            dispatch=None,
+            min_dispatch_level="info",
+        )
         self._lock = threading.Lock()
         self._running = False
         self._subscribed_open = False
@@ -48,6 +56,11 @@ class PairingManagerAgent:
     def start(self) -> None:
         connection = self._runtime_loader.mqtt_connection()
         if connection is None:
+            self._log_reporter.warn(
+                category="pairing",
+                message="Pairing manager start skipped because MQTT is not connected",
+                error_code="mqtt_not_connected",
+            )
             return
 
         if self._reset_binding:
@@ -63,9 +76,11 @@ class PairingManagerAgent:
             self._subscribed_unpair = True
 
         if self._is_bound():
+            self._log_reporter.info(category="pairing", message="Agent is already paired; pairing listeners are paused")
             return
 
         self._start_pairing_listeners(connection)
+        self._log_reporter.info(category="pairing", message="Pairing listeners started")
 
     def stop(self) -> None:
         connection = self._runtime_loader.mqtt_connection()
@@ -89,7 +104,13 @@ class PairingManagerAgent:
                 connection.unsubscribe(self._accept_topic_wildcard())
             if subscribed_unpair:
                 connection.unsubscribe(self._unpair_topic_wildcard())
+            self._log_reporter.info(category="pairing", message="Pairing manager stopped")
         except Exception as exc:
+            self._log_reporter.warn(
+                category="pairing",
+                message=f"Failed to unsubscribe pairing topics: {exc}",
+                error_code="unsubscribe_failed",
+            )
             self._logger.warning(f"Failed to unsubscribe agent pairing topics: {exc}")
 
     def status(self) -> Dict[str, Any]:
@@ -117,6 +138,11 @@ class PairingManagerAgent:
         nonce = str(payload.get("nonce") or "").strip()
         if not session_id or not nonce:
             return
+        self._log_reporter.debug(
+            category="pairing",
+            message="Pairing window received",
+            meta={"session_id": session_id},
+        )
 
         expires_at = float(payload.get("expires_at") or 0.0)
         if expires_at <= 0 or time.time() >= expires_at:
@@ -153,6 +179,11 @@ class PairingManagerAgent:
             json.dumps(offer_payload, separators=(",", ":")),
             qos=QoS.AtLeastOnce,
             retain=False,
+        )
+        self._log_reporter.info(
+            category="pairing",
+            message="Pairing offer published",
+            meta={"session_id": session_id},
         )
 
     def _on_pairing_accept(self, connection: Any, client: Any, userdata: Any, message: MQTTMessage) -> None:
@@ -195,6 +226,11 @@ class PairingManagerAgent:
             nonce=payload_nonce,
             accepted_at=payload.get("accepted_at"),
         )
+        self._log_reporter.info(
+            category="pairing",
+            message="Pairing accepted",
+            meta={"session_id": session_id_from_topic},
+        )
 
         self._stop_pairing_listeners(connection)
 
@@ -210,6 +246,12 @@ class PairingManagerAgent:
         command_id = str(payload.get("command_id") or "").strip()
         if not command_id:
             return
+        self._log_reporter.warn(
+            category="pairing",
+            message="Unpair command received",
+            error_code="unpair_requested",
+            meta={"command_id": command_id},
+        )
 
         self._clear_binding()
         with self._lock:
@@ -236,7 +278,18 @@ class PairingManagerAgent:
             )
             # Clear retained unpair command after ack to avoid stale replay.
             connection.publish(command_topic, "", qos=QoS.AtLeastOnce, retain=True)
+            self._log_reporter.info(
+                category="pairing",
+                message="Unpair acknowledged",
+                meta={"command_id": command_id},
+            )
         except Exception as exc:
+            self._log_reporter.error(
+                category="pairing",
+                message=f"Failed to acknowledge unpair command: {exc}",
+                error_code="unpair_ack_failed",
+                meta={"command_id": command_id},
+            )
             self._logger.warning(f"Failed to acknowledge unpair command: {exc}")
 
     def _start_pairing_listeners(self, connection: Any) -> None:
@@ -255,6 +308,11 @@ class PairingManagerAgent:
                 self._subscribed_open = True
                 self._subscribed_accept = True
         except Exception as exc:
+            self._log_reporter.warn(
+                category="pairing",
+                message=f"Failed to subscribe pairing listeners: {exc}",
+                error_code="subscribe_failed",
+            )
             self._logger.warning(f"Failed to subscribe to pairing listeners: {exc}")
 
     def _stop_pairing_listeners(self, connection: Any) -> None:

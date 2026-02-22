@@ -19,7 +19,7 @@ export function AgentTile({ agent, onEdit, onDelete, onAccept }) {
           ? 'border-[rgb(var(--primary))] hover:shadow-[0_14px_30px_rgba(2,6,23,0.12)]'
           : 'border-[rgb(var(--border))] hover:shadow-[0_14px_30px_rgba(2,6,23,0.12)]',
       ].join(' ')}
-      onClick={() => navigate(`/agent/${agent.agent_id}`)}
+      onClick={() => navigate(`/agent/${agent.agent_id}`, { state: { from: '/agents' } })}
       role="button"
       tabIndex={0}
     >
