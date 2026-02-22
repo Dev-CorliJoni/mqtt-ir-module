@@ -88,6 +88,22 @@ class AgentCommandClientHub:
             timeout_seconds=timeout_seconds,
         )
 
+    def runtime_debug_get(self, agent_id: str, timeout_seconds: float = 8.0) -> Dict[str, Any]:
+        return self._request(
+            agent_id=agent_id,
+            command="runtime/debug/get",
+            payload={},
+            timeout_seconds=timeout_seconds,
+        )
+
+    def runtime_debug_set(self, agent_id: str, debug: bool, timeout_seconds: float = 8.0) -> Dict[str, Any]:
+        return self._request(
+            agent_id=agent_id,
+            command="runtime/debug/set",
+            payload={"debug": bool(debug)},
+            timeout_seconds=timeout_seconds,
+        )
+
     def _request(self, agent_id: str, command: str, payload: Dict[str, Any], timeout_seconds: float) -> Dict[str, Any]:
         normalized_agent_id = str(agent_id or "").strip()
         if not normalized_agent_id:

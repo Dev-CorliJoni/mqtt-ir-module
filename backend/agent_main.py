@@ -8,7 +8,7 @@ from jmqtt import QualityOfService as QoS
 
 from agents import LocalAgent, LocalTransport
 from connections import (
-    AgentBindingStore,
+    AgentRuntimeStateStore,
     AgentCommandHandler,
     AgentLogReporter,
     PairingManagerAgent,
@@ -16,16 +16,12 @@ from connections import (
 )
 from electronics.ir_ctl_engine import IrCtlEngine
 from electronics.ir_signal_parser import IrSignalParser
-from helper import Environment, SettingsCipher
-from database import Database
+from helper import Environment
 from runtime_version import SOFTWARE_VERSION
 
 AGENT_LOG_STREAM_LEVEL = "info"
 
 env = Environment()
-database = Database(data_dir=env.data_folder)
-settings_cipher = SettingsCipher(env.settings_master_key)
-binding_store = AgentBindingStore(settings_store=database.settings)
 parser = IrSignalParser()
 engine = IrCtlEngine(
     ir_rx_device=env.ir_rx_device,
@@ -36,11 +32,12 @@ local_transport = LocalTransport(engine=engine, parser=parser)
 local_agent = LocalAgent(transport=local_transport, agent_id="local-agent-runtime", name="Local Agent Runtime")
 
 runtime_loader = RuntimeLoader(
-    settings_store=database.settings,
-    settings_cipher=settings_cipher,
+    settings_store=None,
+    settings_cipher=None,
     role="agent",
     environment=env,
 )
+state_store = AgentRuntimeStateStore(runtime_loader=runtime_loader, agent_id_resolver=lambda: _resolve_runtime_agent_uid())
 agent_log_reporter = AgentLogReporter(
     agent_id_resolver=lambda: _resolve_runtime_agent_uid(),
     logger_name="agent_runtime_events",
@@ -50,7 +47,7 @@ agent_log_reporter = AgentLogReporter(
 local_agent.set_log_reporter(agent_log_reporter)
 pairing_manager = PairingManagerAgent(
     runtime_loader=runtime_loader,
-    binding_store=binding_store,
+    binding_store=state_store,
     readable_name="IR Agent",
     sw_version=SOFTWARE_VERSION,
     can_send=True,
@@ -60,9 +57,12 @@ pairing_manager = PairingManagerAgent(
 )
 command_handler = AgentCommandHandler(
     runtime_loader=runtime_loader,
-    binding_store=binding_store,
+    binding_store=state_store,
     local_agent=local_agent,
     log_reporter=agent_log_reporter,
+)
+state_store.set_debug_change_handler(
+    lambda enabled: agent_log_reporter.set_min_dispatch_level("debug" if enabled else AGENT_LOG_STREAM_LEVEL)
 )
 _shutdown_event = threading.Event()
 
@@ -101,8 +101,9 @@ def _dispatch_runtime_log(agent_id: str, event: dict) -> None:
 
 
 def run() -> int:
-    database.init()
     runtime_loader.start()
+    state_store.start()
+    agent_log_reporter.set_min_dispatch_level("debug" if state_store.debug_enabled() else AGENT_LOG_STREAM_LEVEL)
     pairing_manager.start()
     command_handler.start()
     try:
@@ -112,6 +113,7 @@ def run() -> int:
     finally:
         command_handler.stop()
         pairing_manager.stop()
+        state_store.stop()
         runtime_loader.stop()
 
 

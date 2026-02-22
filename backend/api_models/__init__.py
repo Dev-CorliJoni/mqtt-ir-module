@@ -1,6 +1,7 @@
 from .remote_create import RemoteCreate
 from .remote_update import RemoteUpdate
 from .agent_update import AgentUpdate
+from .agent_debug_update import AgentDebugUpdate
 from .learn_start import LearnStart
 from .learn_capture import LearnCapture
 from .button_update import ButtonUpdate

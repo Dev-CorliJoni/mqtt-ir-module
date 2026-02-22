@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
 from agents.local_agent import LocalAgent
-from .agent_binding_store import AgentBindingStore
+from .agent_runtime_state_store import AgentRuntimeStateStore
 from .agent_log_reporter import AgentLogReporter
 from .runtime_loader import RuntimeLoader
 
@@ -19,7 +19,7 @@ class AgentCommandHandler:
     def __init__(
         self,
         runtime_loader: RuntimeLoader,
-        binding_store: AgentBindingStore,
+        binding_store: AgentRuntimeStateStore,
         local_agent: LocalAgent,
         log_reporter: Optional[AgentLogReporter] = None,
     ) -> None:
@@ -72,7 +72,14 @@ class AgentCommandHandler:
         agent_uid_from_topic, command = self._parse_command_topic(message.topic)
         if not expected_agent_uid or not agent_uid_from_topic or agent_uid_from_topic != expected_agent_uid:
             return
-        if command not in ("send", "learn/start", "learn/capture", "learn/stop"):
+        if command not in (
+            "send",
+            "learn/start",
+            "learn/capture",
+            "learn/stop",
+            "runtime/debug/get",
+            "runtime/debug/set",
+        ):
             return
 
         payload = self._parse_payload(message)
@@ -219,6 +226,17 @@ class AgentCommandHandler:
                 raise ValueError("session must be an object")
             return self._local_agent.learn_stop(session)
 
+        if command == "runtime/debug/get":
+            return {"debug": self._binding_store.debug_enabled()}
+
+        if command == "runtime/debug/set":
+            if "debug" not in payload:
+                raise ValueError("debug is required")
+            enabled = self._parse_debug_flag(payload.get("debug"))
+            self._binding_store.set_debug(enabled)
+            self._log_reporter.set_min_dispatch_level("debug" if enabled else "info")
+            return {"debug": self._binding_store.debug_enabled()}
+
         raise ValueError("Unknown command")
 
     def _parse_command_topic(self, topic: str) -> tuple[str, str]:
@@ -272,3 +290,15 @@ class AgentCommandHandler:
         if normalized == "send":
             return "send"
         return "runtime"
+
+    def _parse_debug_flag(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        normalized = str(value or "").strip().lower()
+        if normalized in ("1", "true", "yes", "y", "on"):
+            return True
+        if normalized in ("0", "false", "no", "n", "off"):
+            return False
+        raise ValueError("debug must be a boolean")

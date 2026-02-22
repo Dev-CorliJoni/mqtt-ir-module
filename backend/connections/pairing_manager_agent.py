@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
-from .agent_binding_store import AgentBindingStore
+from .agent_runtime_state_store import AgentRuntimeStateStore
 from .agent_log_reporter import AgentLogReporter
 from .runtime_loader import RuntimeLoader
 
@@ -21,7 +21,7 @@ class PairingManagerAgent:
     def __init__(
         self,
         runtime_loader: RuntimeLoader,
-        binding_store: AgentBindingStore,
+        binding_store: AgentRuntimeStateStore,
         readable_name: str,
         sw_version: str,
         can_send: bool,

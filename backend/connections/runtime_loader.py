@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 
 from jmqtt import client_identity as mqtt_client_identity
 
@@ -18,8 +18,8 @@ ConnectionRole = Literal["hub", "agent"]
 class RuntimeLoader:
     def __init__(
         self,
-        settings_store: Settings,
-        settings_cipher: SettingsCipher,
+        settings_store: Optional[Settings],
+        settings_cipher: Optional[SettingsCipher],
         role: ConnectionRole,
         environment: Environment,
     ) -> None:
@@ -47,7 +47,7 @@ class RuntimeLoader:
 
     def reload(self) -> None:
         try:
-            runtime_settings = self._settings_store.get_runtime_settings(settings_cipher=self._settings_cipher)
+            runtime_settings = self._load_runtime_settings()
             mqtt_model = self._build_mqtt_model(runtime_settings)
             homeassistant_model = self._build_homeassistant_model(runtime_settings)
             self._mqtt_handler.reload(mqtt_model)
@@ -57,6 +57,11 @@ class RuntimeLoader:
             self._mqtt_handler.stop()
             self._homeassistant_handler.stop()
             self._mqtt_handler.mark_error(str(exc))
+
+    def _load_runtime_settings(self) -> Dict[str, Any]:
+        if self._settings_store is None or self._settings_cipher is None:
+            return {}
+        return self._settings_store.get_runtime_settings(settings_cipher=self._settings_cipher)
 
     def status(self) -> Dict[str, Any]:
         mqtt_status = self._mqtt_handler.status()

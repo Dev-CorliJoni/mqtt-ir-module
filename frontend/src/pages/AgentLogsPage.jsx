@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
 import { mdiChevronLeft, mdiRefresh } from '@mdi/js'
 
-import { getAgent, getAgentLogs } from '../api/agentsApi.js'
+import { getAgent, getAgentDebug, getAgentLogs, setAgentDebug } from '../api/agentsApi.js'
 import { createAgentLogsSocket } from '../api/agentLogsSocket.js'
 import { Button } from '../components/ui/Button.jsx'
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
@@ -33,6 +33,7 @@ export function AgentLogsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { agentId = '' } = useParams()
+  const queryClient = useQueryClient()
 
   const [liveLogsByAgent, setLiveLogsByAgent] = useState({})
   const [socketConnected, setSocketConnected] = useState(false)
@@ -62,6 +63,18 @@ export function AgentLogsPage() {
     queryKey: ['agent', agentId],
     queryFn: () => getAgent(agentId),
     enabled: Boolean(agentId),
+  })
+  const agentTransport = String(agentQuery.data?.transport || '').trim().toLowerCase()
+  const debugQuery = useQuery({
+    queryKey: ['agent-debug', agentId],
+    queryFn: () => getAgentDebug(agentId),
+    enabled: Boolean(agentId) && agentTransport === 'mqtt',
+  })
+  const debugMutation = useMutation({
+    mutationFn: (enabled) => setAgentDebug(agentId, enabled),
+    onSuccess: (payload) => {
+      queryClient.setQueryData(['agent-debug', agentId], payload)
+    },
   })
   const snapshotQuery = useQuery({
     queryKey: ['agent-logs', agentId],
@@ -217,7 +230,19 @@ export function AgentLogsPage() {
           </Button>
           <div className="truncate font-semibold">Logs: {agentLabel}</div>
         </div>
-        <Badge variant={socketConnected ? 'success' : 'warning'}>{socketConnected ? 'Live' : 'Reconnecting'}</Badge>
+        <div className="flex items-center gap-2">
+          {agentTransport === 'mqtt' ? (
+            <Button
+              size="sm"
+              variant={debugQuery.data?.debug ? 'primary' : 'secondary'}
+              disabled={debugQuery.isLoading || debugMutation.isPending}
+              onClick={() => debugMutation.mutate(!(debugQuery.data?.debug ?? false))}
+            >
+              Agent Debug: {debugQuery.data?.debug ? 'ON' : 'OFF'}
+            </Button>
+          ) : null}
+          <Badge variant={socketConnected ? 'success' : 'warning'}>{socketConnected ? 'Live' : 'Reconnecting'}</Badge>
+        </div>
       </div>
 
       <Card>

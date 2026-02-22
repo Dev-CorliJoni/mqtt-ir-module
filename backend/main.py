@@ -22,6 +22,7 @@ from api_models import (
     RemoteCreate,
     RemoteUpdate,
     AgentUpdate,
+    AgentDebugUpdate,
     PairingOpenRequest,
     LearnStart,
     LearnCapture,
@@ -279,6 +280,41 @@ def get_agent(agent_id: str) -> Dict[str, Any]:
     if not agent:
         raise HTTPException(status_code=404, detail="Unknown agent_id")
     return agent
+
+
+@api.get("/agents/{agent_id}/debug")
+def get_agent_debug(agent_id: str) -> Dict[str, Any]:
+    agent = agent_registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Unknown agent_id")
+    transport = str(agent.get("transport") or "").strip()
+    if transport != "mqtt":
+        raise HTTPException(status_code=400, detail="Debug flag is supported only for MQTT agents")
+    result = command_client.runtime_debug_get(agent_id=agent_id)
+    return {
+        "agent_id": str(agent.get("agent_id") or agent_id),
+        "debug": bool(result.get("debug")),
+    }
+
+
+@api.put("/agents/{agent_id}/debug")
+def update_agent_debug(
+    agent_id: str,
+    body: AgentDebugUpdate,
+    x_api_key: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    agent = agent_registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Unknown agent_id")
+    transport = str(agent.get("transport") or "").strip()
+    if transport != "mqtt":
+        raise HTTPException(status_code=400, detail="Debug flag is supported only for MQTT agents")
+    result = command_client.runtime_debug_set(agent_id=agent_id, debug=body.debug)
+    return {
+        "agent_id": str(agent.get("agent_id") or agent_id),
+        "debug": bool(result.get("debug")),
+    }
 
 
 @api.get("/agents/{agent_id}/logs")

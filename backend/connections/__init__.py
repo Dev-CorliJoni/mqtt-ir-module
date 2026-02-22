@@ -5,7 +5,7 @@ from .homeassistant_handler import HomeAssistantHandler
 from .runtime_loader import RuntimeLoader
 from .pairing_manager_hub import PairingManagerHub
 from .pairing_manager_agent import PairingManagerAgent
-from .agent_binding_store import AgentBindingStore
+from .agent_runtime_state_store import AgentRuntimeStateStore
 from .agent_command_handler import AgentCommandHandler
 from .agent_command_client_hub import AgentCommandClientHub
 from .agent_log_hub import AgentLogHub
