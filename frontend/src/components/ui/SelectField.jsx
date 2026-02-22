@@ -1,5 +1,11 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from './cn.js'
+
+const LISTBOX_GAP = 4
+const LISTBOX_MAX_HEIGHT = 224
+const LISTBOX_MIN_HEIGHT = 96
+const VIEWPORT_PADDING = 8
 
 export function SelectField({
   label,
@@ -18,7 +24,9 @@ export function SelectField({
   const listboxId = `${selectId}-listbox`
   const rootRef = useRef(null)
   const buttonRef = useRef(null)
+  const listboxRef = useRef(null)
   const [open, setOpen] = useState(false)
+  const [listboxPosition, setListboxPosition] = useState(null)
 
   const options = useMemo(() => collectOptions(children), [children])
   const selectedValue = value == null ? '' : String(value)
@@ -29,7 +37,10 @@ export function SelectField({
   useEffect(() => {
     if (!isOpen) return
     const handlePointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false)
+      const target = event.target
+      if (rootRef.current?.contains(target)) return
+      if (listboxRef.current?.contains(target)) return
+      setOpen(false)
     }
     const handleEscape = (event) => {
       if (event.key !== 'Escape') return
@@ -43,6 +54,35 @@ export function SelectField({
       window.removeEventListener('keydown', handleEscape)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const updateListboxPosition = () => {
+      if (!buttonRef.current) return
+      const nextPosition = calculateListboxPosition(buttonRef.current.getBoundingClientRect())
+      setListboxPosition((current) => {
+        if (
+          current
+          && current.top === nextPosition.top
+          && current.left === nextPosition.left
+          && current.width === nextPosition.width
+          && current.maxHeight === nextPosition.maxHeight
+        ) {
+          return current
+        }
+        return nextPosition
+      })
+    }
+
+    updateListboxPosition()
+    window.addEventListener('resize', updateListboxPosition)
+    window.addEventListener('scroll', updateListboxPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateListboxPosition)
+      window.removeEventListener('scroll', updateListboxPosition, true)
+    }
+  }, [isOpen, options.length])
 
   const handleButtonClick = () => {
     if (disabled || options.length === 0) return
@@ -106,12 +146,21 @@ export function SelectField({
         >
           <path d="M6 9l6 6 6-6" />
         </svg>
-        {isOpen ? (
+      </div>
+      {isOpen && listboxPosition && typeof document !== 'undefined'
+        ? createPortal(
           <ul
             id={listboxId}
+            ref={listboxRef}
             role="listbox"
             aria-labelledby={label ? `${selectId}-label` : undefined}
-            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-56 overflow-auto rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-1 shadow-[var(--shadow)]"
+            className="fixed z-[70] overflow-auto rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-1 shadow-[var(--shadow)]"
+            style={{
+              top: `${listboxPosition.top}px`,
+              left: `${listboxPosition.left}px`,
+              width: `${listboxPosition.width}px`,
+              maxHeight: `${listboxPosition.maxHeight}px`,
+            }}
           >
             {options.map((option, index) => {
               const isSelected = option.value === selectedValue
@@ -136,12 +185,40 @@ export function SelectField({
                 </li>
               )
             })}
-          </ul>
-        ) : null}
-      </div>
+          </ul>,
+          document.body,
+        )
+        : null}
       {hint ? <div className="mt-1 text-xs text-[rgb(var(--muted))]">{hint}</div> : null}
     </label>
   )
+}
+
+function calculateListboxPosition(buttonRect) {
+  const viewportHeight = window.innerHeight
+  const viewportWidth = window.innerWidth
+  const spaceAbove = buttonRect.top - VIEWPORT_PADDING
+  const spaceBelow = viewportHeight - buttonRect.bottom - VIEWPORT_PADDING
+  const openUpwards = spaceBelow < 140 && spaceAbove > spaceBelow
+  const availableSpace = openUpwards ? spaceAbove : spaceBelow
+  const maxHeight = clamp(availableSpace, LISTBOX_MIN_HEIGHT, LISTBOX_MAX_HEIGHT)
+
+  const unclampedTop = openUpwards
+    ? buttonRect.top - maxHeight - LISTBOX_GAP
+    : buttonRect.bottom + LISTBOX_GAP
+  const top = clamp(unclampedTop, VIEWPORT_PADDING, viewportHeight - VIEWPORT_PADDING - maxHeight)
+  const left = clamp(buttonRect.left, VIEWPORT_PADDING, viewportWidth - VIEWPORT_PADDING - buttonRect.width)
+
+  return {
+    top: Math.round(top),
+    left: Math.round(left),
+    width: Math.round(buttonRect.width),
+    maxHeight: Math.round(maxHeight),
+  }
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
 }
 
 function collectOptions(children) {
