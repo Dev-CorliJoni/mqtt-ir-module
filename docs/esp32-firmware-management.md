@@ -121,6 +121,15 @@ Built binary location:
 
 `esp-agent/.pio/build/esp32dev/firmware.bin`
 
+### v1 resource usage reference (`0.0.1`)
+
+Build output baseline for firmware `0.0.1` on `ESP32-WROOM-32D` (`esp32dev`):
+
+- RAM: `14.8%` (used `48432` bytes from `327680` bytes)
+- Flash: `88.1%` (used `1155193` bytes from `1310720` bytes)
+
+Use this as a quick regression reference when updating dependencies or adding features.
+
 Default runtime firmware layout in Hub container:
 
 - Files directory: `/data/firmware/files/`
