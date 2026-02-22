@@ -23,6 +23,8 @@ from api_models import (
     RemoteUpdate,
     AgentUpdate,
     AgentDebugUpdate,
+    AgentRuntimeConfigUpdate,
+    AgentOtaRequest,
     PairingOpenRequest,
     LearnStart,
     LearnCapture,
@@ -40,16 +42,26 @@ from electronics.ir_hold_extractor import IrHoldExtractor
 from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
 from electronics.status_communication import StatusCommunication
-from connections import AgentCommandClientHub, AgentLogHub, AgentLogReporter, PairingManagerHub, RuntimeLoader
+from connections import (
+    AgentCommandClientHub,
+    AgentLogHub,
+    AgentLogReporter,
+    AgentRuntimeStateHub,
+    PairingManagerHub,
+    RuntimeLoader,
+)
+from firmware import FirmwareCatalog
 from helper import Environment, SettingsCipher
 from database import Database
 from runtime_version import SOFTWARE_VERSION
 
 LOCAL_AGENT_LOG_STREAM_LEVEL = "info"
+AGENT_PROTOCOL_VERSION = "1"
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
 settings_cipher = SettingsCipher(env.settings_master_key)
+firmware_catalog = FirmwareCatalog(root_dir=env.firmware_dir)
 
 parser = IrSignalParser()
 aggregator = IrSignalAggregator()
@@ -84,6 +96,7 @@ pairing_manager = PairingManagerHub(
     auto_open=False,
 )
 command_client = AgentCommandClientHub(runtime_loader=runtime_loader)
+runtime_state_hub = AgentRuntimeStateHub(runtime_loader=runtime_loader, database=database)
 
 learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
@@ -128,6 +141,7 @@ def register_external_mqtt_agent(agent_data: Dict[str, Any]) -> None:
     if not agent_id:
         return
 
+    runtime_state = runtime_state_hub.get_state(agent_id) or {}
     agent_name = str(agent_data.get("name") or "").strip() or agent_id
     capabilities: Dict[str, Any] = {
         "can_send": bool(agent_data.get("can_send")),
@@ -139,6 +153,13 @@ def register_external_mqtt_agent(agent_data: Dict[str, Any]) -> None:
     agent_topic = str(agent_data.get("agent_topic") or "").strip()
     if agent_topic:
         capabilities["agent_topic"] = agent_topic
+    agent_type = str(runtime_state.get("agent_type") or "").strip().lower()
+    if agent_type:
+        capabilities["agent_type"] = agent_type
+    protocol_version = str(runtime_state.get("protocol_version") or "").strip()
+    if protocol_version:
+        capabilities["protocol_version"] = protocol_version
+    capabilities["ota_supported"] = bool(runtime_state.get("ota_supported"))
 
     transport = MqttTransport(command_client=command_client, agent_id=agent_id)
     agent = MqttAgent(
@@ -176,9 +197,89 @@ def decorate_settings_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
     return payload
 
 
+def _normalize_agent_type(value: Any, transport: str) -> str:
+    normalized = str(value or "").strip().lower()
+    if normalized:
+        return normalized
+    if transport == "local":
+        return "local"
+    return ""
+
+
+def _decorate_agent_payload(agent: Dict[str, Any]) -> Dict[str, Any]:
+    payload = dict(agent or {})
+    agent_id = str(payload.get("agent_id") or "").strip()
+    transport = str(payload.get("transport") or "").strip().lower()
+    runtime_state = runtime_state_hub.get_state(agent_id) or {}
+
+    can_send = bool(payload.get("can_send"))
+    can_learn = bool(payload.get("can_learn"))
+    if "can_send" in runtime_state:
+        can_send = bool(runtime_state.get("can_send"))
+    if "can_learn" in runtime_state:
+        can_learn = bool(runtime_state.get("can_learn"))
+
+    sw_version = str(runtime_state.get("sw_version") or payload.get("sw_version") or "").strip()
+    agent_type = _normalize_agent_type(runtime_state.get("agent_type"), transport=transport)
+    protocol_version = str(runtime_state.get("protocol_version") or AGENT_PROTOCOL_VERSION).strip() or AGENT_PROTOCOL_VERSION
+    ota_supported = bool(runtime_state.get("ota_supported"))
+    reboot_required = bool(runtime_state.get("reboot_required"))
+    runtime_commands = runtime_state.get("runtime_commands")
+    if not isinstance(runtime_commands, list):
+        runtime_commands = []
+
+    runtime_payload: Dict[str, Any] = {
+        "agent_type": agent_type,
+        "protocol_version": protocol_version,
+        "sw_version": sw_version,
+        "can_send": can_send,
+        "can_learn": can_learn,
+        "ota_supported": ota_supported,
+        "reboot_required": reboot_required,
+        "ir_rx_pin": runtime_state.get("ir_rx_pin"),
+        "ir_tx_pin": runtime_state.get("ir_tx_pin"),
+        "power_mode": str(runtime_state.get("power_mode") or "").strip().lower(),
+        "runtime_commands": runtime_commands,
+        "state_seen_at": runtime_state.get("state_seen_at"),
+        "state_updated_at": runtime_state.get("updated_at"),
+    }
+
+    ota_payload = {
+        "supported": bool(ota_supported),
+        "agent_type": agent_type,
+        "current_version": sw_version,
+        "latest_version": "",
+        "update_available": False,
+    }
+    if agent_type:
+        ota_payload = firmware_catalog.ota_status(
+            agent_type=agent_type,
+            current_version=sw_version,
+            ota_supported=ota_supported,
+        )
+    ota_payload["reboot_required"] = reboot_required
+
+    payload["can_send"] = can_send
+    payload["can_learn"] = can_learn
+    payload["sw_version"] = sw_version
+    payload["agent_type"] = agent_type
+    payload["runtime"] = runtime_payload
+    payload["ota"] = ota_payload
+    payload["capabilities"] = {
+        "can_send": can_send,
+        "can_learn": can_learn,
+        "sw_version": sw_version,
+        "agent_type": agent_type,
+        "protocol_version": protocol_version,
+        "ota_supported": ota_supported,
+    }
+    return payload
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init()
+    firmware_catalog.ensure_layout()
     # Load persisted learning defaults after the settings table exists.
     learning.apply_learning_settings(database.settings.get_learning_settings())
     # Store the running loop so sync code can broadcast status updates.
@@ -189,6 +290,7 @@ async def lifespan(app: FastAPI):
     apply_hub_agent_setting(resolve_hub_agent_setting())
     runtime_loader.start()
     agent_log_hub.start()
+    runtime_state_hub.start()
     command_client.start()
     register_external_mqtt_agents_from_db()
     pairing_manager.start()
@@ -202,6 +304,7 @@ async def lifespan(app: FastAPI):
     finally:
         pairing_manager.stop()
         command_client.stop()
+        runtime_state_hub.stop()
         agent_log_hub.stop()
         runtime_loader.stop()
         learning.stop()
@@ -271,7 +374,7 @@ def status_pairing() -> Dict[str, Any]:
 
 @api.get("/agents")
 def list_agents() -> List[Dict[str, Any]]:
-    return agent_registry.list_agents()
+    return [_decorate_agent_payload(agent) for agent in agent_registry.list_agents()]
 
 
 @api.get("/agents/{agent_id}")
@@ -279,17 +382,27 @@ def get_agent(agent_id: str) -> Dict[str, Any]:
     agent = agent_registry.get_agent(agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Unknown agent_id")
+    return _decorate_agent_payload(agent)
+
+
+def _require_registered_agent(agent_id: str) -> Dict[str, Any]:
+    agent = agent_registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Unknown agent_id")
+    return agent
+
+
+def _require_mqtt_agent(agent_id: str) -> Dict[str, Any]:
+    agent = _require_registered_agent(agent_id)
+    transport = str(agent.get("transport") or "").strip().lower()
+    if transport != "mqtt":
+        raise HTTPException(status_code=400, detail="Only MQTT agents are supported for this operation")
     return agent
 
 
 @api.get("/agents/{agent_id}/debug")
 def get_agent_debug(agent_id: str) -> Dict[str, Any]:
-    agent = agent_registry.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(status_code=404, detail="Unknown agent_id")
-    transport = str(agent.get("transport") or "").strip()
-    if transport != "mqtt":
-        raise HTTPException(status_code=400, detail="Debug flag is supported only for MQTT agents")
+    agent = _require_mqtt_agent(agent_id)
     result = command_client.runtime_debug_get(agent_id=agent_id)
     return {
         "agent_id": str(agent.get("agent_id") or agent_id),
@@ -304,16 +417,128 @@ def update_agent_debug(
     x_api_key: Optional[str] = Header(default=None),
 ) -> Dict[str, Any]:
     require_api_key(x_api_key)
-    agent = agent_registry.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(status_code=404, detail="Unknown agent_id")
-    transport = str(agent.get("transport") or "").strip()
-    if transport != "mqtt":
-        raise HTTPException(status_code=400, detail="Debug flag is supported only for MQTT agents")
+    agent = _require_mqtt_agent(agent_id)
     result = command_client.runtime_debug_set(agent_id=agent_id, debug=body.debug)
     return {
         "agent_id": str(agent.get("agent_id") or agent_id),
         "debug": bool(result.get("debug")),
+    }
+
+
+@api.get("/agents/{agent_id}/runtime-config")
+def get_agent_runtime_config(agent_id: str) -> Dict[str, Any]:
+    agent = _require_mqtt_agent(agent_id)
+    result = command_client.runtime_config_get(agent_id=agent_id)
+    return {
+        "agent_id": str(agent.get("agent_id") or agent_id),
+        "ir_rx_pin": result.get("ir_rx_pin"),
+        "ir_tx_pin": result.get("ir_tx_pin"),
+        "reboot_required": bool(result.get("reboot_required")),
+    }
+
+
+@api.put("/agents/{agent_id}/runtime-config")
+def update_agent_runtime_config(
+    agent_id: str,
+    body: AgentRuntimeConfigUpdate,
+    x_api_key: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    agent = _require_mqtt_agent(agent_id)
+    decorated = _decorate_agent_payload(agent)
+    runtime = decorated.get("runtime") if isinstance(decorated.get("runtime"), dict) else {}
+    if str(runtime.get("agent_type") or "").strip().lower() != "esp32":
+        raise HTTPException(status_code=400, detail="Runtime config is supported only for esp32 agents")
+
+    payload = body.model_dump(exclude_none=True)
+    if not payload:
+        raise HTTPException(status_code=400, detail="at least one setting must be provided")
+    result = command_client.runtime_config_set(agent_id=agent_id, payload=payload)
+    return {
+        "agent_id": str(agent.get("agent_id") or agent_id),
+        "ir_rx_pin": result.get("ir_rx_pin"),
+        "ir_tx_pin": result.get("ir_tx_pin"),
+        "reboot_required": bool(result.get("reboot_required")),
+    }
+
+
+@api.post("/agents/{agent_id}/reboot")
+def reboot_agent(agent_id: str, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    agent = _require_mqtt_agent(agent_id)
+    result = command_client.runtime_reboot(agent_id=agent_id)
+    return {
+        "agent_id": str(agent.get("agent_id") or agent_id),
+        "result": result,
+    }
+
+
+@api.get("/firmware")
+def list_firmware(agent_type: str = FirmwareCatalog.DEFAULT_AGENT_TYPE) -> Dict[str, Any]:
+    items = firmware_catalog.list_firmwares(agent_type=agent_type, include_non_installable=True)
+    latest = firmware_catalog.latest_firmware(agent_type=agent_type, include_non_installable=False)
+    return {
+        "agent_type": str(agent_type or "").strip().lower() or FirmwareCatalog.DEFAULT_AGENT_TYPE,
+        "items": items,
+        "latest_installable_version": str(latest.get("version") or "") if latest else "",
+    }
+
+
+@api.get("/firmware/webtools-manifest")
+def get_webtools_manifest(request: Request, agent_type: str = FirmwareCatalog.DEFAULT_AGENT_TYPE) -> Dict[str, Any]:
+    try:
+        return firmware_catalog.build_webtools_manifest(
+            request=request,
+            public_base_url=env.public_base_url,
+            agent_type=agent_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@api.post("/agents/{agent_id}/ota")
+def ota_update_agent(
+    request: Request,
+    agent_id: str,
+    body: AgentOtaRequest,
+    x_api_key: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    agent = _require_mqtt_agent(agent_id)
+    decorated = _decorate_agent_payload(agent)
+    runtime = decorated.get("runtime") if isinstance(decorated.get("runtime"), dict) else {}
+    if str(runtime.get("agent_type") or "").strip().lower() != "esp32":
+        raise HTTPException(status_code=400, detail="OTA is supported only for esp32 agents")
+    if not bool(runtime.get("ota_supported")):
+        raise HTTPException(status_code=400, detail="Agent does not report OTA support")
+
+    try:
+        firmware = firmware_catalog.resolve_firmware(
+            agent_type="esp32",
+            version=body.version,
+            require_installable=True,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    ota_file = str(firmware.get("ota_file") or "").strip()
+    ota_url = firmware_catalog.build_firmware_url(
+        request=request,
+        public_base_url=env.public_base_url,
+        filename=ota_file,
+    )
+    payload = {
+        "version": str(firmware.get("version") or ""),
+        "url": ota_url,
+        "sha256": str(firmware.get("ota_sha256") or ""),
+    }
+    result = command_client.runtime_ota_start(agent_id=agent_id, payload=payload)
+    agent_registry.mark_agent_activity(agent_id)
+    return {
+        "agent_id": str(agent.get("agent_id") or agent_id),
+        "requested_version": payload["version"],
+        "url": ota_url,
+        "result": result,
     }
 
 
@@ -360,7 +585,7 @@ def update_agent(
             agent_id=agent_id,
             changes=changes,
         )
-        return updated
+        return _decorate_agent_payload(updated)
     except ValueError as e:
         message = str(e)
         if message == "Unknown agent_id":
@@ -375,6 +600,7 @@ def delete_agent(agent_id: str, x_api_key: Optional[str] = Header(default=None))
         result = pairing_manager.unpair_and_delete_agent(agent_id)
         agent_registry.unregister_agent(agent_id)
         agent_log_hub.clear_agent_logs(agent_id)
+        runtime_state_hub.clear_state(agent_id)
         return result
     except ValueError as e:
         message = str(e)
@@ -490,9 +716,11 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         if mqtt_runtime_changed:
             command_client.stop()
             pairing_manager.stop()
+            runtime_state_hub.stop()
             agent_log_hub.stop()
             runtime_loader.reload()
             agent_log_hub.start()
+            runtime_state_hub.start()
             command_client.start()
             pairing_manager.start()
         return decorate_settings_payload(updated)
@@ -756,6 +984,7 @@ if base_prefix:
 static_dir = Path(__file__).parent / "static"
 assets_dir = static_dir / "assets"
 index_html = static_dir / "index.html"
+firmware_files_dir = firmware_catalog.files_dir
 
 
 def _render_index_html() -> str:
@@ -783,6 +1012,10 @@ if assets_dir.exists():
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
     if base_prefix:
         app.mount(f"{base_prefix}/assets", StaticFiles(directory=assets_dir), name="assets_base")
+
+app.mount("/firmware", StaticFiles(directory=firmware_files_dir, check_dir=False), name="firmware")
+if base_prefix:
+    app.mount(f"{base_prefix}/firmware", StaticFiles(directory=firmware_files_dir, check_dir=False), name="firmware_base")
 
 
 @app.get("/")

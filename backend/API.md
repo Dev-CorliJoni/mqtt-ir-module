@@ -174,6 +174,71 @@ Notes:
 - Sending is disabled while a learning session is active.
 - `hold` uses the captured `hold_initial`, repeated `hold_repeat`, and the captured `hold_gap_us` timing.
 
+### Hub runtime-control endpoints for MQTT agents
+
+These endpoints exist only on the Hub backend.
+They do **not** create an HTTP API on the agent.
+Hub forwards these actions to agents over MQTT command/response topics.
+
+#### Get debug flag
+
+`GET /api/agents/{agent_id}/debug`
+
+#### Set debug flag
+
+`PUT /api/agents/{agent_id}/debug`
+
+Body:
+
+```json
+{ "debug": true }
+```
+
+#### Get runtime config (ESP32)
+
+`GET /api/agents/{agent_id}/runtime-config`
+
+#### Update runtime config (ESP32)
+
+`PUT /api/agents/{agent_id}/runtime-config`
+
+Body:
+
+```json
+{
+  "ir_rx_pin": 34,
+  "ir_tx_pin": 4
+}
+```
+
+Pin updates require agent reboot to fully apply.
+
+#### Reboot runtime (ESP32)
+
+`POST /api/agents/{agent_id}/reboot`
+
+#### Trigger OTA (ESP32)
+
+`POST /api/agents/{agent_id}/ota`
+
+Body:
+
+```json
+{ "version": "0.1.0" }
+```
+
+If version is omitted, Hub uses latest installable catalog entry.
+
+### Firmware catalog
+
+#### List firmware entries
+
+`GET /api/firmware?agent_type=esp32`
+
+#### ESP Web Tools manifest
+
+`GET /api/firmware/webtools-manifest?agent_type=esp32`
+
 ## Debug capture storage
 
 - If `DEBUG=true`, every raw take is stored in the `captures` table.

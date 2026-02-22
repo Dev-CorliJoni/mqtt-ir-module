@@ -1,15 +1,29 @@
 import React from 'react'
 import Icon from '@mdi/react'
 import { useNavigate } from 'react-router-dom'
-import { mdiCheck, mdiPencilOutline, mdiTrashCanOutline } from '@mdi/js'
+import { mdiCheck, mdiPencilOutline, mdiRestart, mdiTrashCanOutline, mdiUploadOutline } from '@mdi/js'
 import { useTranslation } from 'react-i18next'
 
 import { IconButton } from '../../components/ui/IconButton.jsx'
+import { Badge } from '../../components/ui/Badge.jsx'
 import { DEFAULT_AGENT_ICON, findIconPath } from '../../icons/iconRegistry.js'
 
-export function AgentTile({ agent, onEdit, onDelete, onAccept }) {
+function agentTypeLabel(agentType, t) {
+  if (agentType === 'esp32') return t('agents.typeEsp32')
+  if (agentType === 'docker') return t('agents.typeDocker')
+  if (agentType === 'local') return t('agents.typeLocal')
+  return t('agents.typeUnknown')
+}
+
+export function AgentTile({ agent, onEdit, onDelete, onAccept, onUpdate, onReboot }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const runtime = agent.runtime || {}
+  const ota = agent.ota || {}
+  const typeLabel = agentTypeLabel(String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase(), t)
+  const swVersion = String(runtime.sw_version || agent.sw_version || '').trim()
+  const updateAvailable = Boolean(ota.update_available && ota.supported)
+  const rebootRequired = Boolean(runtime.reboot_required || ota.reboot_required)
 
   return (
     <div
@@ -30,6 +44,12 @@ export function AgentTile({ agent, onEdit, onDelete, onAccept }) {
         <div className="min-w-0">
           <div className="font-semibold truncate">{agent.name || agent.agent_id}</div>
           <div className="text-xs text-[rgb(var(--muted))] truncate">{agent.agent_id}</div>
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <Badge variant="neutral">{typeLabel}</Badge>
+            {swVersion ? <Badge variant="neutral">v{swVersion}</Badge> : null}
+            {updateAvailable ? <Badge variant="warning">{t('agents.updateAvailable')}</Badge> : null}
+            {rebootRequired ? <Badge variant="warning">{t('agents.rebootRequired')}</Badge> : null}
+          </div>
         </div>
       </div>
 
@@ -46,6 +66,16 @@ export function AgentTile({ agent, onEdit, onDelete, onAccept }) {
             <IconButton label={t('common.delete')} onClick={() => onDelete(agent)}>
               <Icon path={mdiTrashCanOutline} size={1} />
             </IconButton>
+            {updateAvailable ? (
+              <IconButton label={t('agents.updateAction')} onClick={() => onUpdate?.(agent)}>
+                <Icon path={mdiUploadOutline} size={1} />
+              </IconButton>
+            ) : null}
+            {rebootRequired ? (
+              <IconButton label={t('agents.rebootAction')} onClick={() => onReboot?.(agent)}>
+                <Icon path={mdiRestart} size={1} />
+              </IconButton>
+            ) : null}
           </>
         )}
       </div>

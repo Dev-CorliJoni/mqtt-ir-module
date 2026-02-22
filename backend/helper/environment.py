@@ -8,6 +8,7 @@ class Environment:
         self.ir_rx_device = os.getenv("IR_RX_DEVICE", "/dev/lirc0").strip()
         self.ir_tx_device = os.getenv("IR_TX_DEVICE", "/dev/lirc1").strip()
         self.data_folder = os.getenv("DATA_DIR", "/data").strip()
+        self.firmware_dir = os.getenv("FIRMWARE_DIR", os.path.join(self.data_folder, "firmware")).strip()
         self.mqtt_host = os.getenv("MQTT_HOST", "").strip()
         self.mqtt_port = self._read_optional_int("MQTT_PORT", min_value=1, max_value=65535)
         self.mqtt_username = os.getenv("MQTT_USERNAME", "").strip()

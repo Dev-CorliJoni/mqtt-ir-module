@@ -22,6 +22,10 @@ docker run --rm -p 8080:80 \
 
 - `DATA_DIR` (optional, default: `/data`)
   Use only if you want a different internal path. For persistent data, mount a volume to this path.
+- `FIRMWARE_DIR` (optional, default: `<DATA_DIR>/firmware`)
+  Directory used for ESP32 firmware catalog (`catalog.json`) and served firmware files (`files/`).
+  Container startup copies firmware template data from the image into this directory.
+  `catalog.json` is overwritten from template on each start.
 - `SETTINGS_MASTER_KEY` (required only for storing MQTT password from UI)
   Without this key, host/port/username can still be saved, but password save is blocked.
 - `API_KEY` (optional)
@@ -69,5 +73,6 @@ MQTT settings for Hub are configured in UI and stored in DB:
 - Pairing for external agents is manual from the Agents page (fixed 5-minute window).
 - Agent offers are shown as pending and must be explicitly accepted from the UI.
 - Accepted external MQTT agents can execute `send` and `learn` commands via MQTT command/response topics.
+- ESP32 firmware files are served from `${DATA_DIR}/firmware/files` (default `/data/firmware/files`).
 - Home Assistant integration is available only in hub role and only when enabled in settings.
 - If you do not mount a volume for `DATA_DIR`, settings/database are lost when the container is recreated.

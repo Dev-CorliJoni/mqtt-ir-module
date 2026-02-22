@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx
 import { getAppConfig } from '../utils/appConfig.js'
 import { getElectronicsStatus, getMqttStatus } from '../api/statusApi.js'
 import { getSettings, updateSettings } from '../api/settingsApi.js'
+import { getFirmwareCatalog } from '../api/firmwareApi.js'
 import { Button } from '../components/ui/Button.jsx'
 import { Modal } from '../components/ui/Modal.jsx'
 import { NumberField } from '../components/ui/NumberField.jsx'
@@ -23,6 +24,11 @@ export function SettingsPage() {
   const electronicsQuery = useQuery({ queryKey: ['status-electronics'], queryFn: getElectronicsStatus })
   const mqttStatusQuery = useQuery({ queryKey: ['status-mqtt'], queryFn: getMqttStatus, refetchInterval: 5000 })
   const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings, staleTime: 60_000 })
+  const firmwareQuery = useQuery({
+    queryKey: ['firmware', 'esp32'],
+    queryFn: () => getFirmwareCatalog('esp32'),
+    staleTime: 60_000,
+  })
 
   const irRxDevice = electronicsQuery.data?.ir_rx_device
   const irTxDevice = electronicsQuery.data?.ir_tx_device
@@ -47,6 +53,18 @@ export function SettingsPage() {
   const [mqttPassword, setMqttPassword] = useState('')
   const [mqttInstance, setMqttInstance] = useState('')
   const [homeassistantEnabled, setHomeassistantEnabled] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.customElements?.get('esp-web-install-button')) return
+    const scriptId = 'esp-web-tools-install-button'
+    if (document.getElementById(scriptId)) return
+    const script = document.createElement('script')
+    script.id = scriptId
+    script.type = 'module'
+    script.src = 'https://unpkg.com/esp-web-tools/dist/web/install-button.js'
+    document.head.appendChild(script)
+  }, [])
 
   useEffect(() => {
     if (!settingsQuery.data || learningDirty) return
@@ -152,6 +170,8 @@ export function SettingsPage() {
   const mqttConnected = Boolean(mqttStatusQuery.data?.connected)
   const mqttLastError = String(mqttStatusQuery.data?.last_error || '').trim()
   const hubIsAgentReadonlyValue = Boolean(settingsQuery.data?.hub_is_agent ?? true)
+  const latestFirmwareVersion = String(firmwareQuery.data?.latest_installable_version || '').trim()
+  const firmwareManifestUrl = `${config.apiBaseUrl}/firmware/webtools-manifest?agent_type=esp32`
 
   const handleLearningChange = (setter) => (event) => {
     setLearningDirty(true)
@@ -238,6 +258,25 @@ export function SettingsPage() {
               disabled
             />
           </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.esp32FlashTitle')}</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <div className="text-sm text-[rgb(var(--muted))]">{t('settings.esp32FlashDescription')}</div>
+          <div className="mt-2 text-sm">
+            <span className="font-semibold">{t('settings.esp32LatestFirmwareLabel')}: </span>
+            {latestFirmwareVersion ? latestFirmwareVersion : t('settings.esp32NoInstallableFirmware')}
+          </div>
+          {latestFirmwareVersion ? (
+            <div className="mt-3">
+              <esp-web-install-button manifest={firmwareManifestUrl}></esp-web-install-button>
+            </div>
+          ) : null}
+          <div className="mt-2 text-xs text-[rgb(var(--muted))]">{t('settings.esp32FlashHint')}</div>
         </CardBody>
       </Card>
 

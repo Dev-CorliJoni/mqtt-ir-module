@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { deleteAgent, listAgents } from '../api/agentsApi.js'
+import { deleteAgent, listAgents, otaUpdateAgent, rebootAgent } from '../api/agentsApi.js'
+import { getFirmwareCatalog } from '../api/firmwareApi.js'
 import { getMqttStatus } from '../api/statusApi.js'
 import { acceptPairing, closePairing, getPairingStatus, openPairing } from '../api/pairingApi.js'
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
 import { Button } from '../components/ui/Button.jsx'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx'
+import { Modal } from '../components/ui/Modal.jsx'
+import { SelectField } from '../components/ui/SelectField.jsx'
 import { useToast } from '../components/ui/ToastProvider.jsx'
 import { ApiErrorMapper } from '../utils/apiErrorMapper.js'
 import { AgentTile } from '../features/agents/AgentTile.jsx'
@@ -21,6 +24,9 @@ export function AgentsPage() {
   const errorMapper = new ApiErrorMapper(t)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [rebootTarget, setRebootTarget] = useState(null)
+  const [otaTarget, setOtaTarget] = useState(null)
+  const [otaVersion, setOtaVersion] = useState('')
   const [nowMs, setNowMs] = useState(() => Date.now())
 
   useEffect(() => {
@@ -46,6 +52,11 @@ export function AgentsPage() {
     queryKey: ['agents'],
     queryFn: listAgents,
     refetchInterval: pairingOpenLive ? 1000 : false,
+  })
+  const firmwareQuery = useQuery({
+    queryKey: ['firmware', 'esp32'],
+    queryFn: () => getFirmwareCatalog('esp32'),
+    staleTime: 60_000,
   })
 
   const openPairingMutation = useMutation({
@@ -97,6 +108,31 @@ export function AgentsPage() {
     },
   })
 
+  const rebootMutation = useMutation({
+    mutationFn: (agentId) => rebootAgent(agentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] })
+      toast.show({ title: t('agents.rebootAction'), message: t('agents.rebootRequested') })
+      setRebootTarget(null)
+    },
+    onError: (error) => {
+      toast.show({ title: t('agents.rebootAction'), message: errorMapper.getMessage(error, 'common.failed') })
+    },
+  })
+
+  const otaMutation = useMutation({
+    mutationFn: ({ agentId, version }) => otaUpdateAgent(agentId, { version }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] })
+      toast.show({ title: t('agents.updateAction'), message: t('agents.updateRequested') })
+      setOtaTarget(null)
+      setOtaVersion('')
+    },
+    onError: (error) => {
+      toast.show({ title: t('agents.updateAction'), message: errorMapper.getMessage(error, 'common.failed') })
+    },
+  })
+
   const mqttConnected = Boolean(mqttQuery.data?.connected)
   const mqttConfigured = Boolean(mqttQuery.data?.configured)
   const pairingOpen = Boolean(pairingQuery.data?.open)
@@ -128,11 +164,35 @@ export function AgentsPage() {
   const pairingHeaderIsCountdown = mqttConfigured && mqttConnected && pairingOpen && Boolean(pairingCountdown)
 
   const pairingDisabled = !mqttConfigured || !mqttConnected
+  const installableFirmwareOptions = useMemo(() => {
+    const entries = firmwareQuery.data?.items || []
+    return entries.filter((item) => Boolean(item.installable && item.ota_exists))
+  }, [firmwareQuery.data])
+  const latestInstallableVersion = String(firmwareQuery.data?.latest_installable_version || '').trim()
+
+  const openOtaModal = (agent) => {
+    const preferred = String(agent?.ota?.latest_version || '').trim()
+    if (preferred && installableFirmwareOptions.some((entry) => String(entry.version) === preferred)) {
+      setOtaVersion(preferred)
+    } else if (
+      latestInstallableVersion &&
+      installableFirmwareOptions.some((entry) => String(entry.version) === latestInstallableVersion)
+    ) {
+      setOtaVersion(latestInstallableVersion)
+    } else {
+      const firstVersion = String(installableFirmwareOptions[0]?.version || '').trim()
+      setOtaVersion(firstVersion)
+    }
+    setOtaTarget(agent)
+  }
+
   const actionPending =
     openPairingMutation.isPending ||
     closePairingMutation.isPending ||
     acceptPairingMutation.isPending ||
-    deleteAgentMutation.isPending
+    deleteAgentMutation.isPending ||
+    otaMutation.isPending ||
+    rebootMutation.isPending
 
   return (
     <div className="space-y-4">
@@ -185,6 +245,8 @@ export function AgentsPage() {
                 onAccept={(target) => acceptPairingMutation.mutate(target.agent_id)}
                 onEdit={(target) => setEditTarget(target)}
                 onDelete={(target) => setDeleteTarget(target)}
+                onUpdate={(target) => openOtaModal(target)}
+                onReboot={(target) => setRebootTarget(target)}
               />
             ))}
           </div>
@@ -204,6 +266,68 @@ export function AgentsPage() {
           deleteAgentMutation.mutate(deleteTarget.agent_id)
         }}
       />
+
+      <ConfirmDialog
+        open={Boolean(rebootTarget)}
+        title={t('agents.rebootAction')}
+        body={rebootTarget ? `${rebootTarget.name || rebootTarget.agent_id} (${rebootTarget.agent_id})` : ''}
+        confirmText={t('agents.rebootAction')}
+        onCancel={() => setRebootTarget(null)}
+        onConfirm={() => {
+          if (!rebootTarget) return
+          rebootMutation.mutate(rebootTarget.agent_id)
+        }}
+      />
+
+      <Modal
+        open={Boolean(otaTarget)}
+        title={t('agents.updateAction')}
+        onClose={() => {
+          setOtaTarget(null)
+          setOtaVersion('')
+        }}
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setOtaTarget(null)
+                setOtaVersion('')
+              }}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              disabled={!otaTarget || !otaVersion || otaMutation.isPending}
+              onClick={() => {
+                if (!otaTarget || !otaVersion) return
+                otaMutation.mutate({ agentId: otaTarget.agent_id, version: otaVersion })
+              }}
+            >
+              {t('agents.updateAction')}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div className="text-sm text-[rgb(var(--muted))]">{t('agents.updateSelectVersionHint')}</div>
+          {installableFirmwareOptions.length === 0 ? (
+            <div className="text-sm text-red-600">{t('agents.updateNoFirmware')}</div>
+          ) : (
+            <SelectField
+              label={t('agents.updateVersionLabel')}
+              value={otaVersion}
+              onChange={(event) => setOtaVersion(event.target.value)}
+            >
+              {installableFirmwareOptions.map((entry) => (
+                <option key={entry.version} value={entry.version}>
+                  {entry.version}
+                </option>
+              ))}
+            </SelectField>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }

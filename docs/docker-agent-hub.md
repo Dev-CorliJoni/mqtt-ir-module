@@ -28,6 +28,10 @@ docker run --rm -p 8080:80 \
   Enable only if your receiver requires wideband mode.
 - `DATA_DIR` (optional, default: `/data`)
   Use only if you want a different internal path. For persistence, mount a volume to this path.
+- `FIRMWARE_DIR` (optional, default: `<DATA_DIR>/firmware`)
+  Directory used for ESP32 firmware catalog (`catalog.json`) and served firmware files (`files/`).
+  Container startup copies firmware template data from the image into this directory.
+  `catalog.json` is overwritten from template on each start.
 - `SETTINGS_MASTER_KEY` (required only for storing MQTT password from UI)
   Without this key, host/port/username can still be saved, but password save is blocked.
 - `API_KEY` (optional)

@@ -35,3 +35,27 @@ export function deleteAgent(agentId) {
     method: 'DELETE',
   })
 }
+
+export function getAgentRuntimeConfig(agentId) {
+  return requestJson(`/agents/${encodeURIComponent(agentId)}/runtime-config`)
+}
+
+export function updateAgentRuntimeConfig(agentId, payload) {
+  return requestJson(`/agents/${encodeURIComponent(agentId)}/runtime-config`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export function rebootAgent(agentId) {
+  return requestJson(`/agents/${encodeURIComponent(agentId)}/reboot`, {
+    method: 'POST',
+  })
+}
+
+export function otaUpdateAgent(agentId, payload) {
+  return requestJson(`/agents/${encodeURIComponent(agentId)}/ota`, {
+    method: 'POST',
+    body: payload,
+  })
+}

@@ -51,13 +51,16 @@ docker run --rm \
 
 - Agent MQTT identity is derived from jmqtt client identity (stable deterministic client id generation).
 - When unbound, agent keeps listening on `ir/pairing/open` until it is accepted by a Hub.
-- Accepted hub binding is persisted in app settings storage.
+- Runtime state is persisted on retained MQTT topic `ir/agents/<agent_id>/state`.
 - Agent always listens for `ir/pairing/unpair/<agent_id>`. On unpair command, it clears binding, publishes an ack, and returns to pairable mode.
 - While bound, agent executes Hub commands received on:
   - `ir/agents/<agent_id>/cmd/send`
   - `ir/agents/<agent_id>/cmd/learn/start`
   - `ir/agents/<agent_id>/cmd/learn/capture`
   - `ir/agents/<agent_id>/cmd/learn/stop`
+  - `ir/agents/<agent_id>/cmd/runtime/debug/get`
+  - `ir/agents/<agent_id>/cmd/runtime/debug/set`
+  - `ir/agents/<agent_id>/cmd/runtime/config/get`
 - Command results are published back to Hub on:
   - `ir/hubs/<hub_id>/agents/<agent_id>/resp/<request_id>`
 

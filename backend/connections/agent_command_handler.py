@@ -79,6 +79,10 @@ class AgentCommandHandler:
             "learn/stop",
             "runtime/debug/get",
             "runtime/debug/set",
+            "runtime/config/get",
+            "runtime/config/set",
+            "runtime/reboot",
+            "runtime/ota/start",
         ):
             return
 
@@ -237,6 +241,23 @@ class AgentCommandHandler:
             self._log_reporter.set_min_dispatch_level("debug" if enabled else "info")
             return {"debug": self._binding_store.debug_enabled()}
 
+        if command == "runtime/config/get":
+            state = self._binding_store.runtime_state()
+            return {
+                "ir_rx_pin": self._parse_optional_int(state.get("ir_rx_pin")),
+                "ir_tx_pin": self._parse_optional_int(state.get("ir_tx_pin")),
+                "reboot_required": bool(state.get("reboot_required")),
+            }
+
+        if command == "runtime/config/set":
+            raise RuntimeError("runtime_config_not_supported")
+
+        if command == "runtime/reboot":
+            raise RuntimeError("runtime_reboot_not_supported")
+
+        if command == "runtime/ota/start":
+            raise RuntimeError("runtime_ota_not_supported")
+
         raise ValueError("Unknown command")
 
     def _parse_command_topic(self, topic: str) -> tuple[str, str]:
@@ -302,3 +323,11 @@ class AgentCommandHandler:
         if normalized in ("0", "false", "no", "n", "off"):
             return False
         raise ValueError("debug must be a boolean")
+
+    def _parse_optional_int(self, value: Any) -> Optional[int]:
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except Exception:
+            return None

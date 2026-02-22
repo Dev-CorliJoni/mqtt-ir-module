@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiChevronLeft, mdiDotsHorizontal, mdiPencilOutline, mdiPlus, mdiTextBoxSearchOutline, mdiTrashCanOutline } from '@mdi/js'
+import { mdiChevronLeft, mdiDotsHorizontal, mdiPencilOutline, mdiPlus, mdiRestart, mdiTextBoxSearchOutline, mdiTrashCanOutline } from '@mdi/js'
 
-import { deleteAgent, getAgent } from '../api/agentsApi.js'
+import { deleteAgent, getAgent, rebootAgent } from '../api/agentsApi.js'
 import { createRemote, deleteRemote, listRemotes, updateRemote } from '../api/remotesApi.js'
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
 import { Button } from '../components/ui/Button.jsx'
@@ -58,6 +58,18 @@ export function AgentPage() {
     },
     onError: (error) => {
       toast.show({ title: t('common.delete'), message: errorMapper.getMessage(error, 'common.failed') })
+    },
+  })
+
+  const rebootMutation = useMutation({
+    mutationFn: () => rebootAgent(agentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] })
+      queryClient.invalidateQueries({ queryKey: ['agent', agentId] })
+      toast.show({ title: t('agents.rebootAction'), message: t('agents.rebootRequested') })
+    },
+    onError: (error) => {
+      toast.show({ title: t('agents.rebootAction'), message: errorMapper.getMessage(error, 'common.failed') })
     },
   })
 
@@ -131,6 +143,18 @@ export function AgentPage() {
 
   const agent = agentQuery.data
   const agentLabel = agent.name || agent.agent_id
+  const runtime = agent.runtime || {}
+  const rebootRequired = Boolean(runtime.reboot_required || agent.ota?.reboot_required)
+  const agentType = String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase()
+  const swVersion = String(runtime.sw_version || agent.sw_version || '').trim()
+  const typeLabel =
+    agentType === 'esp32'
+      ? t('agents.typeEsp32')
+      : agentType === 'docker'
+        ? t('agents.typeDocker')
+        : agentType === 'local'
+          ? t('agents.typeLocal')
+          : t('agents.typeUnknown')
 
   return (
     <div className="space-y-4">
@@ -153,6 +177,11 @@ export function AgentPage() {
             >
               <Icon path={mdiTextBoxSearchOutline} size={1} />
             </IconButton>
+            {rebootRequired ? (
+              <IconButton label={t('agents.rebootAction')} onClick={() => rebootMutation.mutate()} disabled={rebootMutation.isPending}>
+                <Icon path={mdiRestart} size={1} />
+              </IconButton>
+            ) : null}
             <IconButton label={t('common.edit')} onClick={() => setEditOpen(true)}>
               <Icon path={mdiPencilOutline} size={1} />
             </IconButton>
@@ -165,6 +194,13 @@ export function AgentPage() {
           <div className="text-xs text-[rgb(var(--muted))]">
             {t('agents.agentIdLabel')}: {agent.agent_id}
           </div>
+          <div className="text-xs text-[rgb(var(--muted))] mt-1">
+            {t('agents.typeLabel')}: {typeLabel}
+            {swVersion ? ` · v${swVersion}` : ''}
+          </div>
+          {rebootRequired ? (
+            <div className="text-xs text-amber-600 mt-1">{t('agents.rebootRequired')}</div>
+          ) : null}
         </CardBody>
       </Card>
 

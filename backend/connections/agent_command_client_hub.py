@@ -104,6 +104,48 @@ class AgentCommandClientHub:
             timeout_seconds=timeout_seconds,
         )
 
+    def runtime_config_get(self, agent_id: str, timeout_seconds: float = 8.0) -> Dict[str, Any]:
+        return self._request(
+            agent_id=agent_id,
+            command="runtime/config/get",
+            payload={},
+            timeout_seconds=timeout_seconds,
+        )
+
+    def runtime_config_set(
+        self,
+        agent_id: str,
+        payload: Dict[str, Any],
+        timeout_seconds: float = 8.0,
+    ) -> Dict[str, Any]:
+        return self._request(
+            agent_id=agent_id,
+            command="runtime/config/set",
+            payload=payload,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def runtime_reboot(self, agent_id: str, timeout_seconds: float = 8.0) -> Dict[str, Any]:
+        return self._request(
+            agent_id=agent_id,
+            command="runtime/reboot",
+            payload={},
+            timeout_seconds=timeout_seconds,
+        )
+
+    def runtime_ota_start(
+        self,
+        agent_id: str,
+        payload: Dict[str, Any],
+        timeout_seconds: float = 20.0,
+    ) -> Dict[str, Any]:
+        return self._request(
+            agent_id=agent_id,
+            command="runtime/ota/start",
+            payload=payload,
+            timeout_seconds=timeout_seconds,
+        )
+
     def _request(self, agent_id: str, command: str, payload: Dict[str, Any], timeout_seconds: float) -> Dict[str, Any]:
         normalized_agent_id = str(agent_id or "").strip()
         if not normalized_agent_id:

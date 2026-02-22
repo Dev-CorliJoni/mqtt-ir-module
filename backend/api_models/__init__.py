@@ -2,6 +2,8 @@ from .remote_create import RemoteCreate
 from .remote_update import RemoteUpdate
 from .agent_update import AgentUpdate
 from .agent_debug_update import AgentDebugUpdate
+from .agent_runtime_config_update import AgentRuntimeConfigUpdate
+from .agent_ota_request import AgentOtaRequest
 from .learn_start import LearnStart
 from .learn_capture import LearnCapture
 from .button_update import ButtonUpdate
