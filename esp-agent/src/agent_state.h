@@ -11,7 +11,11 @@
 
 namespace agent {
 
-constexpr const char* kFirmwareVersion = "0.0.1";
+#ifndef AGENT_FIRMWARE_VERSION
+#define AGENT_FIRMWARE_VERSION "0.0.1"
+#endif
+
+constexpr const char* kFirmwareVersion = AGENT_FIRMWARE_VERSION;
 constexpr const char* kProtocolVersion = "1";
 constexpr const char* kPrefsNamespace = "esp32-ir";
 constexpr const char* kAgentType = "esp32";

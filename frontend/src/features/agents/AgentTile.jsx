@@ -20,6 +20,7 @@ export function AgentTile({ agent, onEdit, onDelete, onAccept, onUpdate, onReboo
   const { t } = useTranslation()
   const runtime = agent.runtime || {}
   const ota = agent.ota || {}
+  const isOnline = String(agent.status || '').trim().toLowerCase() === 'online'
   const typeLabel = agentTypeLabel(String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase(), t)
   const swVersion = String(runtime.sw_version || agent.sw_version || '').trim()
   const updateAvailable = Boolean(ota.update_available && ota.supported)
@@ -45,6 +46,9 @@ export function AgentTile({ agent, onEdit, onDelete, onAccept, onUpdate, onReboo
           <div className="font-semibold truncate">{agent.name || agent.agent_id}</div>
           <div className="text-xs text-[rgb(var(--muted))] truncate">{agent.agent_id}</div>
           <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <Badge variant={isOnline ? 'success' : 'danger'}>
+              {isOnline ? t('health.online') : t('health.offline')}
+            </Badge>
             <Badge variant="neutral">{typeLabel}</Badge>
             {swVersion ? <Badge variant="neutral">v{swVersion}</Badge> : null}
             {updateAvailable ? <Badge variant="warning">{t('agents.updateAvailable')}</Badge> : null}

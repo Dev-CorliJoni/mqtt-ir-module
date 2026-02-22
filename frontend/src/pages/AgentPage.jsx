@@ -9,6 +9,7 @@ import { deleteAgent, getAgent, rebootAgent } from '../api/agentsApi.js'
 import { createRemote, deleteRemote, listRemotes, updateRemote } from '../api/remotesApi.js'
 import { Card, CardBody, CardHeader, CardTitle } from '../components/ui/Card.jsx'
 import { Button } from '../components/ui/Button.jsx'
+import { Badge } from '../components/ui/Badge.jsx'
 import { IconButton } from '../components/ui/IconButton.jsx'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx'
 import { Drawer } from '../components/ui/Drawer.jsx'
@@ -33,6 +34,7 @@ export function AgentPage() {
     queryKey: ['agent', agentId],
     queryFn: () => getAgent(agentId),
     enabled: Boolean(agentId),
+    refetchInterval: 5000,
   })
   const remotesQuery = useQuery({ queryKey: ['remotes'], queryFn: listRemotes })
   const [editOpen, setEditOpen] = useState(false)
@@ -145,6 +147,7 @@ export function AgentPage() {
   const agentLabel = agent.name || agent.agent_id
   const runtime = agent.runtime || {}
   const rebootRequired = Boolean(runtime.reboot_required || agent.ota?.reboot_required)
+  const isOnline = String(agent.status || '').trim().toLowerCase() === 'online'
   const agentType = String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase()
   const swVersion = String(runtime.sw_version || agent.sw_version || '').trim()
   const typeLabel =
@@ -197,6 +200,11 @@ export function AgentPage() {
           <div className="text-xs text-[rgb(var(--muted))] mt-1">
             {t('agents.typeLabel')}: {typeLabel}
             {swVersion ? ` · v${swVersion}` : ''}
+          </div>
+          <div className="mt-2">
+            <Badge variant={isOnline ? 'success' : 'danger'}>
+              {isOnline ? t('health.online') : t('health.offline')}
+            </Badge>
           </div>
           {rebootRequired ? (
             <div className="text-xs text-amber-600 mt-1">{t('agents.rebootRequired')}</div>

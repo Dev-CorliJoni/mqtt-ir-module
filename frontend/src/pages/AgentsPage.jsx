@@ -51,7 +51,7 @@ export function AgentsPage() {
   const agentsQuery = useQuery({
     queryKey: ['agents'],
     queryFn: listAgents,
-    refetchInterval: pairingOpenLive ? 1000 : false,
+    refetchInterval: pairingOpenLive ? 1000 : 5000,
   })
   const firmwareQuery = useQuery({
     queryKey: ['firmware', 'esp32'],

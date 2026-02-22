@@ -1,65 +1,147 @@
-# ESP32 Firmware Catalog and OTA Guide
+# ESP32 Agent Flash, Drivers, Catalog, and OTA Guide
 
-This project serves ESP32 firmware files from the Hub and triggers OTA over MQTT.
+This project supports two firmware workflows for ESP32 clients:
 
-## 1. Build firmware
+- Initial USB flashing through ESP Web Tools (Hub UI, Settings page)
+- OTA updates triggered from the Hub (Agents page)
+
+## 1. Initial USB flash (first install)
+
+Use this when an ESP32 client is blank or has no compatible firmware yet.
+
+### Requirements
+
+- Chrome or Edge on desktop
+- Secure browser context: `https://...` or `http://localhost`
+- A USB data cable (charging-only cables will not expose a serial port)
+- Latest installable firmware available in the Hub catalog
+
+### Where to install from the Hub UI
+
+1. Open `Settings`.
+2. Find the card `ESP32 flash`.
+3. Check `Latest installable firmware`.
+4. Click `Install ESP32 IR Client`.
+5. Select the ESP serial port in the browser prompt.
+6. Wait until flashing is complete, then allow reboot.
+
+If the install button is not shown, no installable firmware is currently available.
+
+## 2. USB driver selection and installation
+
+### Important: ESP-WROOM-32D alone does not define the USB driver
+
+`ESP-WROOM-32D` is the radio/MCU module. USB connectivity depends on the separate USB-to-UART chip on your board.
+
+### Driver links
+
+- CP2102 / CP210x:
+  - https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers
+- CH342 / CH343 / CH9102:
+  - macOS: https://www.wch.cn/downloads/CH34XSER_MAC_ZIP.html
+  - Windows: https://www.wch.cn/downloads/CH343SER_ZIP.html
+- CH340 / CH341:
+  - Windows: https://www.wch.cn/downloads/CH341SER_ZIP.html
+  - macOS: https://www.wch.cn/downloads/CH341SER_MAC_ZIP.html
+
+### How to know which driver you need
+
+1. Check your board documentation/schematic (best source).
+2. Read the USB bridge chip marking near the USB connector (`CP2102`, `CH340`, `CH343`, and so on).
+3. Plug in the board and inspect detected serial names:
+   - CP210x often appears as `SLAB_USBtoUART` / `cu.SLAB_USBtoUART`
+   - CH34x often appears as `wchusbserial...` / `cu.wchusbserial...` / `usbserial...`
+
+### Installation steps (Windows/macOS)
+
+1. Download the matching driver package from the links above.
+2. Run the installer package for your OS.
+3. Unplug and reconnect the ESP board (reboot OS if driver installer requests it).
+4. Verify a new serial port appears:
+   - macOS: `ls /dev/cu.*`
+   - Windows: Device Manager -> `Ports (COM & LPT)`
+
+If the browser only shows Bluetooth or debug console ports, the ESP USB serial interface is still not detected (usually cable or driver issue).
+
+## 3. What `Logs & Console` does
+
+`Logs & Console` opens a serial console to the selected device. It is useful even before installation for:
+
+- Checking whether the board is detected correctly
+- Reading boot output/reset reasons
+- Confirming serial communication works
+
+It does not flash firmware and does not change device state by itself.
+
+## 4. OTA update flow (after first USB flash)
+
+After the first USB install, firmware updates can be done without USB:
+
+1. Ensure the ESP32 client is online and paired in `Agents`.
+2. Open the ESP32 client detail/update action.
+3. Choose target version (latest installable is preselected).
+4. Confirm update.
+5. Agent downloads OTA file, verifies SHA-256, installs, and reboots.
+
+Notes:
+
+- Version format is strict `x.y.z`.
+- Downgrades are allowed from UI.
+- OTA is supported for ESP32 agents only.
+
+## 5. Build and publish firmware to the Hub catalog
+
+Use this section when preparing a new firmware version for installation/OTA.
+
+### Option A (recommended): helper script
 
 From repository root:
+
+```bash
+cd esp-agent
+./create-fw.sh
+```
+
+The script can:
+
+- Build `esp32dev` firmware
+- Copy the built `.bin` to `backend/firmware_template/files/`
+- Upsert `backend/firmware_template/catalog.json` with checksum fields
+
+### Option B: manual process
+
+Build:
 
 ```bash
 cd esp-agent
 pio run -e esp32dev
 ```
 
-PlatformIO output binaries are typically in:
+Built binary location:
 
-`esp-agent/.pio/build/esp32dev/`
+`esp-agent/.pio/build/esp32dev/firmware.bin`
 
-## 2. Copy firmware file to Hub firmware directory
+Default runtime firmware layout in Hub container:
 
-Default firmware directory inside Hub runtime:
+- Files directory: `/data/firmware/files/`
+- Catalog file: `/data/firmware/catalog.json`
 
-`/data/firmware/files/`
+Container startup seeds firmware layout from `/opt/app/firmware_template`.
+`catalog.json` in runtime is overwritten from template on startup.
 
-Default catalog file:
-
-`/data/firmware/catalog.json`
-
-The Docker image initializes firmware layout from `/opt/app/firmware_template` on every container start.
-`catalog.json` in the runtime firmware directory is overwritten by the template file at startup.
-
-Copy your OTA `.bin` file into `/data/firmware/files/`.
-
-Example filename:
-
-`esp32-ir-client-v0.1.0.bin`
-
-## 3. Compute SHA-256 checksum
-
-Use one of these commands:
+Compute SHA-256:
 
 ```bash
 sha256sum /data/firmware/files/esp32-ir-client-v0.1.0.bin
 ```
 
+or
+
 ```bash
 shasum -a 256 /data/firmware/files/esp32-ir-client-v0.1.0.bin
 ```
 
-Copy the 64-char lowercase hash.
-
-## 4. Update catalog.json
-
-Edit `/data/firmware/catalog.json`.
-
-The file is auto-created with a placeholder entry (`0.0.1`, `installable=false`).
-
-Set `installable=true` only when:
-
-- `ota_file` exists in `/data/firmware/files/`
-- `ota_sha256` is correct
-
-Example installable entry:
+Example catalog entry:
 
 ```json
 {
@@ -68,36 +150,22 @@ Example installable entry:
   "installable": true,
   "ota_file": "esp32-ir-client-v0.1.0.bin",
   "ota_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  "factory_file": "esp32-ir-client-v0.1.0.factory.bin",
-  "factory_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "factory_file": "esp32-ir-client-v0.1.0.bin",
+  "factory_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "notes": "stable"
 }
 ```
 
-## 5. Verify from API
+## 6. Verify firmware catalog and Web Tools manifest
 
-Check catalog visibility:
+Catalog API:
 
 ```bash
 curl http://<hub-host>/api/firmware?agent_type=esp32
 ```
 
-Check Web Tools manifest:
+ESP Web Tools manifest:
 
 ```bash
 curl http://<hub-host>/api/firmware/webtools-manifest?agent_type=esp32
 ```
-
-## 6. Trigger OTA from UI
-
-1. Open `Agents` page.
-2. Select an ESP32 agent with `Update available`.
-3. Choose version (latest is preselected).
-4. Confirm update.
-5. Agent downloads firmware, verifies SHA-256, installs, and reboots.
-
-## 7. Notes
-
-- Version format is strict `x.y.z`.
-- Downgrades are allowed from UI.
-- OTA command includes checksum and agent verifies it before finalizing update.

@@ -8,6 +8,10 @@
 
 namespace agent {
 
+namespace {
+bool gIrReceiverEnabled = false;
+}
+
 bool canSend() {
   return gIrSender != nullptr;
 }
@@ -18,12 +22,17 @@ bool canLearn() {
 
 void applyLearningReceiverState() {
   if (!gIrReceiver) {
+    gIrReceiverEnabled = false;
     return;
   }
   if (gLearningActive) {
-    gIrReceiver->enableIRIn();
-  } else {
+    if (!gIrReceiverEnabled) {
+      gIrReceiver->enableIRIn();
+      gIrReceiverEnabled = true;
+    }
+  } else if (gIrReceiverEnabled) {
     gIrReceiver->disableIRIn();
+    gIrReceiverEnabled = false;
   }
 }
 
@@ -35,6 +44,7 @@ void initIrHardware() {
   if (gIrReceiver) {
     delete gIrReceiver;
     gIrReceiver = nullptr;
+    gIrReceiverEnabled = false;
   }
 
   if (isValidPin(gRuntimeConfig.irTxPin)) {
@@ -43,6 +53,7 @@ void initIrHardware() {
   }
   if (isValidPin(gRuntimeConfig.irRxPin)) {
     gIrReceiver = new IRrecv(static_cast<uint16_t>(gRuntimeConfig.irRxPin), 1024, 15, true);
+    gIrReceiverEnabled = false;
   }
   applyLearningReceiverState();
 }
