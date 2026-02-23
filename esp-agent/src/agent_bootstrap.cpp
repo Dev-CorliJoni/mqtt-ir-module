@@ -11,9 +11,25 @@ namespace {
 
 constexpr uint8_t kSetupButtonPin = 0;
 constexpr unsigned long kSetupButtonHoldMs = 5000;
+unsigned long gSetupButtonPressStartMs = 0;
+bool gSetupResetTriggered = false;
 
 bool isSetupButtonPressed() {
   return digitalRead(kSetupButtonPin) == LOW;
+}
+
+void clearNetworkProvisioningState() {
+  WiFiManager wm;
+  wm.resetSettings();
+
+  gRuntimeConfig.mqttHost = "";
+  gRuntimeConfig.mqttPort = kDefaultMqttPort;
+  gRuntimeConfig.mqttUser = "";
+  gRuntimeConfig.mqttPass = "";
+  saveRuntimeConfig();
+
+  gMqttClient.disconnect();
+  WiFi.disconnect(true, true);
 }
 
 bool shouldForceConfigPortal() {
@@ -31,7 +47,8 @@ bool shouldForceConfigPortal() {
     delay(20);
   }
 
-  Serial.println("Setup trigger accepted (BOOT held for 5s).");
+  Serial.println("Setup trigger accepted (BOOT held for 5s). Resetting Wi-Fi and MQTT settings.");
+  clearNetworkProvisioningState();
   return true;
 }
 
@@ -41,6 +58,7 @@ void configureWifiAndRuntime() {
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(WIFI_PS_NONE);
 
+  const bool forceConfigPortal = shouldForceConfigPortal();
   String mqttHost = gRuntimeConfig.mqttHost;
   String mqttPort = String(gRuntimeConfig.mqttPort);
   String mqttUser = gRuntimeConfig.mqttUser;
@@ -61,7 +79,6 @@ void configureWifiAndRuntime() {
 
   const unsigned int idSuffixStart = (gAgentId.length() > 4U) ? (gAgentId.length() - 4U) : 0U;
   const String apSsid = String("ESP32-IR-Setup-") + gAgentId.substring(idSuffixStart);
-  const bool forceConfigPortal = shouldForceConfigPortal();
   const bool wifiOk = forceConfigPortal ? wm.startConfigPortal(apSsid.c_str()) : wm.autoConnect(apSsid.c_str());
   if (!wifiOk) {
     delay(1000);
@@ -77,6 +94,33 @@ void configureWifiAndRuntime() {
   gRuntimeConfig.mqttPass = String(paramMqttPass.getValue());
   gRuntimeConfig.mqttPass.trim();
   saveRuntimeConfig();
+}
+
+void pollSetupButton() {
+  if (gSetupResetTriggered) {
+    return;
+  }
+
+  pinMode(kSetupButtonPin, INPUT_PULLUP);
+  if (!isSetupButtonPressed()) {
+    gSetupButtonPressStartMs = 0;
+    return;
+  }
+
+  if (gSetupButtonPressStartMs == 0) {
+    gSetupButtonPressStartMs = millis();
+    return;
+  }
+
+  if (millis() - gSetupButtonPressStartMs < kSetupButtonHoldMs) {
+    return;
+  }
+
+  gSetupResetTriggered = true;
+  Serial.println("Setup trigger accepted in runtime (BOOT held for 5s). Resetting Wi-Fi and MQTT settings.");
+  clearNetworkProvisioningState();
+  delay(100);
+  ESP.restart();
 }
 
 }  // namespace agent

@@ -26,6 +26,8 @@ void setup() {
 }
 
 void loop() {
+  agent::pollSetupButton();
+
   if (!agent::gMqttClient.connected()) {
     const unsigned long now = millis();
     if (now >= agent::gNextReconnectAtMs) {
