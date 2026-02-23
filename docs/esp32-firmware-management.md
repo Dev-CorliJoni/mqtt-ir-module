@@ -42,7 +42,8 @@ For first install on a blank device, use the merged `factory` image.
 
 | Version | Factory download | SHA-256 | Flash usage (`ESP32-WROOM-32D`, `esp32dev`) | RAM usage (`ESP32-WROOM-32D`, `esp32dev`) |
 | --- | --- | --- | --- | --- |
-| `v0.0.1` | `http://<hub-host>/firmware/esp32-ir-client-v0.0.1.factory.bin` | `d9e11f0d1f4433e9072e96a3738704479ae36f62ac7f7a005de4315debfc3600` | `88.3%` (used `1157841` bytes from `1310720` bytes) | `14.8%` (used `48432` bytes from `327680` bytes) |
+| `v0.0.2` | [Download `.factory.bin`](https://github.com/Dev-CorliJoni/mqtt-ir-module/raw/refs/heads/main/backend/firmware_template/files/esp32-ir-client-v0.0.2.factory.bin) | `ed84c15bcf166263cefa1e3c3fef6ddaf9db5ed0d61b59e73f8a901cadb5c79f` | `88.4%` (used `1158525` bytes from `1310720` bytes) | `14.8%` (used `48440` bytes from `327680` bytes) |
+| `v0.0.1` | [Download `.factory.bin`](https://github.com/Dev-CorliJoni/mqtt-ir-module/raw/refs/heads/main/backend/firmware_template/files/esp32-ir-client-v0.0.1.factory.bin) | `1d55ed7db0ba9e269be3d572fdd9cd2773341e8cb8f9577f9487cf3486ad129b` | `88.3%` (used `1157841` bytes from `1310720` bytes) | `14.8%` (used `48432` bytes from `327680` bytes) |
 
 ## 2. USB driver selection and installation
 
@@ -139,12 +140,12 @@ Built binary location:
 
 `esp-agent/.pio/build/esp32dev/firmware.bin`
 
-### v1 resource usage reference (`0.0.1`)
+### v2 resource usage reference (`0.0.2`)
 
-Build output baseline for firmware `0.0.1` on `ESP32-WROOM-32D` (`esp32dev`):
+Build output baseline for firmware `0.0.2` on `ESP32-WROOM-32D` (`esp32dev`):
 
-- RAM: `14.8%` (used `48432` bytes from `327680` bytes)
-- Flash: `88.3%` (used `1157841` bytes from `1310720` bytes)
+- RAM: `14.8%` (used `48440` bytes from `327680` bytes)
+- Flash: `88.4%` (used `1158525` bytes from `1310720` bytes)
 
 Use this as a quick regression reference when updating dependencies or adding features.
 

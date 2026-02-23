@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
@@ -15,8 +15,13 @@ class AgentCommandClientHub:
     COMMAND_TOPIC_PREFIX = "ir/agents"
     RESPONSE_TOPIC_PREFIX = "ir/hubs"
 
-    def __init__(self, runtime_loader: RuntimeLoader) -> None:
+    def __init__(
+        self,
+        runtime_loader: RuntimeLoader,
+        on_agent_timeout: Optional[Callable[[str], None]] = None,
+    ) -> None:
         self._runtime_loader = runtime_loader
+        self._on_agent_timeout = on_agent_timeout
         self._logger = logging.getLogger("agent_command_client_hub")
         self._lock = threading.Lock()
         self._running = False
@@ -196,6 +201,11 @@ class AgentCommandClientHub:
             state = self._pending.pop(request_id, None)
 
         if not state or not bool(state.get("completed")):
+            if self._on_agent_timeout is not None:
+                try:
+                    self._on_agent_timeout(normalized_agent_id)
+                except Exception as exc:
+                    self._logger.warning(f"Failed to handle agent timeout fallback for {normalized_agent_id}: {exc}")
             raise AgentRoutingError(
                 code="agent_timeout",
                 message=f"Agent {normalized_agent_id} did not respond in time",

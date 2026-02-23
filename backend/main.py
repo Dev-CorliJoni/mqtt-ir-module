@@ -43,6 +43,7 @@ from electronics.ir_signal_aggregator import IrSignalAggregator
 from electronics.ir_signal_parser import IrSignalParser
 from electronics.status_communication import StatusCommunication
 from connections import (
+    AgentAvailabilityHub,
     AgentCommandClientHub,
     AgentInstallationStateHub,
     AgentLogHub,
@@ -96,9 +97,13 @@ pairing_manager = PairingManagerHub(
     sw_version=SOFTWARE_VERSION,
     auto_open=False,
 )
-command_client = AgentCommandClientHub(runtime_loader=runtime_loader)
+command_client = AgentCommandClientHub(
+    runtime_loader=runtime_loader,
+    on_agent_timeout=lambda agent_id: agent_registry.set_agent_offline(agent_id=agent_id),
+)
 runtime_state_hub = AgentRuntimeStateHub(runtime_loader=runtime_loader, database=database)
 installation_state_hub = AgentInstallationStateHub(runtime_loader=runtime_loader)
+availability_hub = AgentAvailabilityHub(runtime_loader=runtime_loader, agent_registry=agent_registry)
 
 learning_defaults = database.settings.get_learning_defaults()
 learning = IrLearningService(
@@ -138,7 +143,7 @@ def apply_hub_agent_setting(enabled: bool) -> None:
         agent_log_hub.clear_agent_logs(local_agent.agent_id)
 
 
-def register_external_mqtt_agent(agent_data: Dict[str, Any]) -> None:
+def register_external_mqtt_agent(agent_data: Dict[str, Any], online: bool = True) -> None:
     agent_id = str(agent_data.get("agent_id") or "").strip()
     if not agent_id:
         return
@@ -170,7 +175,14 @@ def register_external_mqtt_agent(agent_data: Dict[str, Any]) -> None:
         name=agent_name,
         capabilities=capabilities,
     )
-    agent_registry.register_agent(agent)
+    last_seen_raw = agent_data.get("last_seen")
+    last_seen = None
+    if last_seen_raw is not None:
+        try:
+            last_seen = float(last_seen_raw)
+        except Exception:
+            last_seen = None
+    agent_registry.register_agent(agent, online=online, last_seen=last_seen)
 
 
 def register_external_mqtt_agents_from_db() -> None:
@@ -179,7 +191,7 @@ def register_external_mqtt_agents_from_db() -> None:
         pending = bool(agent_data.get("pending"))
         if transport != "mqtt" or pending:
             continue
-        register_external_mqtt_agent(agent_data)
+        register_external_mqtt_agent(agent_data, online=False)
 
 
 def resolve_hub_agent_setting() -> bool:
@@ -328,6 +340,7 @@ async def lifespan(app: FastAPI):
     installation_state_hub.start()
     command_client.start()
     register_external_mqtt_agents_from_db()
+    availability_hub.start()
     pairing_manager.start()
 
     # Debug capture data can grow quickly; keep it only when DEBUG=true.
@@ -338,6 +351,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         pairing_manager.stop()
+        availability_hub.stop()
         command_client.stop()
         installation_state_hub.stop()
         runtime_state_hub.stop()
@@ -683,7 +697,7 @@ def pairing_accept(agent_id: str, x_api_key: Optional[str] = Header(default=None
     require_api_key(x_api_key)
     try:
         accepted = pairing_manager.accept_offer(agent_id=agent_id)
-        register_external_mqtt_agent(accepted)
+        register_external_mqtt_agent(accepted, online=True)
         return accepted
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
