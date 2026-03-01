@@ -400,6 +400,7 @@ void processPendingOtaRequest() {
 
   gPendingOtaRequest.running = true;
   markActivity();
+  applyPowerMode();  // Switch WiFi to active mode now — modem sleep stalls HTTP+MQTT during blocking OTA download.
 
   const String requestId = gPendingOtaRequest.requestId;
   const String targetVersion = gPendingOtaRequest.targetVersion;
