@@ -381,7 +381,7 @@ export function AgentPage() {
             <Button
               variant="danger"
               disabled={deleteAgentMutation.isPending || (deleteRequiresForce && !deleteForce)}
-              onClick={() => deleteAgentMutation.mutate({ force: deleteRequiresForce && deleteForce })}
+              onClick={() => deleteAgentMutation.mutate({ force: deleteForce })}
             >
               {t('common.delete')}
             </Button>
@@ -403,7 +403,19 @@ export function AgentPage() {
                 <span>{t('agents.deleteForceLabel')}</span>
               </label>
             </div>
-          ) : null}
+          ) : (
+            <div className="space-y-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--bg))] p-3 text-sm">
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={deleteForce}
+                  onChange={(event) => setDeleteForce(event.target.checked)}
+                />
+                <span>{t('agents.deleteForceOptionalInfo')}</span>
+              </label>
+            </div>
+          )}
         </div>
       </Modal>
 

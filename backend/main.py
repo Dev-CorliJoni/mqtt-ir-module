@@ -102,7 +102,7 @@ command_client = AgentCommandClientHub(
     runtime_loader=runtime_loader,
     on_agent_timeout=lambda agent_id: _handle_mqtt_agent_timeout(agent_id),
 )
-runtime_state_hub = AgentRuntimeStateHub(runtime_loader=runtime_loader, database=database)
+runtime_state_hub = AgentRuntimeStateHub(runtime_loader=runtime_loader, database=database, pairing_manager=pairing_manager)
 installation_state_hub = AgentInstallationStateHub(runtime_loader=runtime_loader)
 availability_hub = AgentAvailabilityHub(
     runtime_loader=runtime_loader,

@@ -343,6 +343,7 @@
     "updateResetAction": "Update-Status zurücksetzen",
     "updateResetDone": "Update-Status zurückgesetzt.",
     "deleteForceWarning": "Dieser Agent installiert gerade Firmware. Beim erzwungenen Löschen wird sofort intern aufgeräumt, ohne auf eine Bestätigung des Agents zu warten.",
-    "deleteForceLabel": "Ich verstehe das und möchte diesen Agenten jetzt erzwungen löschen."
+    "deleteForceLabel": "Ich verstehe das und möchte diesen Agenten jetzt erzwungen löschen.",
+    "deleteForceOptionalInfo": "Erzwungenes Löschen entfernt den Agenten sofort, ohne auf dessen Bestätigung zu warten. Verwende dies, wenn der Agent nicht antwortet oder neu geflasht wurde."
   }
 }

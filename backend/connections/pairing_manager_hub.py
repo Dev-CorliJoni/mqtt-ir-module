@@ -17,6 +17,7 @@ class PairingManagerHub:
     PAIRING_ACCEPT_TOPIC_PREFIX = "ir/pairing/accept"
     PAIRING_UNPAIR_TOPIC_PREFIX = "ir/pairing/unpair"
     PAIRING_UNPAIR_ACK_WILDCARD_TOPIC = "ir/pairing/unpair_ack/+"
+    PAIRING_RECLAIM_TOPIC_PREFIX = "ir/pairing/reclaim"
     DEFAULT_WINDOW_SECONDS = 300
     UNPAIR_ACK_TIMEOUT_SECONDS = 8.0
 
@@ -269,6 +270,49 @@ class PairingManagerHub:
             "session_id": session_id,
             "expires_at": expires_at if session_id else None,
         }
+
+    def reclaim_agent(self, agent_id: str) -> bool:
+        """Send a reclaim message to a known agent that has lost its pairing binding.
+
+        The agent will accept the reclaim only if its pairing_hub_id is currently empty.
+        Returns True if the reclaim message was dispatched, False otherwise.
+        """
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
+            return False
+
+        connection = self._runtime_loader.mqtt_connection()
+        if connection is None:
+            return False
+
+        agent = self._database.agents.get(normalized_agent_id)
+        if not agent or bool(agent.get("pending")):
+            return False
+
+        mqtt_status = self._runtime_loader.status()
+        hub_id = str(mqtt_status.get("node_id") or "").strip() or self._runtime_loader.technical_name
+        hub_topic = str(mqtt_status.get("base_topic") or "")
+        hub_name = self._runtime_loader.readable_name
+
+        payload = {
+            "hub_id": hub_id,
+            "hub_name": hub_name,
+            "hub_topic": hub_topic,
+            "reclaimed_at": time.time(),
+        }
+        topic = f"{self.PAIRING_RECLAIM_TOPIC_PREFIX}/{normalized_agent_id}"
+        try:
+            connection.publish(
+                topic,
+                json.dumps(payload, separators=(",", ":")),
+                qos=QoS.AtLeastOnce,
+                retain=False,
+            )
+            self._logger.info(f"Reclaim dispatched for agent {normalized_agent_id}")
+            return True
+        except Exception as exc:
+            self._logger.warning(f"Failed to dispatch reclaim for agent {normalized_agent_id}: {exc}")
+            return False
 
     def _auto_close_pairing(self, session_id: str) -> None:
         with self._lock:

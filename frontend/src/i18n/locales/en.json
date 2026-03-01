@@ -154,6 +154,7 @@
     "updateResetDone": "Update state reset.",
     "deleteForceWarning": "This agent is currently installing firmware. Force delete removes it immediately without waiting for agent confirmation.",
     "deleteForceLabel": "I understand and want to force delete this agent now.",
+    "deleteForceOptionalInfo": "Force delete removes this agent immediately without waiting for agent confirmation. Use this if the agent is unresponsive or has been reset.",
     "updateSelectVersionHint": "Select the firmware version to install on this ESP32 agent.",
     "updateNoFirmware": "No installable firmware found in the catalog.",
     "updateVersionLabel": "Firmware version",

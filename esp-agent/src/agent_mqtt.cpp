@@ -51,6 +51,10 @@ void onMqttMessage(char* topicChars, byte* payload, unsigned int length) {
     handlePairingUnpair(topic, payload, length);
     return;
   }
+  if (topic.startsWith("ir/pairing/reclaim/")) {
+    handlePairingReclaim(topic, payload, length);
+    return;
+  }
 
   String command;
   if (!parseCommandTopic(topic, command)) {
@@ -110,6 +114,7 @@ bool connectMqtt() {
   gMqttClient.subscribe("ir/pairing/open");
   gMqttClient.subscribe(topicPairingAccept().c_str());
   gMqttClient.subscribe(topicPairingUnpair().c_str());
+  gMqttClient.subscribe(topicPairingReclaim().c_str());
   gMqttClient.subscribe(topicCommands().c_str());
   publishState();
   flushQueuedLogs();

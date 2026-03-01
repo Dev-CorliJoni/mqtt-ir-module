@@ -343,6 +343,7 @@
     "updateResetAction": "Réinitialiser l’état de mise à jour",
     "updateResetDone": "État de mise à jour réinitialisé.",
     "deleteForceWarning": "Cet agent installe actuellement un firmware. La suppression forcée le retire immédiatement sans attendre la confirmation de l’agent.",
-    "deleteForceLabel": "Je comprends et je veux forcer la suppression de cet agent maintenant."
+    "deleteForceLabel": "Je comprends et je veux forcer la suppression de cet agent maintenant.",
+    "deleteForceOptionalInfo": "La suppression forcée retire cet agent immédiatement sans attendre la confirmation. Utilisez ceci si l'agent ne répond pas ou a été réinitialisé."
   }
 }

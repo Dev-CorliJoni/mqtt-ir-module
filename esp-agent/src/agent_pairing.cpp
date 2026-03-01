@@ -139,4 +139,29 @@ void handlePairingUnpair(const String& topic, const byte* payload, unsigned int 
   logWarn("pairing", "Agent unpaired by hub command", "agent_unpaired");
 }
 
+void handlePairingReclaim(const String& topic, const byte* payload, unsigned int length) {
+  if (topic != topicPairingReclaim()) {
+    return;
+  }
+  if (!gPairingHubId.isEmpty()) {
+    logDebug("pairing", "Reclaim ignored because agent is already paired");
+    return;
+  }
+  JsonDocument doc;
+  if (!parsePayloadObject(payload, length, doc)) {
+    return;
+  }
+  const String hubId = String(doc["hub_id"] | "");
+  if (hubId.isEmpty()) {
+    logWarn("pairing", "Reclaim payload missing hub_id", "pairing_payload_invalid");
+    return;
+  }
+
+  savePairingHubId(hubId);
+  gPairingSessionId = "";
+  gPairingNonce = "";
+  publishState();
+  logInfo("pairing", String("Reclaim accepted hub_id=") + hubId);
+}
+
 }  // namespace agent

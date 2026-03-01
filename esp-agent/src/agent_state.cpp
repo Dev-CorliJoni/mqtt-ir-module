@@ -93,6 +93,10 @@ String topicPairingUnpairAck() {
   return String("ir/pairing/unpair_ack/") + gAgentId;
 }
 
+String topicPairingReclaim() {
+  return String("ir/pairing/reclaim/") + gAgentId;
+}
+
 String topicResponse(const String& hubId, const String& requestId) {
   return String("ir/hubs/") + hubId + "/agents/" + gAgentId + "/resp/" + requestId;
 }

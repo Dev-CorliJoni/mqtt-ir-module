@@ -343,6 +343,7 @@
     "updateResetAction": "Restablecer estado de actualización",
     "updateResetDone": "Estado de actualización restablecido.",
     "deleteForceWarning": "Este agente está instalando firmware. El borrado forzado lo elimina de inmediato sin esperar confirmación del agente.",
-    "deleteForceLabel": "Entiendo esto y quiero forzar el borrado de este agente ahora."
+    "deleteForceLabel": "Entiendo esto y quiero forzar el borrado de este agente ahora.",
+    "deleteForceOptionalInfo": "El borrado forzado elimina este agente inmediatamente sin esperar confirmación. Úsalo si el agente no responde o ha sido reiniciado."
   }
 }

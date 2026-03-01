@@ -343,6 +343,7 @@
     "updateResetAction": "Reset status pembaruan",
     "updateResetDone": "Status pembaruan direset.",
     "deleteForceWarning": "Agen ini sedang memasang firmware. Hapus paksa akan langsung menghapusnya tanpa menunggu konfirmasi dari agen.",
-    "deleteForceLabel": "Saya paham dan ingin menghapus paksa agen ini sekarang."
+    "deleteForceLabel": "Saya paham dan ingin menghapus paksa agen ini sekarang.",
+    "deleteForceOptionalInfo": "Hapus paksa akan menghapus agen ini segera tanpa menunggu konfirmasi. Gunakan ini jika agen tidak merespons atau telah direset."
   }
 }
