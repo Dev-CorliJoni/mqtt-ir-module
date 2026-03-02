@@ -8,8 +8,7 @@ pipeline {
     }
 
     environment {
-        PROJECT_PREFIX = "mqtt-ir"
-        IMAGE_PREFIX = "${REGISTRY}/${PROJECT_PREFIX}"
+        PROJECT_PREFIX = "ir"        
     }
 
     parameters {
@@ -39,6 +38,7 @@ pipeline {
             agent { label 'agent-01' }
             steps {
                 script {
+                    unstash 'ws'
                     env.BRANCH = params.GIT_REF
                         .replace('refs/heads/', '')
                         .replace('refs/tags/', '')
@@ -90,18 +90,38 @@ pipeline {
                         environment { SUFFIX = "${ARCH_SUFFIX}" }
                         steps {
                             unstash 'ws'
-                            sh "docker-compose -f docker-compose.yml build"
-                            sh "docker-compose -f docker-compose.yml push"
-                            script {
-                                def images = [
-                                    "${IMAGE_PREFIX}-hub",
-                                    "${IMAGE_PREFIX}-agent-hub",
-                                    "${IMAGE_PREFIX}-agent",
-                                ]
-                                images.each { image ->
-                                    echo "Published ${image}:${env.BRANCH}-${ARCH_SUFFIX}"
+                            withCredentials([usernamePassword(
+                                credentialsId: 'docker-hub-credentials',
+                                usernameVariable: 'DOCKER_USERNAME',
+                                passwordVariable: 'DOCKER_PASSWORD'
+                            )]) {
+                                sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
+                                sh """
+                                    IMAGE_PREFIX=\$DOCKER_USERNAME/${PROJECT_PREFIX} \\
+                                    BRANCH=${env.BRANCH} \\
+                                    SUFFIX=${ARCH_SUFFIX} \\
+                                    docker-compose -f docker-compose.yml build
+                                """
+                                sh """
+                                    IMAGE_PREFIX=\$DOCKER_USERNAME/${PROJECT_PREFIX} \\
+                                    BRANCH=${env.BRANCH} \\
+                                    SUFFIX=${ARCH_SUFFIX} \\
+                                    docker-compose -f docker-compose.yml push
+                                """
+                                
+                                script {
+                                    def images = [
+                                        "\$DOCKER_USERNAME/${PROJECT_PREFIX}-hub",
+                                        "\$DOCKER_USERNAME/${PROJECT_PREFIX}-agent-hub",
+                                        "\$DOCKER_USERNAME/${PROJECT_PREFIX}-agent",
+                                    ]
+
+                                    images.each { image ->
+                                        echo "Published ${image}:${env.BRANCH}-${ARCH_SUFFIX}"
+                                    }
                                 }
-                            }
+                                sh 'docker logout'
+                            }                            
                         }
                     }
                 }
@@ -112,34 +132,43 @@ pipeline {
             agent { label 'agent-01' }
             steps {
                 script {
-                    def images = [
-                        "${IMAGE_PREFIX}-hub",
-                        "${IMAGE_PREFIX}-agent-hub",
-                        "${IMAGE_PREFIX}-agent",
-                    ]
-                    def branch = env.BRANCH
-                    def tag = env.BUILD_TAG
 
-                    images.each { image ->
-                        // Branch manifest: points to the two per-arch tags
-                        sh "docker manifest rm ${image}:${branch} || true"
-                        sh "docker manifest create ${image}:${branch} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
-                        sh "docker manifest push --purge ${image}:${branch}"
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-hub-credentials',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )]) {
+                        sh 'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin'
+                        def images = [
+                            "\$DOCKER_USERNAME/${PROJECT_PREFIX}-hub",
+                            "\$DOCKER_USERNAME/${PROJECT_PREFIX}-agent-hub",
+                            "\$DOCKER_USERNAME/${PROJECT_PREFIX}-agent",
+                        ]
+                        def branch = env.BRANCH
+                        def tag = env.BUILD_TAG
 
-                        if (env.IS_TAG.toBoolean()) {
-                            // Tag manifest
-                            sh "docker manifest rm ${image}:${tag} || true"
-                            sh "docker manifest create ${image}:${tag} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
-                            sh "docker manifest push --purge ${image}:${tag}"
-                            echo "Published ${image}:${tag}"
+                        images.each { image ->
+                            // Branch manifest: points to the two per-arch tags
+                            sh "docker manifest rm ${image}:${branch} || true"
+                            sh "docker manifest create ${image}:${branch} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                            sh "docker manifest push --purge ${image}:${branch}"
 
-                            // Latest manifest
-                            sh "docker manifest rm ${image}:latest || true"
-                            sh "docker manifest create ${image}:latest ${image}:${branch}-amd64 ${image}:${branch}-arm64"
-                            sh "docker manifest push --purge ${image}:latest"
-                            echo "Published ${image}:latest"
+                            if (env.IS_TAG.toBoolean()) {
+                                // Tag manifest
+                                sh "docker manifest rm ${image}:${tag} || true"
+                                sh "docker manifest create ${image}:${tag} ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                                sh "docker manifest push --purge ${image}:${tag}"
+                                echo "Published ${image}:${tag}"
+
+                                // Latest manifest
+                                sh "docker manifest rm ${image}:latest || true"
+                                sh "docker manifest create ${image}:latest ${image}:${branch}-amd64 ${image}:${branch}-arm64"
+                                sh "docker manifest push --purge ${image}:latest"
+                                echo "Published ${image}:latest"
+                            }
                         }
-                    }
+                        sh 'docker logout'
+                    }    
                 }
             }
         }

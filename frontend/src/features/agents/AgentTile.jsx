@@ -27,7 +27,9 @@ export function AgentTile({ agent, onEdit, onDelete, onAccept, onUpdate, onReboo
   const runtime = agent.runtime || {}
   const ota = agent.ota || {}
   const isOnline = String(agent.status || '').trim().toLowerCase() === 'online'
-  const typeLabel = agentTypeLabel(String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase(), t)
+  const agentType = String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase()
+  const typeLabel = agentTypeLabel(agentType, t)
+  const isLocalAgent = agentType === 'local'
   const swVersion = String(runtime.sw_version || agent.sw_version || '').trim()
   const updateAvailable = Boolean(ota.update_available && ota.supported)
   const rebootRequired = Boolean(runtime.reboot_required || ota.reboot_required)
@@ -79,9 +81,11 @@ export function AgentTile({ agent, onEdit, onDelete, onAccept, onUpdate, onReboo
             <IconButton label={t('common.edit')} onClick={() => onEdit(agent)}>
               <Icon path={mdiPencilOutline} size={1} />
             </IconButton>
-            <IconButton label={t('common.delete')} onClick={() => onDelete(agent)}>
-              <Icon path={mdiTrashCanOutline} size={1} />
-            </IconButton>
+            {!isLocalAgent ? (
+              <IconButton label={t('common.delete')} onClick={() => onDelete(agent)}>
+                <Icon path={mdiTrashCanOutline} size={1} />
+              </IconButton>
+            ) : null}
             {updateAvailable && onUpdate ? (
               <IconButton label={t('agents.updateAction')} onClick={() => onUpdate?.(agent)} disabled={installationInProgress}>
                 <Icon path={mdiUploadOutline} size={1} />
