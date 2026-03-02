@@ -723,6 +723,8 @@ def delete_agent(
     x_api_key: Optional[str] = Header(default=None),
 ) -> Dict[str, Any]:
     require_api_key(x_api_key)
+    if agent_id == local_agent.agent_id:
+        raise HTTPException(status_code=400, detail="Local hub agent cannot be removed")
     if not bool(force):
         _require_agent_not_installing(agent_id)
     try:

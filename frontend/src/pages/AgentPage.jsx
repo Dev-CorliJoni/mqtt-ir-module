@@ -225,6 +225,7 @@ export function AgentPage() {
   const installationLabel = installationBadgeLabel(installation)
   const deleteRequiresForce = installationInProgress
   const agentType = String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase()
+  const isLocalAgent = agentType === 'local'
   const swVersion = String(runtime.sw_version || agent.sw_version || '').trim()
   const typeLabel =
     agentType === 'esp32'
@@ -268,15 +269,17 @@ export function AgentPage() {
             <IconButton label={t('common.edit')} onClick={() => setEditOpen(true)}>
               <Icon path={mdiPencilOutline} size={1} />
             </IconButton>
-            <IconButton
-              label={t('common.delete')}
-              onClick={() => {
-                setDeleteForce(false)
-                setDeleteOpen(true)
-              }}
-            >
-              <Icon path={mdiTrashCanOutline} size={1} />
-            </IconButton>
+            {!isLocalAgent ? (
+              <IconButton
+                label={t('common.delete')}
+                onClick={() => {
+                  setDeleteForce(false)
+                  setDeleteOpen(true)
+                }}
+              >
+                <Icon path={mdiTrashCanOutline} size={1} />
+              </IconButton>
+            ) : null}
           </div>
         </CardHeader>
         <CardBody>
