@@ -59,7 +59,13 @@ from database import Database
 from runtime_version import SOFTWARE_VERSION
 
 LOCAL_AGENT_LOG_STREAM_LEVEL = "info"
-AGENT_PROTOCOL_VERSION = "1"
+# Protocol version integers — increment the relevant constant for any breaking change.
+# system: state topic structure, pairing, OTA handshake, LWT format → mismatch requires reflash
+# send: IR send command topic/payload format
+# learn: IR learn flow topics/payloads
+SYSTEM_VERSION = 1
+SEND_VERSION = 1
+LEARN_VERSION = 1
 
 env = Environment()
 database = Database(data_dir=env.data_folder)
@@ -189,9 +195,6 @@ def register_external_mqtt_agent(agent_data: Dict[str, Any], online: bool = True
     agent_type = str(runtime_state.get("agent_type") or "").strip().lower()
     if agent_type:
         capabilities["agent_type"] = agent_type
-    protocol_version = str(runtime_state.get("protocol_version") or "").strip()
-    if protocol_version:
-        capabilities["protocol_version"] = protocol_version
     capabilities["ota_supported"] = bool(runtime_state.get("ota_supported"))
     if runtime_state.get("can_learn_hold_batch"):
         capabilities["can_learn_hold_batch"] = True
@@ -263,16 +266,20 @@ def _decorate_agent_payload(agent: Dict[str, Any]) -> Dict[str, Any]:
 
     sw_version = str(runtime_state.get("sw_version") or payload.get("sw_version") or "").strip()
     agent_type = _normalize_agent_type(runtime_state.get("agent_type"), transport=transport)
-    protocol_version = str(runtime_state.get("protocol_version") or AGENT_PROTOCOL_VERSION).strip() or AGENT_PROTOCOL_VERSION
     ota_supported = bool(runtime_state.get("ota_supported"))
     reboot_required = bool(runtime_state.get("reboot_required"))
-    runtime_commands = runtime_state.get("runtime_commands")
-    if not isinstance(runtime_commands, list):
-        runtime_commands = []
+
+    # Version compatibility — compare agent's reported versions against hub constants.
+    # Missing version (0) is treated as compatible to avoid false blocks during startup.
+    agent_system = int(runtime_state.get("system_version") or 0)
+    agent_send = int(runtime_state.get("send_version") or 0)
+    agent_learn = int(runtime_state.get("learn_version") or 0)
+    compatible_system = agent_system == 0 or agent_system == SYSTEM_VERSION
+    compatible_send = agent_send == 0 or agent_send == SEND_VERSION
+    compatible_learn = agent_learn == 0 or agent_learn == LEARN_VERSION
 
     runtime_payload: Dict[str, Any] = {
         "agent_type": agent_type,
-        "protocol_version": protocol_version,
         "sw_version": sw_version,
         "can_send": can_send,
         "can_learn": can_learn,
@@ -284,10 +291,7 @@ def _decorate_agent_payload(agent: Dict[str, Any]) -> Dict[str, Any]:
         "free_heap": runtime_state.get("free_heap"),
         "ir_rx_pin": runtime_state.get("ir_rx_pin"),
         "ir_tx_pin": runtime_state.get("ir_tx_pin"),
-        "power_mode": str(runtime_state.get("power_mode") or "").strip().lower(),
-        "runtime_commands": runtime_commands,
         "state_seen_at": runtime_state.get("state_seen_at"),
-        "state_updated_at": runtime_state.get("updated_at"),
     }
 
     ota_payload = {
@@ -333,8 +337,12 @@ def _decorate_agent_payload(agent: Dict[str, Any]) -> Dict[str, Any]:
         "can_learn": can_learn,
         "sw_version": sw_version,
         "agent_type": agent_type,
-        "protocol_version": protocol_version,
         "ota_supported": ota_supported,
+    }
+    payload["compatibility"] = {
+        "system": compatible_system,
+        "send": compatible_send,
+        "learn": compatible_learn,
     }
     payload["installation"] = installation
     return payload
@@ -354,6 +362,32 @@ def _require_agent_not_installing(agent_id: str) -> None:
             "target_version": str(installation.get("target_version") or ""),
         },
     )
+
+
+def _require_agent_compatible_send(agent_id: str) -> None:
+    """Raise AgentRoutingError if the agent's send protocol version mismatches the hub."""
+    from agents.errors import AgentRoutingError
+    state = runtime_state_hub.get_state(agent_id) or {}
+    agent_send = int(state.get("send_version") or 0)
+    if agent_send != 0 and agent_send != SEND_VERSION:
+        raise AgentRoutingError(
+            code="agent_incompatible_send",
+            message="Agent send protocol is incompatible. Firmware update required.",
+            status_code=503,
+        )
+
+
+def _require_agent_compatible_learn(agent_id: str) -> None:
+    """Raise AgentRoutingError if the agent's learn protocol version mismatches the hub."""
+    from agents.errors import AgentRoutingError
+    state = runtime_state_hub.get_state(agent_id) or {}
+    agent_learn = int(state.get("learn_version") or 0)
+    if agent_learn != 0 and agent_learn != LEARN_VERSION:
+        raise AgentRoutingError(
+            code="agent_incompatible_learn",
+            message="Agent learn protocol is incompatible. Firmware update required.",
+            status_code=503,
+        )
 
 
 @asynccontextmanager
@@ -996,6 +1030,10 @@ def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None
 def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None)) -> LearnStartResponse:
     require_api_key(x_api_key)
     try:
+        remote = database.remotes.get(body.remote_id)
+        if remote:
+            pre_agent = agent_registry.resolve_agent_for_remote(remote_id=body.remote_id, remote=remote)
+            _require_agent_compatible_learn(pre_agent.agent_id)
         result = learning.start(remote_id=body.remote_id, extend=body.extend)
         return LearnStartResponse.model_validate(result)
     except AgentRoutingError:
@@ -1089,6 +1127,7 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
 
         remote = database.remotes.get(int(button["remote_id"]))
         agent = agent_registry.resolve_agent_for_remote(remote_id=int(remote["id"]), remote=remote)
+        _require_agent_compatible_send(agent.agent_id)
         if learning.is_learning_for_agent(agent.agent_id):
             raise HTTPException(status_code=409, detail="Cannot send while learning is active on this agent")
 

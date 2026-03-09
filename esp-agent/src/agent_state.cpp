@@ -61,12 +61,28 @@ String nowSecondsText() {
   return String(seconds, 3);
 }
 
-String topicState() {
-  return String("ir/agents/") + gAgentId + "/state";
+String topicStateAvailability() {
+  return String("ir/agents/") + gAgentId + "/state/availability";
 }
 
-String topicStatus() {
-  return String("ir/agents/") + gAgentId + "/status";
+String topicStateHub() {
+  return String("ir/agents/") + gAgentId + "/state/hub";
+}
+
+String topicStateVersion() {
+  return String("ir/agents/") + gAgentId + "/state/version";
+}
+
+String topicStateAgent() {
+  return String("ir/agents/") + gAgentId + "/state/agent";
+}
+
+String topicStateRuntime() {
+  return String("ir/agents/") + gAgentId + "/state/runtime";
+}
+
+String topicStateDiagnostics() {
+  return String("ir/agents/") + gAgentId + "/state/diagnostics";
 }
 
 String topicCommands() {

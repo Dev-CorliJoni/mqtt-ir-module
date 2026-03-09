@@ -131,6 +131,16 @@ const CODE_MAP = {
     titleKey: 'errors.agentOfflineTitle',
     bodyKey: 'errors.agentOfflineBody',
   },
+  agent_incompatible_send: {
+    kind: 'badRequest',
+    titleKey: 'errors.agentIncompatibleSendTitle',
+    bodyKey: 'errors.agentIncompatibleSendBody',
+  },
+  agent_incompatible_learn: {
+    kind: 'badRequest',
+    titleKey: 'errors.agentIncompatibleLearnTitle',
+    bodyKey: 'errors.agentIncompatibleLearnBody',
+  },
 }
 
 // Match backend detail strings to friendly categories when no structured code is provided.

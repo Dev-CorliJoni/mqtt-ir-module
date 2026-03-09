@@ -11,7 +11,7 @@ from .runtime_loader import RuntimeLoader
 
 
 class AgentAvailabilityHub:
-    STATUS_TOPIC_WILDCARD = "ir/agents/+/status"
+    STATUS_TOPIC_WILDCARD = "ir/agents/+/state/availability"
 
     def __init__(
         self,
@@ -99,10 +99,11 @@ class AgentAvailabilityHub:
             )
 
     def _parse_agent_id(self, topic: str) -> str:
+        # Topic pattern: ir/agents/{id}/state/availability
         parts = str(topic or "").split("/")
-        if len(parts) != 4:
+        if len(parts) != 5:
             return ""
-        if parts[0] != "ir" or parts[1] != "agents" or parts[3] != "status":
+        if parts[0] != "ir" or parts[1] != "agents" or parts[3] != "state" or parts[4] != "availability":
             return ""
         return parts[2].strip()
 

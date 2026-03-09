@@ -28,7 +28,6 @@ class PairingManagerAgent:
         can_send: bool,
         can_learn: bool,
         agent_type: str = "",
-        protocol_version: str = "",
         ota_supported: bool = False,
         reset_binding: bool = False,
         log_reporter: Optional[AgentLogReporter] = None,
@@ -40,7 +39,6 @@ class PairingManagerAgent:
         self._can_send = bool(can_send)
         self._can_learn = bool(can_learn)
         self._agent_type = str(agent_type or "").strip().lower()
-        self._protocol_version = str(protocol_version or "").strip()
         self._ota_supported = bool(ota_supported)
         self._reset_binding = bool(reset_binding)
 
@@ -226,8 +224,6 @@ class PairingManagerAgent:
         }
         if self._agent_type:
             offer_payload["agent_type"] = self._agent_type
-        if self._protocol_version:
-            offer_payload["protocol_version"] = self._protocol_version
         offer_payload["ota_supported"] = self._ota_supported
         offer_topic = f"{self.PAIRING_OFFER_TOPIC_PREFIX}/{session_id}/{agent_uid}"
         connection.publish(

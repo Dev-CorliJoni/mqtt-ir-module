@@ -218,6 +218,7 @@ export function AgentPage() {
   const agent = agentQuery.data
   const agentLabel = agent.name || agent.agent_id
   const runtime = agent.runtime || {}
+  const compatibility = agent.compatibility || {}
   const rebootRequired = Boolean(runtime.reboot_required || agent.ota?.reboot_required)
   const isOnline = String(agent.status || '').trim().toLowerCase() === 'online'
   const installation = agent.installation || {}
@@ -227,6 +228,9 @@ export function AgentPage() {
   const agentType = String(runtime.agent_type || agent.agent_type || '').trim().toLowerCase()
   const isLocalAgent = agentType === 'local'
   const swVersion = String(runtime.sw_version || agent.sw_version || '').trim()
+  const incompatibleSystem = isOnline && compatibility.system === false
+  const incompatibleSend = isOnline && compatibility.send === false
+  const incompatibleLearn = isOnline && compatibility.learn === false
   const typeLabel =
     agentType === 'esp32'
       ? t('agents.typeEsp32')
@@ -290,21 +294,31 @@ export function AgentPage() {
             {t('agents.typeLabel')}: {typeLabel}
             {swVersion ? ` · v${swVersion}` : ''}
           </div>
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
             <Badge variant={isOnline ? 'success' : 'danger'}>
               {isOnline ? t('health.online') : t('health.offline')}
             </Badge>
             {installationLabel ? (
-              <span className="ml-2">
-                <Badge variant={installationBadgeVariant(installation)}>{installationLabel}</Badge>
-              </span>
+              <Badge variant={installationBadgeVariant(installation)}>{installationLabel}</Badge>
             ) : null}
+            {incompatibleSystem ? <Badge variant="danger">{t('agents.incompatibleSystem')}</Badge> : null}
+            {incompatibleSend ? <Badge variant="warning">{t('agents.incompatibleSend')}</Badge> : null}
+            {incompatibleLearn ? <Badge variant="warning">{t('agents.incompatibleLearn')}</Badge> : null}
           </div>
           {installationInProgress ? (
             <div className="text-xs text-amber-600 mt-1">{installation.message || t('common.loading')}</div>
           ) : null}
           {rebootRequired ? (
             <div className="text-xs text-amber-600 mt-1">{t('agents.rebootRequired')}</div>
+          ) : null}
+          {incompatibleSystem ? (
+            <div className="text-xs text-red-600 mt-1">{t('agents.incompatibleSystemHint')}</div>
+          ) : null}
+          {incompatibleSend ? (
+            <div className="text-xs text-amber-600 mt-1">{t('agents.incompatibleSendHint')}</div>
+          ) : null}
+          {incompatibleLearn ? (
+            <div className="text-xs text-amber-600 mt-1">{t('agents.incompatibleLearnHint')}</div>
           ) : null}
         </CardBody>
       </Card>

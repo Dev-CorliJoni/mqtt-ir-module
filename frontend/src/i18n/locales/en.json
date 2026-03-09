@@ -160,7 +160,13 @@
     "updateVersionLabel": "Firmware version",
     "rebootRequired": "Reboot required",
     "rebootAction": "Reboot",
-    "rebootRequested": "Reboot command sent."
+    "rebootRequested": "Reboot command sent.",
+    "incompatibleSend": "Send incompatible",
+    "incompatibleLearn": "Learn incompatible",
+    "incompatibleSystem": "Re-flash required",
+    "incompatibleSendHint": "IR send is blocked: the agent's send protocol is incompatible with this hub.",
+    "incompatibleLearnHint": "IR learning is blocked: the agent's learn protocol is incompatible with this hub.",
+    "incompatibleSystemHint": "Core protocol mismatch: manually re-flash this agent to restore full compatibility."
   },
   "settings": {
     "theme": "Theme",
@@ -307,6 +313,10 @@
     "noAgentsBody": "Enable a local agent or connect an external agent to continue.",
     "agentOfflineTitle": "Assigned agent offline",
     "agentOfflineBody": "The selected agent is offline or unavailable. Choose another agent or bring it online.",
+    "agentIncompatibleSendTitle": "Send blocked",
+    "agentIncompatibleSendBody": "The agent's send protocol version is incompatible with this hub. Re-flash the agent to fix this.",
+    "agentIncompatibleLearnTitle": "Learn blocked",
+    "agentIncompatibleLearnBody": "The agent's learn protocol version is incompatible with this hub. Re-flash the agent to fix this.",
     "badRequestTitle": "Invalid request",
     "badRequestBody": "Check your input and try again.",
     "nameRequiredBody": "Enter a name to continue.",

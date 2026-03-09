@@ -17,25 +17,7 @@ These are either core UX breakages or decisions that become much harder to chang
 
 ---
 
-### H1 — Docker Agent: Stable Persistent Agent ID
-
-**Problem:**
-The standalone `ir-agent` Docker container derives its `agentId` from the MQTT `client_id`, which
-is not guaranteed stable across restarts or broker reconnects. If the ID changes, all remotes
-assigned to that agent become orphaned and must be re-paired manually.
-
-**What to implement:**
-- On first start: generate a UUID, write it to `/data/agent_id` (or a configurable path)
-- On every subsequent start: read and reuse that file
-- Pass this ID into `AgentRuntimeStateStore` and `AgentCommandHandler` instead of deriving from MQTT
-- Declare the `/data/` directory as a named volume in the Docker Compose service
-
-**Acceptance:** Restart the `ir-agent` container without removing its volume → `agentId` is
-unchanged in the hub, paired remotes still work.
-
----
-
-### H2 — Protocol Version Mismatch: Detect and Block Routing
+### H2 — Protocol Version Mismatch: DIhetect and Block Routing
 
 **Problem:**
 Hub and agent both carry `protocol_version` but there is no mismatch check. An incompatible agent
