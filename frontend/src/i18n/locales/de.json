@@ -220,6 +220,8 @@
     "learningActiveBody": "Das Lernen läuft bereits. Beende die aktuelle Sitzung und versuche es erneut.",
     "signalExistsBody": "Dieses Signal existiert bereits. Wähle Neu lernen oder Überschreiben, um es zu ersetzen.",
     "sendWhileLearningBody": "Beende das Lernen, bevor du ein Signal sendest.",
+    "agentOfflineTitle": "Zugewiesener Agent offline",
+    "agentOfflineBody": "Der ausgewählte Agent ist offline oder nicht verfügbar. Wählen Sie einen anderen Agenten oder bringen Sie ihn online.",
     "badRequestTitle": "Ungültige Anfrage",
     "badRequestBody": "Eingaben prüfen und erneut versuchen.",
     "nameRequiredBody": "Bitte einen Namen eingeben, um fortzufahren.",

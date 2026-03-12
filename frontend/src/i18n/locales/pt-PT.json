@@ -219,7 +219,9 @@
     "learningActiveBody": "A aprendizagem já está ativa. Pare a sessão atual e tente novamente.",
     "signalExistsBody": "Este sinal já existe. Escolha reaprender ou substituir para o trocar.",
     "sendWhileLearningBody": "Pare a aprendizagem antes de enviar um sinal.",
-    "badRequestTitle": "Pedido inválido",
+
+    "agentOfflineTitle": "Agente atribuído offline",
+    "agentOfflineBody": "O agente selecionado está offline ou indisponível. Escolha outro agente ou coloque-o online.",    "badRequestTitle": "Pedido inválido",
     "badRequestBody": "Verifique os dados e tente novamente.",
     "nameRequiredBody": "Introduza um nome para continuar.",
     "settingsMissingBody": "Altere pelo menos uma definição antes de guardar.",

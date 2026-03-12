@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
+from agents.errors import BusyLearningError
 from agents.local_agent import LocalAgent
 from .agent_runtime_state_store import AgentRuntimeStateStore
 from .agent_log_reporter import AgentLogReporter
@@ -173,6 +174,21 @@ class AgentCommandHandler:
                 code="validation_error",
                 message=str(exc),
                 status_code=400,
+            )
+        except BusyLearningError as exc:
+            duration_ms = int((time.time() - started_at) * 1000)
+            self._log_reporter.warn(
+                category=command_category,
+                message=f"Send rejected: learning session active",
+                request_id=request_id,
+                error_code="send_while_learning",
+                meta={"command": command, "duration_ms": duration_ms},
+            )
+            response = self._error_response(
+                request_id=request_id,
+                code="send_while_learning",
+                message=str(exc),
+                status_code=409,
             )
         except RuntimeError as exc:
             duration_ms = int((time.time() - started_at) * 1000)

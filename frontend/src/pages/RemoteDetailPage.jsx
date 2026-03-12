@@ -45,9 +45,6 @@ function resolveLearningDisabledReason(remote, agents, t) {
   if (!assigned) {
     return t('wizard.assignedAgentMissing')
   }
-  if (assigned.status !== 'online') {
-    return t('wizard.assignedAgentOffline')
-  }
   if (!assigned.capabilities?.can_learn) {
     return t('wizard.assignedAgentCannotLearn')
   }
@@ -263,6 +260,12 @@ export function RemoteDetailPage() {
   // Decide between immediate start or the choice dialog based on existing buttons.
   const handleWizardRequest = () => {
     if (wizardDisabled) return
+    const assignedId = String(remote?.assigned_agent_id || '').trim()
+    const assigned = agents.find((a) => String(a?.agent_id || '') === assignedId)
+    if (assigned && assigned.status !== 'online') {
+      toast.show({ title: t('errors.agentOfflineTitle'), message: t('errors.agentOfflineBody') })
+      return
+    }
     if (!hasExistingButtons) {
       startWizard(true)
       return

@@ -219,7 +219,9 @@
     "learningActiveBody": "L'apprentissage est déjà actif. Arrêtez la session en cours et réessayez.",
     "signalExistsBody": "Ce signal existe déjà. Choisissez de réapprendre ou d'écraser pour le remplacer.",
     "sendWhileLearningBody": "Arrêtez l'apprentissage avant d'envoyer un signal.",
-    "badRequestTitle": "Requête invalide",
+
+    "agentOfflineTitle": "Agent assigné hors ligne",
+    "agentOfflineBody": "L'agent sélectionné est hors ligne ou indisponible. Choisissez un autre agent ou mettez-le en ligne.",    "badRequestTitle": "Requête invalide",
     "badRequestBody": "Vérifiez vos saisies et réessayez.",
     "nameRequiredBody": "Saisissez un nom pour continuer.",
     "settingsMissingBody": "Modifiez au moins un paramètre avant d'enregistrer.",

@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from agents import (
     AgentRegistry,
-    AgentRoutingError,
+    AgentError,
     LocalAgent,
     LocalTransport,
     MqttAgent,
@@ -138,7 +138,7 @@ def require_api_key(x_api_key: Optional[str]) -> None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-def agent_error_response(error: AgentRoutingError) -> JSONResponse:
+def agent_error_response(error: AgentError) -> JSONResponse:
     payload = AgentErrorResponse(code=error.code, message=error.message)
     return JSONResponse(
         status_code=error.status_code,
@@ -365,12 +365,12 @@ def _require_agent_not_installing(agent_id: str) -> None:
 
 
 def _require_agent_compatible_send(agent_id: str) -> None:
-    """Raise AgentRoutingError if the agent's send protocol version mismatches the hub."""
-    from agents.errors import AgentRoutingError
+    """Raise AgentError if the agent's send protocol version mismatches the hub."""
+    from agents.errors import AgentError
     state = runtime_state_hub.get_state(agent_id) or {}
     agent_send = int(state.get("send_version") or 0)
     if agent_send != 0 and agent_send != SEND_VERSION:
-        raise AgentRoutingError(
+        raise AgentError(
             code="agent_incompatible_send",
             message="Agent send protocol is incompatible. Firmware update required.",
             status_code=503,
@@ -378,12 +378,12 @@ def _require_agent_compatible_send(agent_id: str) -> None:
 
 
 def _require_agent_compatible_learn(agent_id: str) -> None:
-    """Raise AgentRoutingError if the agent's learn protocol version mismatches the hub."""
-    from agents.errors import AgentRoutingError
+    """Raise AgentError if the agent's learn protocol version mismatches the hub."""
+    from agents.errors import AgentError
     state = runtime_state_hub.get_state(agent_id) or {}
     agent_learn = int(state.get("learn_version") or 0)
     if agent_learn != 0 and agent_learn != LEARN_VERSION:
-        raise AgentRoutingError(
+        raise AgentError(
             code="agent_incompatible_learn",
             message="Agent learn protocol is incompatible. Firmware update required.",
             status_code=503,
@@ -438,8 +438,8 @@ app = FastAPI(
 )
 
 
-@app.exception_handler(AgentRoutingError)
-async def agent_routing_error_handler(request: Request, exc: AgentRoutingError) -> JSONResponse:
+@app.exception_handler(AgentError)
+async def agent_error_handler(request: Request, exc: AgentError) -> JSONResponse:
     return agent_error_response(exc)
 
 app.add_middleware(
@@ -1036,7 +1036,7 @@ def learn_start(body: LearnStart, x_api_key: Optional[str] = Header(default=None
             _require_agent_compatible_learn(pre_agent.agent_id)
         result = learning.start(remote_id=body.remote_id, extend=body.extend)
         return LearnStartResponse.model_validate(result)
-    except AgentRoutingError:
+    except AgentError:
         raise
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1069,7 +1069,7 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
             button_name=body.button_name,
         )
         return LearnCaptureResponse.model_validate(result)
-    except AgentRoutingError:
+    except AgentError:
         raise
     except TimeoutError as e:
         raise HTTPException(status_code=408, detail=str(e))
@@ -1129,7 +1129,7 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
         agent = agent_registry.resolve_agent_for_remote(remote_id=int(remote["id"]), remote=remote)
         _require_agent_compatible_send(agent.agent_id)
         if learning.is_learning_for_agent(agent.agent_id):
-            raise HTTPException(status_code=409, detail="Cannot send while learning is active on this agent")
+            raise AgentError(code="send_while_learning", message="Cannot send while learning is active", status_code=409)
 
         payload = {
             "button_id": body.button_id,
@@ -1146,7 +1146,7 @@ def send_ir(body: SendRequest, x_api_key: Optional[str] = Header(default=None)) 
         result = agent.send(payload)
         agent_registry.mark_agent_activity(agent.agent_id)
         return SendResponse.model_validate(result)
-    except AgentRoutingError:
+    except AgentError:
         raise
     except HTTPException:
         raise

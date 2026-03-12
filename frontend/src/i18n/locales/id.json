@@ -219,7 +219,9 @@
     "learningActiveBody": "Pembelajaran sudah aktif. Hentikan sesi saat ini lalu coba lagi.",
     "signalExistsBody": "Sinyal ini sudah ada. Pilih belajar ulang atau timpa untuk menggantinya.",
     "sendWhileLearningBody": "Hentikan pembelajaran sebelum mengirim sinyal.",
-    "badRequestTitle": "Permintaan tidak valid",
+
+    "agentOfflineTitle": "Agen yang ditugaskan offline",
+    "agentOfflineBody": "Agen yang dipilih sedang offline atau tidak tersedia. Pilih agen lain atau hubungkan agen tersebut.",    "badRequestTitle": "Permintaan tidak valid",
     "badRequestBody": "Periksa input dan coba lagi.",
     "nameRequiredBody": "Masukkan nama untuk melanjutkan.",
     "settingsMissingBody": "Ubah setidaknya satu pengaturan sebelum menyimpan.",

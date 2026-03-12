@@ -57,6 +57,12 @@ bool executeSendCommand(
     String& errorCode,
     String& errorMessage,
     int& statusCode) {
+  if (gLearningActive) {
+    errorCode = "send_while_learning";
+    errorMessage = "Cannot send while learning is active";
+    statusCode = 409;
+    return false;
+  }
   if (!canSend()) {
     errorCode = "runtime_error";
     errorMessage = "IR sender is not available";

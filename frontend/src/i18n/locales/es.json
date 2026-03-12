@@ -219,7 +219,9 @@
     "learningActiveBody": "El aprendizaje ya está activo. Detén la sesión actual y vuelve a intentarlo.",
     "signalExistsBody": "Esta señal ya existe. Elige volver a aprender o sobrescribir para reemplazarla.",
     "sendWhileLearningBody": "Detén el aprendizaje antes de enviar una señal.",
-    "badRequestTitle": "Solicitud inválida",
+
+    "agentOfflineTitle": "Agente asignado sin conexión",
+    "agentOfflineBody": "El agente seleccionado está sin conexión o no disponible. Elija otro agente o conéctelo.",    "badRequestTitle": "Solicitud inválida",
     "badRequestBody": "Revisa los datos e inténtalo de nuevo.",
     "nameRequiredBody": "Introduce un nombre para continuar.",
     "settingsMissingBody": "Cambia al menos un ajuste antes de guardar.",
