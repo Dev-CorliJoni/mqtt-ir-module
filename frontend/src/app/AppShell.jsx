@@ -65,7 +65,7 @@ export function AppShell() {
       <div className="md:pl-64">
         <TopBar />
 
-        <main className="px-4 md:px-6 pb-24 md:pb-8 pt-4">
+        <main className="px-4 md:px-6 pb-24 md:pb-4 pt-4">
           <Outlet />
         </main>
 
