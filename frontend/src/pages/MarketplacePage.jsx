@@ -195,98 +195,102 @@ export function MarketplacePage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-        <div className="flex-1">
-          <TextField
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onClear={() => setQ('')}
-            clearLabel={t('common.clear')}
-            placeholder={t('marketplace.searchPlaceholder')}
-          />
+    <div className="h-full flex flex-col">
+      <div className="flex flex-col gap-3 pb-3 border-b border-[rgb(var(--border))]">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+          <div className="flex-1">
+            <TextField
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onClear={() => setQ('')}
+              clearLabel={t('common.clear')}
+              placeholder={t('marketplace.searchPlaceholder')}
+            />
+          </div>
+          <div className="w-full sm:w-48">
+            <SelectField
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              searchable
+              searchPlaceholder={t('marketplace.brandSearch')}
+            >
+              <option value="">{t('marketplace.brandAll')}</option>
+              {brands.map((b) => (
+                <option key={b} value={b}>{b.replace(/_/g, ' ')}</option>
+              ))}
+            </SelectField>
+          </div>
+          <div className="w-full sm:w-48">
+            <SelectField
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              searchable
+              searchPlaceholder={t('marketplace.categorySearch')}
+            >
+              <option value="">{t('marketplace.categoryAll')}</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat.replace(/_/g, ' ')}
+                </option>
+              ))}
+            </SelectField>
+          </div>
         </div>
-        <div className="w-full sm:w-48">
-          <SelectField
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            searchable
-            searchPlaceholder={t('marketplace.brandSearch')}
-          >
-            <option value="">{t('marketplace.brandAll')}</option>
-            {brands.map((b) => (
-              <option key={b} value={b}>{b.replace(/_/g, ' ')}</option>
-            ))}
-          </SelectField>
-        </div>
-        <div className="w-full sm:w-48">
-          <SelectField
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            searchable
-            searchPlaceholder={t('marketplace.categorySearch')}
-          >
-            <option value="">{t('marketplace.categoryAll')}</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat.replace(/_/g, ' ')}
-              </option>
-            ))}
-          </SelectField>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-3">
-        {syncStatus && (
-          <span
-            className={[
-              'text-xs',
-              syncStatus.status === 'error' ? 'text-[rgb(var(--danger))]' : 'text-[rgb(var(--muted))]',
-            ].join(' ')}
-          >
-            {formatSyncStatus()}
-            {totalCount !== null && !isSyncing && syncStatus.last_synced
-              ? ` · ${totalCount} ${t('marketplace.totalRemotes')}`
-              : null}
-          </span>
-        )}
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={isSyncing || syncMutation.isPending}
-          onClick={() => syncMutation.mutate()}
-        >
-          <Icon path={mdiRefresh} size={0.75} />
-          {t('marketplace.syncButton')}
-        </Button>
-      </div>
-
-      {neverSynced && !listQuery.isFetching ? (
-        <div className="text-sm text-[rgb(var(--muted))] py-12 text-center space-y-3">
-          <p>{t('marketplace.syncNever')}</p>
+        <div className="flex items-center gap-3">
+          {syncStatus && (
+            <span
+              className={[
+                'text-xs',
+                syncStatus.status === 'error' ? 'text-[rgb(var(--danger))]' : 'text-[rgb(var(--muted))]',
+              ].join(' ')}
+            >
+              {formatSyncStatus()}
+              {totalCount !== null && !isSyncing && syncStatus.last_synced
+                ? ` · ${totalCount} ${t('marketplace.totalRemotes')}`
+                : null}
+            </span>
+          )}
           <Button
+            size="sm"
             variant="secondary"
             disabled={isSyncing || syncMutation.isPending}
             onClick={() => syncMutation.mutate()}
           >
-            <Icon path={mdiRefresh} size={0.85} />
+            <Icon path={mdiRefresh} size={0.75} />
             {t('marketplace.syncButton')}
           </Button>
         </div>
-      ) : items.length === 0 && !listQuery.isFetching ? (
-        <p className="text-sm text-[rgb(var(--muted))] py-8 text-center">{t('marketplace.noResults')}</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {items.map((remote) => (
-            <MarketplaceTile
-              key={remote.id}
-              remote={remote}
-              installed={installedPaths.has(remote.path)}
-              onInstall={setInstallTarget}
-            />
-          ))}
-        </div>
-      )}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto pt-3">
+        {neverSynced && !listQuery.isFetching ? (
+          <div className="text-sm text-[rgb(var(--muted))] py-12 text-center space-y-3">
+            <p>{t('marketplace.syncNever')}</p>
+            <Button
+              variant="secondary"
+              disabled={isSyncing || syncMutation.isPending}
+              onClick={() => syncMutation.mutate()}
+            >
+              <Icon path={mdiRefresh} size={0.85} />
+              {t('marketplace.syncButton')}
+            </Button>
+          </div>
+        ) : items.length === 0 && !listQuery.isFetching ? (
+          <p className="text-sm text-[rgb(var(--muted))] py-8 text-center">{t('marketplace.noResults')}</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 pb-3">
+            {items.map((remote) => (
+              <MarketplaceTile
+                key={remote.id}
+                remote={remote}
+                installed={installedPaths.has(remote.path)}
+                onInstall={setInstallTarget}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <MarketplaceInstallDrawer
         open={Boolean(installTarget)}
@@ -302,3 +306,4 @@ export function MarketplacePage() {
     </div>
   )
 }
+
