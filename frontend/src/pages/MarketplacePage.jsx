@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiRefresh } from '@mdi/js'
+import { mdiRefresh, mdiGithub } from '@mdi/js'
 import {
   listMarketplace,
   getMarketplaceCategories,
@@ -38,16 +38,17 @@ function MarketplaceTile({ remote, installed, onInstall }) {
     ),
   ]
   const hasRaw = remote.buttons.some((b) => b.signal_type === 'raw')
+  const githubUrl = `https://github.com/Lucaslhm/Flipper-IRDB/blob/main/${remote.path.split('/').map(encodeURIComponent).join('/')}`
 
   return (
-    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 flex items-start gap-4">
+    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 flex items-center gap-4">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold">
             {remote.brand} {remote.model !== remote.brand ? remote.model : ''}
           </span>
           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[rgb(var(--bg))] border border-[rgb(var(--border))] text-[rgb(var(--muted))]">
-            {remote.category}
+            {remote.category.replace(/_/g, ' ')}
           </span>
         </div>
         <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
@@ -60,7 +61,16 @@ function MarketplaceTile({ remote, installed, onInstall }) {
           ))}
         </div>
       </div>
-      <div className="flex-shrink-0 flex items-center">
+      <div className="flex-shrink-0 flex items-center gap-2">
+        <a
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center w-8 h-8 rounded-lg text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] hover:bg-[rgb(var(--border))] transition-colors"
+          title="View on GitHub"
+        >
+          <Icon path={mdiGithub} size={0.85} />
+        </a>
         {installed ? (
           <span className="text-xs font-semibold text-[rgb(var(--primary))]">
             ✓ {t('marketplace.installedBadge')}
@@ -154,24 +164,16 @@ export function MarketplacePage() {
             placeholder={t('marketplace.searchPlaceholder')}
           />
         </div>
-        <div className="w-full sm:w-48">
+        <div className="w-full sm:w-36">
           <SelectField value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="">{t('marketplace.categoryAll')}</option>
             {categories.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {cat.replace(/_/g, ' ')}
               </option>
             ))}
           </SelectField>
         </div>
-        <a
-          href="https://github.com/Lucaslhm/Flipper-IRDB"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-[rgb(var(--primary))] hover:underline self-center whitespace-nowrap"
-        >
-          {t('marketplace.sourceLink')}
-        </a>
       </div>
 
       <div className="flex items-center gap-3">
