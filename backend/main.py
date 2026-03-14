@@ -726,6 +726,16 @@ def get_agent_logs(agent_id: str, limit: int = 100) -> Dict[str, Any]:
     }
 
 
+@api.delete("/agents/{agent_id}/logs")
+def delete_agent_logs(agent_id: str, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    require_api_key(x_api_key)
+    agent = agent_registry.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Unknown agent_id")
+    agent_log_hub.clear_agent_logs(agent_id)
+    return {"agent_id": str(agent.get("agent_id") or agent_id), "cleared": True}
+
+
 @api.websocket("/agents/{agent_id}/logs/ws")
 async def agent_logs_ws(agent_id: str, websocket: WebSocket) -> None:
     agent = agent_registry.get_agent(agent_id)
