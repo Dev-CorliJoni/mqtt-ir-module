@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiChevronLeft, mdiRefresh } from '@mdi/js'
+import { mdiChevronLeft, mdiRefresh, mdiTrashCan } from '@mdi/js'
 
 import { getAgent, getAgentDebug, getAgentLogs, setAgentDebug } from '../api/agentsApi.js'
 import { createAgentLogsSocket } from '../api/agentLogsSocket.js'
@@ -201,6 +201,11 @@ export function AgentLogsPage() {
     setEnabledLevels((prev) => ({ ...prev, [level]: !prev[level] }))
   }
 
+  const clearLogs = () => {
+    setLiveLogsByAgent((prev) => ({ ...prev, [agentId]: [] }))
+    queryClient.setQueryData(['agent-logs', agentId], { items: [] })
+  }
+
   const hasAgent = Boolean(agentQuery.data)
   if (agentQuery.isError || (!agentQuery.isLoading && !hasAgent)) {
     return (
@@ -256,6 +261,14 @@ export function AgentLogsPage() {
           >
             <Icon path={mdiRefresh} size={0.8} />
             Refresh
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={clearLogs}
+          >
+            <Icon path={mdiTrashCan} size={0.8} />
+            Clear
           </Button>
         </CardHeader>
         <CardBody className="space-y-3">
