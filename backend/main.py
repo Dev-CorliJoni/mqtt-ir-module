@@ -735,7 +735,9 @@ async def agent_logs_ws(agent_id: str, websocket: WebSocket) -> None:
     await agent_log_hub.connect(agent_id, websocket)
     try:
         while True:
-            await websocket.receive()
+            msg = await websocket.receive()
+            if msg["type"] == "websocket.disconnect":
+                break
     except WebSocketDisconnect:
         pass
     finally:
