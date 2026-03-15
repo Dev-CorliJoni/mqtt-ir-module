@@ -18,36 +18,9 @@ deployments.
 
 ---
 
-### M1 — Action Events Table (Schema + Basic Recording)
 
-**Why before v1:** Adding a table to an existing SQLite deployment needs a migration. Including it
-in the initial schema costs nothing and provides a foundation for debugging from day one.
 
-**Schema to add:**
-```sql
-CREATE TABLE IF NOT EXISTS action_events (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    ts             TEXT    NOT NULL,
-    type           TEXT    NOT NULL,  -- "send" | "learn_start" | "learn_complete" | "learn_fail"
-    remote_id      INTEGER,
-    button_id      INTEGER,
-    agent_id       TEXT,
-    correlation_id TEXT,
-    result         TEXT,              -- "ok" | "error"
-    reason         TEXT,              -- "agent_offline" | "busy_learning" | "timeout" | ...
-    duration_ms    INTEGER,
-    context        TEXT               -- JSON for extra data
-);
-```
 
-**What to implement:**
-- Add the table to DB schema initialization
-- Record one event per send (result + reason)
-- Record one event for learn start and one on completion/failure
-- No UI required for v1 — just the data
-
-**Acceptance:** Perform a send and a learn → query the DB → events exist with correct `type`,
-`result`, and `reason`.
 
 ---
 
