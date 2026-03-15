@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Icon from '@mdi/react'
-import { mdiRefresh, mdiGithub } from '@mdi/js'
+import { mdiRefresh, mdiGithub, mdiChevronDown, mdiChevronUp } from '@mdi/js'
 import {
   listMarketplace,
   getMarketplaceCategories,
@@ -97,18 +97,14 @@ export function MarketplacePage() {
   const [category, setCategory] = useState('')
   const [brand, setBrand] = useState('')
   const [installTarget, setInstallTarget] = useState(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQ(q), 400)
     return () => clearTimeout(timer)
   }, [q])
 
-  // Reset brand when category changes
-  useEffect(() => {
-    setBrand('')
-  }, [category])
-
-  const syncStatusQuery = useQuery({
+const syncStatusQuery = useQuery({
     queryKey: ['marketplace-sync-status'],
     queryFn: getMarketplaceSyncStatus,
     refetchInterval: 5000,
@@ -196,8 +192,8 @@ export function MarketplacePage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex flex-col gap-3 pb-3 border-b border-[rgb(var(--border))]">
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+      <div className="flex flex-col gap-2 pb-3 border-b border-[rgb(var(--border))]">
+        <div className="flex items-center gap-2">
           <div className="flex-1">
             <TextField
               value={q}
@@ -207,60 +203,75 @@ export function MarketplacePage() {
               placeholder={t('marketplace.searchPlaceholder')}
             />
           </div>
-          <div className="w-full sm:w-48">
-            <SelectField
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              searchable
-              searchPlaceholder={t('marketplace.brandSearch')}
-            >
-              <option value="">{t('marketplace.brandAll')}</option>
-              {brands.map((b) => (
-                <option key={b} value={b}>{b.replace(/_/g, ' ')}</option>
-              ))}
-            </SelectField>
-          </div>
-          <div className="w-full sm:w-48">
-            <SelectField
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              searchable
-              searchPlaceholder={t('marketplace.categorySearch')}
-            >
-              <option value="">{t('marketplace.categoryAll')}</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat.replace(/_/g, ' ')}
-                </option>
-              ))}
-            </SelectField>
-          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((v) => !v)}
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-[rgb(var(--muted))] border border-[rgb(var(--border))] hover:bg-[rgb(var(--border))] transition-colors"
+            aria-expanded={filtersOpen}
+          >
+            <Icon path={filtersOpen ? mdiChevronUp : mdiChevronDown} size={0.75} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          {syncStatus && (
-            <span
-              className={[
-                'text-xs',
-                syncStatus.status === 'error' ? 'text-[rgb(var(--danger))]' : 'text-[rgb(var(--muted))]',
-              ].join(' ')}
-            >
-              {formatSyncStatus()}
-              {totalCount !== null && !isSyncing && syncStatus.last_synced
-                ? ` · ${totalCount} ${t('marketplace.totalRemotes')}`
-                : null}
-            </span>
-          )}
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={isSyncing || syncMutation.isPending}
-            onClick={() => syncMutation.mutate()}
-          >
-            <Icon path={mdiRefresh} size={0.75} />
-            {t('marketplace.syncButton')}
-          </Button>
-        </div>
+        {filtersOpen && (
+          <>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1">
+                <SelectField
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  searchable
+                  searchPlaceholder={t('marketplace.brandSearch')}
+                >
+                  <option value="">{t('marketplace.brandAll')}</option>
+                  {brands.map((b) => (
+                    <option key={b} value={b}>{b.replace(/_/g, ' ')}</option>
+                  ))}
+                </SelectField>
+              </div>
+              <div className="flex-1">
+                <SelectField
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  searchable
+                  searchPlaceholder={t('marketplace.categorySearch')}
+                >
+                  <option value="">{t('marketplace.categoryAll')}</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </SelectField>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {syncStatus && (
+                <span
+                  className={[
+                    'text-xs flex-1 min-w-0 truncate',
+                    syncStatus.status === 'error' ? 'text-[rgb(var(--danger))]' : 'text-[rgb(var(--muted))]',
+                  ].join(' ')}
+                >
+                  {formatSyncStatus()}
+                  {totalCount !== null && !isSyncing && syncStatus.last_synced
+                    ? ` · ${totalCount} ${t('marketplace.totalRemotes')}`
+                    : null}
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={isSyncing || syncMutation.isPending}
+                onClick={() => syncMutation.mutate()}
+              >
+                <Icon path={mdiRefresh} size={0.75} />
+                {t('marketplace.syncButton')}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto pt-3">
