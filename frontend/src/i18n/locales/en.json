@@ -119,7 +119,7 @@
     "irRxPinHint": "Default: GPIO 34",
     "irTxPinLabel": "IR TX pin",
     "irTxPinHint": "Default: GPIO 4",
-    "savedWithRuntimeHint": "Saved. If runtime pins changed, reboot the agent to apply them.",
+    "savedWithRuntimeHint": "Saved. The agent is rebooting to apply the new pin configuration.",
     "assignedRemotesTitle": "Assigned remotes",
     "assignedRemotesEmpty": "No remotes are assigned to this agent.",
     "assignExistingRemoteAction": "Assign existing remote",
