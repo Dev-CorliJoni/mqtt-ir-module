@@ -18,27 +18,6 @@ deployments.
 
 ---
 
-
-
-
-
----
-
-### M2 — Hub Log Store (DB Table, Level Setting, Retention)
-
-**Why before v1:** Same as M1. The table is cheap to add now. Without it, agent logs only exist in
-a 100-entry in-memory deque and are lost on restart — useless for production debugging.
-
-**What to implement:**
-- Add `hub_logs` table: `(id INTEGER PK AUTOINCREMENT, ts TEXT, level TEXT, source TEXT, message TEXT, context TEXT)`
-- Add two settings keys: `log_level` (debug/info/warn/error, default: `info`) and
-  `log_retention_days` (integer, default: `7`)
-- Prune logs older than the retention window on startup and on a background interval
-- Extend `AgentLogsPage` or add a tab to show hub-level logs with level filter
-
-**Acceptance:** Hub generates log entries during pairing, send, and learn → entries appear in the
-UI → entries older than the retention setting are removed on the next startup.
-
 ---
 
 ### M3 — Home Assistant: Inbound Command Routing
@@ -57,37 +36,7 @@ correct IR code is sent via the assigned agent.
 
 ---
 
-### M4 — MQTT Chunking for Large IR Payloads
 
-**Current state:** IR signals are transferred as single MQTT messages. Very long raw signals
-(certain AC protocols) may exceed broker message size limits.
-
-**What to implement:**
-- Use the agent's `maxPayloadBytes` capability to decide whether chunking is needed
-- Agent splits the learn result into chunks:
-  `{transfer_id, chunk_index, chunk_count, chunk_data}` (base64-encode `chunk_data`)
-- Hub collects all chunks by `transfer_id` with a timeout, reassembles, and stores the result
-- If reassembly times out: record a `"learn_fail"` action event with reason `"chunk_timeout"`
-
-**Acceptance:** Simulate a signal exceeding 1 KB → it arrives in multiple MQTT messages →
-hub reassembles correctly → code is stored and sendable.
-
----
-
-## LOW — Defer until after v1
-
-Independent features or large separate efforts. Defer to keep the release scope manageable.
-
----
-
-### L1 — ir-agent: Optional Local HTTP API
-
-**What:** Thin HTTP server on the standalone `ir-agent` for local debugging without MQTT.
-
-**Endpoints:** `GET /health`, `GET /status`, `POST /send`, `POST /learn/start`, `POST /learn/stop`
-
-**Toggle:** `AGENT_HTTP_ENABLED=true` / `AGENT_HTTP_PORT` env vars.
-Hub must never use this for routing — MQTT remains the only hub ↔ agent channel.
 
 ---
 
