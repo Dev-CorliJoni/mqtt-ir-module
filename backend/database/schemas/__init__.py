@@ -9,3 +9,4 @@ from .scripts import Scripts
 from .script_steps import ScriptSteps
 from .script_runs import ScriptRuns
 from .script_run_steps import ScriptRunSteps
+from .logs import Logs

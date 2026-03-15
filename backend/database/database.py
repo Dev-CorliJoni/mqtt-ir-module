@@ -2,7 +2,7 @@ import os
 from database.database_base import DatabaseBase
 from database.schemas import (
     Remotes, Buttons, Signals, Captures, Settings, Agents, Marketplace,
-    Scripts, ScriptSteps, ScriptRuns, ScriptRunSteps,
+    Scripts, ScriptSteps, ScriptRuns, ScriptRunSteps, Logs,
 )
 
 
@@ -21,6 +21,7 @@ class Database(DatabaseBase):
         self.script_steps = ScriptSteps(data_dir)
         self.script_runs = ScriptRuns(data_dir)
         self.script_run_steps = ScriptRunSteps(data_dir)
+        self.logs = Logs(data_dir)
 
     def init(self) -> None:
         conn = self._connect()
@@ -37,6 +38,7 @@ class Database(DatabaseBase):
             self.script_steps._create_schema(conn)
             self.script_runs._create_schema(conn)
             self.script_run_steps._create_schema(conn)
+            self.logs._create_schema(conn)
             conn.commit()
         finally:
             conn.close()

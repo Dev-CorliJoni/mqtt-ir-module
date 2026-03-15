@@ -2,6 +2,7 @@
 import asyncio
 import json
 import logging
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -419,6 +420,25 @@ def _setup_app_logging() -> None:
         log.propagate = False  # don't double-log through uvicorn's root handler
 
 
+_prune_logger = logging.getLogger("connections.log_retention")
+_LOG_PRUNE_INTERVAL_SECONDS = 3600
+
+
+def _prune_logs_once() -> None:
+    try:
+        retention_days = database.settings.get_log_settings().get("log_retention_days", 7)
+        removed = database.logs.prune(retention_days)
+        if removed:
+            _prune_logger.info(f"Pruned {removed} log entries older than {retention_days} days")
+    except Exception as exc:
+        _prune_logger.warning(f"Log retention prune failed: {exc}")
+
+
+def _prune_logs_loop(stop_event: threading.Event) -> None:
+    while not stop_event.wait(_LOG_PRUNE_INTERVAL_SECONDS):
+        _prune_logs_once()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _setup_app_logging()
@@ -447,9 +467,21 @@ async def lifespan(app: FastAPI):
     if not env.debug:
         database.captures.clear()
 
+    # Prune logs that exceed the retention window, then keep pruning hourly.
+    _prune_logs_once()
+    _log_prune_stop_event = threading.Event()
+    _log_prune_thread = threading.Thread(
+        target=_prune_logs_loop,
+        args=(_log_prune_stop_event,),
+        daemon=True,
+        name="log-retention",
+    )
+    _log_prune_thread.start()
+
     try:
         yield
     finally:
+        _log_prune_stop_event.set()
         pairing_manager.stop()
         availability_hub.stop()
         command_client.stop()
@@ -737,37 +769,62 @@ def reset_agent_installation_state(
     }
 
 
-@api.get("/agents/{agent_id}/logs")
-def get_agent_logs(agent_id: str, limit: int = 100) -> Dict[str, Any]:
-    agent = agent_registry.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(status_code=404, detail="Unknown agent_id")
-    if not agent_log_hub.can_stream_agent(agent_id):
-        raise HTTPException(status_code=404, detail="Logs are not available for this agent")
-    bounded_limit = max(1, min(int(limit or 0), agent_log_hub.MAX_LOGS_PER_AGENT))
-    return {
-        "agent_id": str(agent.get("agent_id") or agent_id),
-        "items": agent_log_hub.snapshot(agent_id=agent_id, limit=bounded_limit),
-    }
+
+@api.get("/logs")
+def get_logs(
+    level: Optional[str] = None,
+    source_type: Optional[str] = None,
+    source_id: Optional[str] = None,
+    category: Optional[str] = None,
+    from_ts: Optional[float] = None,
+    to_ts: Optional[float] = None,
+    limit: int = 200,
+) -> Dict[str, Any]:
+    levels = _split_csv_param(level)
+    source_types = _split_csv_param(source_type)
+    source_ids = _split_csv_param(source_id)
+    categories = _split_csv_param(category)
+    items = database.logs.query(
+        levels=levels or None,
+        source_types=source_types or None,
+        source_ids=source_ids or None,
+        categories=categories or None,
+        from_ts=from_ts,
+        to_ts=to_ts,
+        limit=limit,
+    )
+    return {"items": items, "count": len(items)}
 
 
-@api.delete("/agents/{agent_id}/logs")
-def delete_agent_logs(agent_id: str, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+@api.delete("/logs")
+def delete_logs(
+    level: Optional[str] = None,
+    source_type: Optional[str] = None,
+    source_id: Optional[str] = None,
+    category: Optional[str] = None,
+    from_ts: Optional[float] = None,
+    to_ts: Optional[float] = None,
+    x_api_key: Optional[str] = Header(default=None),
+) -> Dict[str, Any]:
     require_api_key(x_api_key)
-    agent = agent_registry.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(status_code=404, detail="Unknown agent_id")
-    agent_log_hub.clear_agent_logs(agent_id)
-    return {"agent_id": str(agent.get("agent_id") or agent_id), "cleared": True}
+    levels = _split_csv_param(level)
+    source_types = _split_csv_param(source_type)
+    source_ids = _split_csv_param(source_id)
+    categories = _split_csv_param(category)
+    deleted = database.logs.delete(
+        levels=levels or None,
+        source_types=source_types or None,
+        source_ids=source_ids or None,
+        categories=categories or None,
+        from_ts=from_ts,
+        to_ts=to_ts,
+    )
+    return {"deleted": deleted}
 
 
-@api.websocket("/agents/{agent_id}/logs/ws")
-async def agent_logs_ws(agent_id: str, websocket: WebSocket) -> None:
-    agent = agent_registry.get_agent(agent_id)
-    if not agent or not agent_log_hub.can_stream_agent(agent_id):
-        await websocket.close(code=1008)
-        return
-    await agent_log_hub.connect(agent_id, websocket)
+@api.websocket("/logs/ws")
+async def logs_ws(websocket: WebSocket) -> None:
+    await agent_log_hub.connect_global(websocket)
     try:
         while True:
             msg = await websocket.receive()
@@ -776,7 +833,13 @@ async def agent_logs_ws(agent_id: str, websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     finally:
-        await agent_log_hub.disconnect(agent_id, websocket)
+        await agent_log_hub.disconnect_global(websocket)
+
+
+def _split_csv_param(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
+    return [v.strip() for v in str(value).split(",") if v.strip()]
 
 
 @api.put("/agents/{agent_id}")
@@ -899,6 +962,7 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         and body.hold_idle_timeout_ms is None
         and body.aggregate_round_to_us is None
         and body.aggregate_min_match_ratio is None
+        and body.log_retention_days is None
     ):
         raise HTTPException(status_code=400, detail="at least one setting must be provided")
     try:
@@ -928,6 +992,7 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             hold_idle_timeout_ms=body.hold_idle_timeout_ms,
             aggregate_round_to_us=body.aggregate_round_to_us,
             aggregate_min_match_ratio=body.aggregate_min_match_ratio,
+            log_retention_days=body.log_retention_days,
         )
         learning.apply_learning_settings(updated)
         if mqtt_runtime_changed:
