@@ -469,7 +469,7 @@ export function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Logs</CardTitle>
-          <Button variant="secondary" size="sm" onClick={() => navigate('/logs')}>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/logs', { state: { from: '/settings' } })}>
             View Logs
           </Button>
         </CardHeader>
