@@ -1,9 +1,12 @@
+import base64
 import json
 import logging
 import threading
 import time
 import uuid
 from typing import Any, Callable, Dict, Optional
+
+_CHUNK_SIZE = 15000
 
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
@@ -213,13 +216,28 @@ class AgentCommandClientHub:
             }
 
         topic = f"{self.COMMAND_TOPIC_PREFIX}/{normalized_agent_id}/cmd/{command}"
+        cmd_bytes = json.dumps(request_payload, separators=(",", ":")).encode()
         try:
-            connection.publish(
-                topic,
-                json.dumps(request_payload, separators=(",", ":")),
-                qos=QoS.AtLeastOnce,
-                retain=False,
-            )
+            if len(cmd_bytes) <= _CHUNK_SIZE:
+                connection.publish(topic, cmd_bytes, qos=QoS.AtLeastOnce, retain=False)
+            else:
+                b64 = base64.b64encode(cmd_bytes).decode()
+                chunks = [b64[i:i + _CHUNK_SIZE] for i in range(0, len(b64), _CHUNK_SIZE)]
+                for idx, chunk in enumerate(chunks):
+                    connection.publish(
+                        topic,
+                        json.dumps(
+                            {
+                                "transfer_id": request_id,
+                                "chunk_index": idx,
+                                "chunk_count": len(chunks),
+                                "chunk_data": chunk,
+                            },
+                            separators=(",", ":"),
+                        ),
+                        qos=QoS.AtLeastOnce,
+                        retain=False,
+                    )
         except Exception as exc:
             with self._lock:
                 self._pending.pop(request_id, None)
@@ -234,6 +252,10 @@ class AgentCommandClientHub:
             state = self._pending.pop(request_id, None)
 
         if not state or not bool(state.get("completed")):
+            if state and state.get("_chunks"):
+                self._logger.warning(
+                    f"chunk_timeout agent_id={normalized_agent_id} request_id={request_id}"
+                )
             if self._on_agent_timeout is not None:
                 try:
                     self._on_agent_timeout(normalized_agent_id)
@@ -283,6 +305,34 @@ class AgentCommandClientHub:
             expected_agent_id = str(state.get("agent_id") or "").strip()
             if not expected_agent_id or expected_agent_id != agent_id:
                 return
+
+            # Chunked response: accumulate pieces until all are received.
+            if "chunk_count" in payload:
+                transfer_id = str(payload.get("transfer_id") or "").strip()
+                if not transfer_id or transfer_id != request_id:
+                    return
+                try:
+                    chunk_index = int(payload["chunk_index"])
+                    chunk_count = int(payload["chunk_count"])
+                except (KeyError, TypeError, ValueError):
+                    return
+                chunk_data = str(payload.get("chunk_data") or "")
+                if not chunk_data or chunk_count <= 0 or not (0 <= chunk_index < chunk_count):
+                    return
+
+                chunks_buf = state.setdefault("_chunks", [None] * chunk_count)
+                if chunks_buf[chunk_index] is None:
+                    chunks_buf[chunk_index] = chunk_data
+                if any(c is None for c in chunks_buf):
+                    return  # Still waiting for remaining chunks.
+
+                try:
+                    full_bytes = b"".join(base64.b64decode(c) for c in chunks_buf)
+                    payload = json.loads(full_bytes)
+                except Exception:
+                    return
+                if not isinstance(payload, dict):
+                    return
 
             payload_request_id = str(payload.get("request_id") or "").strip()
             if payload_request_id and payload_request_id != request_id:
