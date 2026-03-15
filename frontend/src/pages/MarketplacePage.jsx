@@ -35,6 +35,12 @@ function SignalBadge({ type, protocol }) {
   )
 }
 
+function stripBrandPrefix(brand, model) {
+  const normalized = brand.replace(/_/g, ' ')
+  const prefix = normalized + ' '
+  return model.startsWith(prefix) ? model.slice(prefix.length) : model
+}
+
 function MarketplaceTile({ remote, installed, installing, onInstall }) {
   const { t } = useTranslation()
   const protocols = [
@@ -44,13 +50,15 @@ function MarketplaceTile({ remote, installed, installing, onInstall }) {
   ]
   const hasRaw = remote.buttons.some((b) => b.signal_type === 'raw')
   const githubUrl = `https://github.com/Lucaslhm/Flipper-IRDB/blob/main/${remote.path.split('/').map(encodeURIComponent).join('/')}`
+  const displayModel = stripBrandPrefix(remote.brand, remote.model)
 
   return (
     <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 flex items-center gap-4">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold">
-            {remote.brand} {remote.model !== remote.brand ? remote.model : ''}
+          <span className="font-semibold">{displayModel}</span>
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[rgb(var(--bg))] border border-[rgb(var(--border))] text-[rgb(var(--muted))]">
+            {remote.brand.replace(/_/g, ' ')}
           </span>
           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[rgb(var(--bg))] border border-[rgb(var(--border))] text-[rgb(var(--muted))]">
             {remote.category.replace(/_/g, ' ')}

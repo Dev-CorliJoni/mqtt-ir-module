@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Drawer } from '../../components/ui/Drawer.jsx'
 import { Button } from '../../components/ui/Button.jsx'
@@ -26,7 +26,11 @@ export function MarketplaceInstallDrawer({ open, remote, onClose, onInstall }) {
 
   useEffect(() => {
     if (!open || !remote) return
-    setRemoteName(remote.model || '')
+    const prefix = (remote.brand || '').replace(/_/g, ' ') + ' '
+    const name = remote.model?.startsWith(prefix)
+      ? remote.model.slice(prefix.length)
+      : remote.model || ''
+    setRemoteName(name)
   }, [open, remote])
 
   if (!remote) return null
