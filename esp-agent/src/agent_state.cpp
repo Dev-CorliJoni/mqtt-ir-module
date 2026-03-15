@@ -123,6 +123,8 @@ void saveRuntimeConfig() {
   gPrefs.putUShort("mqtt_port", gRuntimeConfig.mqttPort);
   gPrefs.putString("mqtt_user", gRuntimeConfig.mqttUser);
   gPrefs.putString("mqtt_pass", gRuntimeConfig.mqttPass);
+  gPrefs.putInt("ir_tx_pin", gRuntimeConfig.irTxPin);
+  gPrefs.putInt("ir_rx_pin", gRuntimeConfig.irRxPin);
   gPrefs.end();
 }
 
@@ -147,6 +149,8 @@ void loadPersistedState() {
   }
   gRuntimeConfig.mqttUser = gPrefs.getString("mqtt_user", "");
   gRuntimeConfig.mqttPass = gPrefs.getString("mqtt_pass", "");
+  gRuntimeConfig.irTxPin = gPrefs.getInt("ir_tx_pin", kDefaultIrTxPin);
+  gRuntimeConfig.irRxPin = gPrefs.getInt("ir_rx_pin", kDefaultIrRxPin);
   gPrefs.end();
 }
 

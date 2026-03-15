@@ -26,7 +26,6 @@ struct PendingOtaRequest {
 };
 
 PendingOtaRequest gPendingOtaRequest;
-bool gPendingHardwareInit = false;
 
 void sendCommandResponse(
     const String& hubId,
@@ -306,9 +305,12 @@ bool executeRuntimeConfigSet(
   gRuntimeConfig.irTxPin = nextTx;
   saveRebootRequired(false);
   if (changed) {
-    // initIrHardware tears down RMT channels — calling rmt_driver_uninstall() from
-    // within the MQTT callback stack causes a hardware panic. Defer to processBackgroundTasks.
-    gPendingHardwareInit = true;
+    // RMT hardware teardown (rmt_driver_uninstall) is not safe at runtime regardless of context.
+    // Persist the new pins to NVS and publish the updated state before rebooting so setup()
+    // initialises IR hardware with the correct pins on the next boot.
+    saveRuntimeConfig();
+    publishState();
+    scheduleReboot(kRebootDelayMs);
   } else {
     publishState();
   }
@@ -427,15 +429,6 @@ bool executeRuntimeOtaCancel(
   result["cancel_requested"] = true;
   result["running"] = true;
   return true;
-}
-
-void processPendingHardwareInit() {
-  if (!gPendingHardwareInit) {
-    return;
-  }
-  gPendingHardwareInit = false;
-  initIrHardware();
-  publishState();
 }
 
 void processPendingOtaRequest() {
@@ -605,7 +598,6 @@ void handleCommand(const String& command, JsonObjectConst payload) {
 }
 
 void processBackgroundTasks() {
-  processPendingHardwareInit();
   processPendingOtaRequest();
 }
 

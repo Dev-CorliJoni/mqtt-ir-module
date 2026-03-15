@@ -53,7 +53,10 @@ void onMqttMessage(char* topicChars, byte* payload, unsigned int length) {
       return;
     }
     if (applyRuntimeStateSnapshot(doc.as<JsonObjectConst>())) {
-      initIrHardware();
+      // Pins differ from NVS defaults (e.g. first boot after factory flash).
+      // Persist and reboot — RMT teardown at runtime causes a hardware panic.
+      saveRuntimeConfig();
+      scheduleReboot(kRebootDelayMs);
     }
     return;
   }
