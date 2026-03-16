@@ -137,7 +137,7 @@ class AgentLogHub:
         normalized_event = self._normalize_event(event)
         if not normalized_event:
             return
-        self._append_event(normalized_agent_id, "hub", normalized_event)
+        self._append_event(normalized_agent_id, "agent", normalized_event)
 
     def _on_agent_log(self, connection: Any, client: Any, userdata: Any, message: MQTTMessage) -> None:
         agent_id = self._parse_agent_id(message.topic)
