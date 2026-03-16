@@ -72,8 +72,8 @@
   "button": {
     "press": "PRESS",
     "hold": "HOLD",
-    "sendPress": "Send press",
-    "sendHold": "Send hold",
+    "sendPress": "Press",
+    "sendHold": "Hold",
     "send": "Send",
     "sendPressSuccess": "Press sent.",
     "sendHoldSuccess": "Hold sent.",

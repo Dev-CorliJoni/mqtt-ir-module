@@ -72,8 +72,8 @@
   "button": {
     "press": "COURT",
     "hold": "LONG",
-    "sendPress": "Appui court",
-    "sendHold": "Appui long",
+    "sendPress": "Appuyer",
+    "sendHold": "Maintenir",
     "send": "Envoyer",
     "sendPressSuccess": "Appui court envoyé.",
     "sendHoldSuccess": "Appui long envoyé.",

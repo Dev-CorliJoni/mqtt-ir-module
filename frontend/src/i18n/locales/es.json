@@ -72,8 +72,8 @@
   "button": {
     "press": "CORTA",
     "hold": "LARGA",
-    "sendPress": "Pulsación corta",
-    "sendHold": "Pulsación larga",
+    "sendPress": "Pulsar",
+    "sendHold": "Mantener",
     "send": "Enviar",
     "sendPressSuccess": "Pulsación corta enviada.",
     "sendHoldSuccess": "Pulsación larga enviada.",

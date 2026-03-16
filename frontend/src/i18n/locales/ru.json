@@ -72,8 +72,8 @@
   "button": {
     "press": "КОРОТКО",
     "hold": "ДОЛГО",
-    "sendPress": "Коротко нажать",
-    "sendHold": "Долго нажать",
+    "sendPress": "Нажать",
+    "sendHold": "Удержать",
     "send": "Отправить",
     "sendPressSuccess": "Короткое нажатие отправлено.",
     "sendHoldSuccess": "Долгое нажатие отправлено.",

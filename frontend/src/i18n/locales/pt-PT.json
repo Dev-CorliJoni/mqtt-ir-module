@@ -72,8 +72,8 @@
   "button": {
     "press": "CURTA",
     "hold": "LONGA",
-    "sendPress": "Pressão curta",
-    "sendHold": "Pressão longa",
+    "sendPress": "Pressionar",
+    "sendHold": "Manter",
     "send": "Enviar",
     "sendPressSuccess": "Pressão curta enviada.",
     "sendHoldSuccess": "Pressão longa enviada.",

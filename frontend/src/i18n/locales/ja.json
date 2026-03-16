@@ -72,8 +72,8 @@
   "button": {
     "press": "短押し",
     "hold": "長押し",
-    "sendPress": "短押しを送信",
-    "sendHold": "長押しを送信",
+    "sendPress": "短押し",
+    "sendHold": "長押し",
     "send": "送信",
     "sendPressSuccess": "短押しを送信しました。",
     "sendHoldSuccess": "長押しを送信しました。",

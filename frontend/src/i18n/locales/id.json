@@ -72,8 +72,8 @@
   "button": {
     "press": "SINGKAT",
     "hold": "LAMA",
-    "sendPress": "Kirim tekan singkat",
-    "sendHold": "Kirim tekan lama",
+    "sendPress": "Tekan",
+    "sendHold": "Tahan",
     "send": "Kirim",
     "sendPressSuccess": "Tekan singkat terkirim.",
     "sendHoldSuccess": "Tekan lama terkirim.",

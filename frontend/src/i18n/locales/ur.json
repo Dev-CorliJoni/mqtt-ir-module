@@ -72,8 +72,8 @@
   "button": {
     "press": "مختصر",
     "hold": "طویل",
-    "sendPress": "مختصر دباؤ بھیجیں",
-    "sendHold": "طویل دباؤ بھیجیں",
+    "sendPress": "دبائیں",
+    "sendHold": "تھامیں",
     "send": "بھیجیں",
     "sendPressSuccess": "مختصر دباؤ بھیج دیا گیا۔",
     "sendHoldSuccess": "طویل دباؤ بھیج دیا گیا۔",

@@ -72,8 +72,8 @@
   "button": {
     "press": "সংক্ষিপ্ত",
     "hold": "দীর্ঘ",
-    "sendPress": "সংক্ষিপ্ত চাপ পাঠান",
-    "sendHold": "দীর্ঘ চাপ পাঠান",
+    "sendPress": "চাপুন",
+    "sendHold": "ধরুন",
     "send": "পাঠান",
     "sendPressSuccess": "সংক্ষিপ্ত চাপ পাঠানো হয়েছে।",
     "sendHoldSuccess": "দীর্ঘ চাপ পাঠানো হয়েছে।",

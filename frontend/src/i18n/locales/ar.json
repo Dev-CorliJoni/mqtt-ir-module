@@ -72,8 +72,8 @@
   "button": {
     "press": "قصير",
     "hold": "مطوّل",
-    "sendPress": "إرسال ضغطة قصيرة",
-    "sendHold": "إرسال ضغطة مطوّلة",
+    "sendPress": "ضغط",
+    "sendHold": "ضغط مطوّل",
     "send": "إرسال",
     "sendPressSuccess": "تم إرسال الضغطة القصيرة.",
     "sendHoldSuccess": "تم إرسال الضغطة المطوّلة.",
