@@ -111,10 +111,7 @@ pairing_manager = PairingManagerHub(
     sw_version=SOFTWARE_VERSION,
     auto_open=False,
 )
-command_client = AgentCommandClientHub(
-    runtime_loader=runtime_loader,
-    on_agent_timeout=lambda agent_id: _handle_mqtt_agent_timeout(agent_id),
-)
+command_client = AgentCommandClientHub(runtime_loader=runtime_loader)
 runtime_state_hub = AgentRuntimeStateHub(runtime_loader=runtime_loader, database=database, pairing_manager=pairing_manager)
 installation_state_hub = AgentInstallationStateHub(
     runtime_loader=runtime_loader,
@@ -163,26 +160,6 @@ def apply_hub_agent_setting(enabled: bool) -> None:
         agent_registry.unregister_agent(local_agent.agent_id)
         agent_log_hub.clear_agent_logs(local_agent.agent_id)
 
-
-def _handle_mqtt_agent_timeout(agent_id: str) -> None:
-    normalized_agent_id = str(agent_id or "").strip()
-    if not normalized_agent_id:
-        return
-    seen_at = time.time()
-    agent_registry.set_agent_offline(agent_id=normalized_agent_id)
-    agent_log_hub.record_system(
-        agent_id=normalized_agent_id,
-        event={
-            "ts": seen_at,
-            "level": "warn",
-            "category": "transport",
-            "message": "Agent command timeout; marked offline",
-            "error_code": "agent_timeout",
-            "meta": {
-                "source": "command_client",
-            },
-        },
-    )
 
 
 def register_external_mqtt_agent(agent_data: Dict[str, Any], online: bool = True) -> None:
@@ -748,13 +725,12 @@ def ota_update_agent(
         "url": ota_url,
         "sha256": str(firmware.get("ota_sha256") or ""),
     }
-    result = command_client.runtime_ota_start(agent_id=normalized_agent_id, payload=payload)
+    command_client.runtime_ota_start(agent_id=normalized_agent_id, payload=payload)
     agent_registry.mark_agent_activity(normalized_agent_id)
     return {
         "agent_id": normalized_agent_id,
         "requested_version": payload["version"],
         "url": ota_url,
-        "result": result,
     }
 
 

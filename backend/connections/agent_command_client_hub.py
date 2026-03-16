@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 import uuid
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 _CHUNK_SIZE = 15000
 
@@ -21,10 +21,8 @@ class AgentCommandClientHub:
     def __init__(
         self,
         runtime_loader: RuntimeLoader,
-        on_agent_timeout: Optional[Callable[[str], None]] = None,
     ) -> None:
         self._runtime_loader = runtime_loader
-        self._on_agent_timeout = on_agent_timeout
         self._logger = logging.getLogger("agent_command_client_hub")
         self._lock = threading.Lock()
         self._running = False
@@ -162,18 +160,30 @@ class AgentCommandClientHub:
             timeout_seconds=timeout_seconds,
         )
 
-    def runtime_ota_start(
-        self,
-        agent_id: str,
-        payload: Dict[str, Any],
-        timeout_seconds: float = 120.0,
-    ) -> Dict[str, Any]:
-        return self._request(
-            agent_id=agent_id,
-            command="runtime/ota/start",
-            payload=payload,
-            timeout_seconds=timeout_seconds,
-        )
+    def runtime_ota_start(self, agent_id: str, payload: Dict[str, Any]) -> None:
+        # Fire-and-forget: publish the command and return immediately.
+        # The outcome is tracked exclusively by AgentInstallationStateHub via
+        # MQTT availability + firmware version check — no response is needed here.
+        normalized_agent_id = str(agent_id or "").strip()
+        if not normalized_agent_id:
+            raise AgentError(code="agent_required", message="agent_id is required", status_code=400)
+        connection = self._runtime_loader.mqtt_connection()
+        if connection is None:
+            raise AgentError(code="mqtt_not_connected", message="MQTT is not connected", status_code=503)
+        request_payload = dict(payload or {})
+        request_payload["request_id"] = uuid.uuid4().hex
+        request_payload["hub_id"] = self._hub_id()
+        request_payload["requested_at"] = time.time()
+        topic = f"{self.COMMAND_TOPIC_PREFIX}/{normalized_agent_id}/cmd/runtime/ota/start"
+        cmd_bytes = json.dumps(request_payload, separators=(",", ":")).encode()
+        try:
+            connection.publish(topic, cmd_bytes, qos=QoS.AtLeastOnce, retain=False)
+        except Exception as exc:
+            raise AgentError(
+                code="mqtt_publish_failed",
+                message=f"Failed to publish OTA start command: {exc}",
+                status_code=503,
+            ) from exc
 
     def runtime_ota_cancel(
         self,
@@ -256,11 +266,6 @@ class AgentCommandClientHub:
                 self._logger.warning(
                     f"chunk_timeout agent_id={normalized_agent_id} request_id={request_id}"
                 )
-            if self._on_agent_timeout is not None:
-                try:
-                    self._on_agent_timeout(normalized_agent_id)
-                except Exception as exc:
-                    self._logger.warning(f"Failed to handle agent timeout fallback for {normalized_agent_id}: {exc}")
             raise AgentError(
                 code="agent_timeout",
                 message=f"Agent {normalized_agent_id} did not respond in time",
