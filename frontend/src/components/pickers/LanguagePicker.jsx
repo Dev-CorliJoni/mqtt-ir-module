@@ -24,7 +24,7 @@ const LANGUAGES = [
 ]
 
 export function LanguagePicker() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const toast = useToast()
   const queryClient = useQueryClient()
   const errorMapper = new ApiErrorMapper(t)
@@ -39,7 +39,8 @@ export function LanguagePicker() {
     mutationFn: updateSettings,
     onSuccess: (data) => {
       queryClient.setQueryData(['settings'], data)
-      toast.show({ title: t('settings.language'), message: t('common.saved') })
+      const tNew = i18n.getFixedT(data.language)
+      toast.show({ title: tNew('settings.language'), message: tNew('common.saved') })
     },
     onError: (e) => toast.show({ title: t('settings.language'), message: errorMapper.getMessage(e, 'common.failed') }),
   })
