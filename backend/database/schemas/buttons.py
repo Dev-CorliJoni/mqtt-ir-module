@@ -96,7 +96,7 @@ class Buttons(DatabaseBase):
                 FROM buttons b
                 LEFT JOIN button_signals s ON s.button_id = b.id
                 WHERE b.remote_id = ?
-                ORDER BY b.name
+                ORDER BY b.created_at
                 """,
                 (remote_id,),
             ).fetchall()

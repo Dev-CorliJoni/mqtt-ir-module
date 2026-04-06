@@ -95,7 +95,7 @@ class AgentRuntimeStateHub:
         del client
         del userdata
         agent_id, subtopic = self._parse_agent_id_and_subtopic(message.topic)
-        if not agent_id or not subtopic:
+        if not agent_id or subtopic not in {"hub", "version", "agent", "runtime", "diagnostics"}:
             return
         payload = self._parse_payload(message)
         if payload is None:

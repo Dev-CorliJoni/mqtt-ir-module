@@ -339,7 +339,7 @@ export function LogsPage() {
               disabled={snapshotQuery.isFetching}
             >
               <Icon path={mdiRefresh} size={0.8} />
-              Refresh
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button
               variant="secondary"
@@ -348,7 +348,7 @@ export function LogsPage() {
               disabled={filteredLogs.length === 0}
             >
               <Icon path={mdiDownload} size={0.8} />
-              Export
+              <span className="hidden sm:inline">Export</span>
             </Button>
             <Button
               variant="secondary"
@@ -356,7 +356,7 @@ export function LogsPage() {
               onClick={() => setConfirmClearOpen(true)}
             >
               <Icon path={mdiTrashCan} size={0.8} />
-              Clear
+              <span className="hidden sm:inline">Clear</span>
             </Button>
           </div>
         </CardHeader>
