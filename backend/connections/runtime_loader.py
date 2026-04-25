@@ -59,6 +59,11 @@ class RuntimeLoader:
         self._homeassistant_handler.stop()
         self._mqtt_handler.stop()
 
+    def cleanup_homeassistant_discovery(self) -> None:
+        """Clear retained HA discovery topics. Caller is responsible for invoking this
+        BEFORE stopping the MQTT connection (otherwise no broker to publish to)."""
+        self._homeassistant_handler.cleanup_discovery()
+
     def reload(self) -> None:
         # Cancel any running retry before attempting a fresh connect.
         self._cancel_retry()

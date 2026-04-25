@@ -1104,6 +1104,7 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             )
         )
         hub_public_url_changed = body.hub_public_url is not None
+        previous_ha_enabled = bool(database.settings.get_ui_settings().get("homeassistant_enabled"))
         updated = database.settings.update_ui_settings(
             theme=body.theme,
             language=body.language,
@@ -1123,6 +1124,13 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             log_retention_days=body.log_retention_days,
         )
         learning.apply_learning_settings(updated)
+        ha_disabling = previous_ha_enabled and (body.homeassistant_enabled is False)
+        if ha_disabling:
+            # Clear retained HA discovery topics while the MQTT connection is still alive.
+            try:
+                runtime_loader.cleanup_homeassistant_discovery()
+            except Exception as exc:
+                _api_logger.warning(f"HA discovery cleanup before disable failed: {exc}")
         if mqtt_runtime_changed:
             command_client.stop()
             pairing_manager.stop()
