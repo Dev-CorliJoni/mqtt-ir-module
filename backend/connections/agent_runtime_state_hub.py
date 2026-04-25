@@ -2,7 +2,7 @@ import json
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Tuple
 
 from jmqtt import MQTTMessage, QualityOfService as QoS
 
@@ -23,16 +23,21 @@ class AgentRuntimeStateHub:
         runtime_loader: RuntimeLoader,
         database: Database,
         pairing_manager: "Optional[PairingManagerHub]" = None,
+        on_sw_version_change: Optional[Callable[[str], None]] = None,
     ) -> None:
         self._runtime_loader = runtime_loader
         self._database = database
         self._pairing_manager = pairing_manager
+        self._on_sw_version_change = on_sw_version_change
         self._logger = logging.getLogger("agent_runtime_state_hub")
         self._lock = threading.Lock()
         self._running = False
         self._subscribed = False
         self._states: Dict[str, Dict[str, Any]] = {}
         self._reclaim_sent: Set[str] = set()
+
+    def set_on_sw_version_change(self, callback: Optional[Callable[[str], None]]) -> None:
+        self._on_sw_version_change = callback
 
     def start(self) -> None:
         connection = self._runtime_loader.mqtt_connection()
@@ -173,6 +178,7 @@ class AgentRuntimeStateHub:
         can_send = self._parse_bool(state.get("can_send"), default=bool(agent.get("can_send")))
         can_learn = self._parse_bool(state.get("can_learn"), default=bool(agent.get("can_learn")))
         sw_version = str(state.get("sw_version") or "").strip() or str(agent.get("sw_version") or "")
+        previous_sw_version = str(agent.get("sw_version") or "").strip()
         try:
             self._database.agents.upsert(
                 agent_id=agent_id,
@@ -184,13 +190,19 @@ class AgentRuntimeStateHub:
                 can_learn=can_learn,
                 sw_version=sw_version or None,
                 agent_topic=agent.get("agent_topic"),
-                configuration_url=agent.get("configuration_url"),
                 pending=bool(agent.get("pending")),
                 pairing_session_id=agent.get("pairing_session_id"),
                 last_seen=agent.get("last_seen"),
             )
         except Exception as exc:
             self._logger.warning(f"Failed to sync runtime state into agent cache for {agent_id}: {exc}")
+            return
+
+        if sw_version and sw_version != previous_sw_version and self._on_sw_version_change is not None:
+            try:
+                self._on_sw_version_change(agent_id)
+            except Exception as exc:
+                self._logger.debug(f"on_sw_version_change callback failed for {agent_id}: {exc}")
 
     def _maybe_reclaim_agent(self, agent_id: str, state: Dict[str, Any]) -> None:
         if self._pairing_manager is None:
