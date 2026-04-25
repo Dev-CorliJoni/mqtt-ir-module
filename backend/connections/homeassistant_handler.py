@@ -1,11 +1,14 @@
 import logging
 import threading
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from jhomeassistant import HomeAssistantConnection
 from jmqtt import MQTTConnectionV3
 
 from .homeassistant_connection_model import HomeAssistantConnectionModel
+
+if TYPE_CHECKING:
+    from .homeassistant_device_manager import HomeAssistantDeviceManager
 
 
 class HomeAssistantHandler:
@@ -15,17 +18,23 @@ class HomeAssistantHandler:
         self._connection_model: Optional[HomeAssistantConnectionModel] = None
         self._ha_connection: Optional[HomeAssistantConnection] = None
         self._ha_thread: Optional[threading.Thread] = None
+        self._device_manager: Optional["HomeAssistantDeviceManager"] = None
 
-    def configure(self, model: HomeAssistantConnectionModel, mqtt_connection: Optional[MQTTConnectionV3]) -> None:
+    def configure(
+        self,
+        model: HomeAssistantConnectionModel,
+        mqtt_connection: Optional[MQTTConnectionV3],
+        device_manager: Optional["HomeAssistantDeviceManager"] = None,
+    ) -> None:
         with self._lock:
             self._connection_model = model
+            self._device_manager = device_manager
         if not model.is_homeassistant_configured or mqtt_connection is None:
             with self._lock:
                 self._ha_connection = None
             return
 
         ha_connection = HomeAssistantConnection(mqtt_connection)
-        ha_connection.origin.name = model.origin_name
         with self._lock:
             self._ha_connection = ha_connection
 
@@ -69,8 +78,14 @@ class HomeAssistantHandler:
     def _thread_main(self, ha_connection: HomeAssistantConnection) -> None:
         with self._lock:
             model = self._connection_model
+            device_manager = self._device_manager
         if model is None:
             return
+        if device_manager is not None:
+            try:
+                device_manager.setup(ha_connection, origin_name=model.origin_name)
+            except Exception as exc:
+                self._logger.warning(f"Device manager setup failed: {exc}")
         try:
             ha_connection.run(
                 schedule_resolution=model.schedule_resolution,

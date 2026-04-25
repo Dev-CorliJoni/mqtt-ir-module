@@ -10,6 +10,7 @@ class HomeAssistantConnectionModel:
     role: ConnectionRole
     enabled: bool
     origin_name: str
+    hub_public_url: str = ""
     schedule_resolution: float = 1.0
     publish_timeout: Optional[float] = 5.0
 

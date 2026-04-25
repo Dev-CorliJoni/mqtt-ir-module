@@ -52,6 +52,7 @@ from connections import (
     AgentLogHub,
     AgentLogReporter,
     AgentRuntimeStateHub,
+    HomeAssistantDeviceManager,
     PairingManagerHub,
     RuntimeLoader,
 )
@@ -91,12 +92,67 @@ status_comm = StatusCommunication()
 agent_registry = AgentRegistry(database=database)
 local_transport = LocalTransport(engine=engine, parser=parser)
 local_agent = LocalAgent(transport=local_transport, agent_id="local-hub-agent")
+
+
+def _ha_send_button(button_id: int, mode: str) -> None:
+    try:
+        button = database.buttons.get(button_id)
+        if not button:
+            _ha_logger.warning(f"HA button press: button {button_id} not found")
+            return
+        signals = database.signals.list_by_button(button_id)
+        if not signals:
+            _ha_logger.warning(f"HA button press: no signals for button {button_id}")
+            return
+        remote = database.remotes.get(int(button["remote_id"]))
+        if not remote:
+            _ha_logger.warning(f"HA button press: remote not found for button {button_id}")
+            return
+        agent = agent_registry.resolve_agent_for_remote(remote_id=int(remote["id"]), remote=remote)
+        encoding = str(signals.get("encoding") or "raw").strip().lower()
+        if encoding == "protocol":
+            payload = {
+                "mode": mode,
+                "hold_ms": 0,
+                "encoding": "protocol",
+                "protocol": signals.get("protocol"),
+                "address": signals.get("address"),
+                "command_hex": signals.get("command_hex"),
+            }
+        else:
+            payload = {
+                "mode": mode,
+                "hold_ms": 0,
+                "encoding": encoding,
+                "press_initial": signals.get("press_initial"),
+                "hold_initial": signals.get("hold_initial"),
+                "hold_repeat": signals.get("hold_repeat"),
+                "hold_gap_us": signals.get("hold_gap_us"),
+                "carrier_hz": remote.get("carrier_hz"),
+                "duty_cycle": remote.get("duty_cycle"),
+            }
+        agent.send(payload)
+        agent_registry.mark_agent_activity(agent.agent_id)
+    except AgentError as exc:
+        _ha_logger.warning(f"HA button press failed for button {button_id}: {exc.message}")
+    except Exception as exc:
+        _ha_logger.warning(f"HA button press failed for button {button_id}: {exc}")
+
+
+ha_device_manager = HomeAssistantDeviceManager(
+    database=database,
+    runtime_state_hub=None,  # set after runtime_state_hub is created
+    firmware_catalog=firmware_catalog,
+    ir_send_fn=_ha_send_button,
+    command_client=None,  # set after command_client is created
+)
 runtime_loader = RuntimeLoader(
     settings_store=database.settings,
     settings_cipher=settings_cipher,
     role="hub",
     environment=env,
     database=database,
+    ha_device_manager=ha_device_manager,
 )
 agent_log_hub = AgentLogHub(runtime_loader=runtime_loader, database=database, local_agent_id=local_agent.agent_id)
 local_agent_log_reporter = AgentLogReporter(
@@ -113,7 +169,15 @@ pairing_manager = PairingManagerHub(
     auto_open=False,
 )
 command_client = AgentCommandClientHub(runtime_loader=runtime_loader)
-runtime_state_hub = AgentRuntimeStateHub(runtime_loader=runtime_loader, database=database, pairing_manager=pairing_manager)
+runtime_state_hub = AgentRuntimeStateHub(
+    runtime_loader=runtime_loader,
+    database=database,
+    pairing_manager=pairing_manager,
+    on_sw_version_change=lambda agent_id: ha_device_manager.update_agent(agent_id),
+)
+ha_device_manager.set_runtime_state_hub(runtime_state_hub)
+ha_device_manager.set_command_client(command_client)
+ha_device_manager.set_runtime_loader(runtime_loader)
 installation_state_hub = AgentInstallationStateHub(
     runtime_loader=runtime_loader,
     version_provider=lambda agent_id: str((runtime_state_hub.get_state(agent_id) or {}).get("sw_version") or "").strip(),
@@ -403,6 +467,7 @@ def _setup_app_logging() -> None:
 
 _prune_logger = logging.getLogger("connections.log_retention")
 _api_logger = logging.getLogger("connections.api")
+_ha_logger = logging.getLogger("ha_button_press")
 _LOG_PRUNE_INTERVAL_SECONDS = 3600
 
 
@@ -913,6 +978,7 @@ def update_agent(
             agent_id=agent_id,
             changes=changes,
         )
+        ha_device_manager.update_agent(agent_id)
         return _decorate_agent_payload(updated)
     except ValueError as e:
         message = str(e)
@@ -938,6 +1004,7 @@ def delete_agent(
         agent_log_hub.clear_agent_logs(agent_id)
         runtime_state_hub.clear_state(agent_id)
         installation_state_hub.reset_state(agent_id)
+        ha_device_manager.remove_agent(agent_id)
         return result
     except ValueError as e:
         message = str(e)
@@ -978,6 +1045,7 @@ def pairing_accept(agent_id: str, x_api_key: Optional[str] = Header(default=None
     try:
         accepted = pairing_manager.accept_offer(agent_id=agent_id)
         register_external_mqtt_agent(accepted, online=True)
+        ha_device_manager.add_agent(str(accepted.get("agent_id") or ""))
         return accepted
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1009,6 +1077,7 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
         body.theme is None
         and body.language is None
         and body.homeassistant_enabled is None
+        and body.hub_public_url is None
         and body.mqtt_host is None
         and body.mqtt_port is None
         and body.mqtt_username is None
@@ -1034,10 +1103,12 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
                 body.mqtt_instance,
             )
         )
+        hub_public_url_changed = body.hub_public_url is not None
         updated = database.settings.update_ui_settings(
             theme=body.theme,
             language=body.language,
             homeassistant_enabled=body.homeassistant_enabled,
+            hub_public_url=body.hub_public_url,
             mqtt_host=body.mqtt_host,
             mqtt_port=body.mqtt_port,
             mqtt_username=body.mqtt_username,
@@ -1066,6 +1137,11 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
             availability_hub.start()
             command_client.start()
             pairing_manager.start()
+        elif hub_public_url_changed:
+            try:
+                ha_device_manager.update_hub_public_url(str(updated.get("hub_public_url") or ""))
+            except Exception as exc:
+                _api_logger.warning(f"HA hub_public_url update failed: {exc}")
         return decorate_settings_payload(updated)
     except ValueError as e:
         message = str(e)
@@ -1108,7 +1184,9 @@ def update_settings(body: SettingsUpdate, x_api_key: Optional[str] = Header(defa
 def create_remote(body: RemoteCreate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return database.remotes.create(name=body.name, icon=body.icon)
+        result = database.remotes.create(name=body.name, icon=body.icon)
+        ha_device_manager.add_remote(int(result["id"]))
+        return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -1126,7 +1204,7 @@ def list_remotes() -> List[Dict[str, Any]]:
 def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return database.remotes.update(
+        result = database.remotes.update(
             remote_id=remote_id,
             name=body.name,
             icon=body.icon,
@@ -1134,6 +1212,8 @@ def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] =
             carrier_hz=body.carrier_hz,
             duty_cycle=body.duty_cycle,
         )
+        ha_device_manager.update_remote(int(remote_id))
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -1144,7 +1224,9 @@ def update_remote(remote_id: int, body: RemoteUpdate, x_api_key: Optional[str] =
 def delete_remote(remote_id: int, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return database.remotes.delete(remote_id=remote_id)
+        result = database.remotes.delete(remote_id=remote_id)
+        ha_device_manager.remove_remote(int(remote_id))
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -1169,7 +1251,10 @@ def list_buttons(remote_id: int) -> List[Dict[str, Any]]:
 def rename_button(button_id: int, body: ButtonUpdate, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return database.buttons.rename(button_id=button_id, name=body.name, icon=body.icon)
+        result = database.buttons.rename(button_id=button_id, name=body.name, icon=body.icon)
+        if result.get("remote_id") is not None:
+            ha_device_manager.update_remote(int(result["remote_id"]))
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -1180,7 +1265,10 @@ def rename_button(button_id: int, body: ButtonUpdate, x_api_key: Optional[str] =
 def delete_button(button_id: int, x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return database.buttons.delete(button_id=button_id)
+        result = database.buttons.delete(button_id=button_id)
+        if result.get("remote_id") is not None:
+            ha_device_manager.update_remote(int(result["remote_id"]))
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -1255,7 +1343,14 @@ def learn_capture(body: LearnCapture, x_api_key: Optional[str] = Header(default=
 def learn_stop(x_api_key: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     require_api_key(x_api_key)
     try:
-        return learning.stop()
+        result = learning.stop()
+        remote_id = result.get("remote_id") if isinstance(result, dict) else None
+        if remote_id is not None:
+            try:
+                ha_device_manager.update_remote(int(remote_id))
+            except Exception as exc:
+                _api_logger.debug(f"HA update_remote after learn_stop failed: {exc}")
+        return result
     except Exception as exc:
         _api_logger.error(f"POST /learn/stop failed: {exc}")
         raise HTTPException(status_code=500, detail="Failed to stop learning session")

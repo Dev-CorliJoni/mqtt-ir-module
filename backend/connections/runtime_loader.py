@@ -29,12 +29,14 @@ class RuntimeLoader:
         role: ConnectionRole,
         environment: Environment,
         database=None,
+        ha_device_manager=None,
     ) -> None:
         self._settings_store = settings_store
         self._settings_cipher = settings_cipher
         self._role = role
         self._environment = environment
         self._database = database
+        self._ha_device_manager = ha_device_manager
         self._mqtt_handler = MqttHandler(role=role)
         self._homeassistant_handler = HomeAssistantHandler()
         self._logger = logging.getLogger("connections.runtime_loader")
@@ -65,7 +67,7 @@ class RuntimeLoader:
             mqtt_model = self._build_mqtt_model(runtime_settings)
             homeassistant_model = self._build_homeassistant_model(runtime_settings)
             self._mqtt_handler.reload(mqtt_model)
-            self._homeassistant_handler.configure(homeassistant_model, self._mqtt_handler.connection())
+            self._homeassistant_handler.configure(homeassistant_model, self._mqtt_handler.connection(), device_manager=self._ha_device_manager)
             self._homeassistant_handler.start()
         except Exception as exc:
             self._mqtt_handler.stop()
@@ -179,7 +181,7 @@ class RuntimeLoader:
                 mqtt_model = self._build_mqtt_model(runtime_settings)
                 homeassistant_model = self._build_homeassistant_model(runtime_settings)
                 self._mqtt_handler.start(mqtt_model)
-                self._homeassistant_handler.configure(homeassistant_model, self._mqtt_handler.connection())
+                self._homeassistant_handler.configure(homeassistant_model, self._mqtt_handler.connection(), device_manager=self._ha_device_manager)
                 self._homeassistant_handler.start()
                 self._log_hub_event(
                     "info", "mqtt",
@@ -249,10 +251,12 @@ class RuntimeLoader:
         enabled = bool(runtime.get("homeassistant_enabled", False))
         if self._role != "hub":
             enabled = False
+        hub_public_url = str(runtime.get("hub_public_url") or "").strip()
         return HomeAssistantConnectionModel(
             role=self._role,
             enabled=enabled,
             origin_name=self.readable_name,
+            hub_public_url=hub_public_url,
             schedule_resolution=1.0,
             publish_timeout=5.0,
         )
